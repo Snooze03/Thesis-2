@@ -53,9 +53,6 @@ importers:
       valibot:
         specifier: ^1.1.0
         version: 1.1.0
-      zod:
-        specifier: ^4.0.5
-        version: 4.0.5
     devDependencies:
       '@eslint/js':
         specifier: ^9.30.1
@@ -1605,9 +1602,6 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@4.0.5:
-    resolution: {integrity: sha512-/5UuuRPStvHXu7RS+gmvRf4NXrNxpSllGwDnCBcJZtQsKrviYXm54yDGV2KYNLT5kq0lHGcl7lqWJLgSaG+tgA==}
-
 snapshots:
 
   '@ampproject/remapping@2.3.0':
@@ -2903,5 +2897,3 @@ snapshots:
   yallist@5.0.0: {}
 
   yocto-queue@0.1.0: {}
-
-  zod@4.0.5: {}

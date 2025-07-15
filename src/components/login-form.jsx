@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useForm } from "react-hook-form"
 import { valibotResolver } from '@hookform/resolvers/valibot'
+import { InputError } from "@/components/ui/inputError"
 import {
   pipe,
   object,
@@ -68,18 +69,22 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
+
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="flex flex-col gap-6">
-              <div className="grid gap-3">
+
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email"{...register("email")} type="email" placeholder="myemail@gmail.com" />
+                {/* Validation Error Message */}
                 {errors.email && (
-                  <div className="mt-1 p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  <InputError>
                     {errors.email.message}
-                  </div>
+                  </InputError>
                 )}
               </div>
-              <div className="grid gap-3">
+
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
                   <a
@@ -90,23 +95,26 @@ export function LoginForm({
                 </div>
                 <Input id="password" {...register("password")} type="password" />
                 {errors.password && (
-                  <div className="mt-1 p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  <InputError>
                     {errors.password.message}
-                  </div>
+                  </InputError>
                 )}
               </div>
+
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Logging in..." : "Login"}
                 </Button>
               </div>
             </div>
+
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
               <a href="#" className="underline underline-offset-4">
                 Sign up
               </a>
             </div>
+
           </form>
         </CardContent>
       </Card>

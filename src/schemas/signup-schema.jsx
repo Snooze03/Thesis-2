@@ -1,4 +1,3 @@
-import { valibotResolver } from '@hookform/resolvers/valibot'
 import {
     pipe,
     object,
@@ -8,8 +7,11 @@ import {
     safeParse,
     maxLength,
     minLength,
-    forward,
-    partialCheck
+    forward, partialCheck,
+    number,
+    transform,
+    minValue,
+    maxValue,
 } from "valibot"
 
 // Prefix for Valibot
@@ -23,20 +25,24 @@ const v = {
     maxLength,
     minLength,
     forward,
-    partialCheck
+    partialCheck,
+    number,
+    transform,
+    minValue,
+    maxValue,
 }
 
-const signUpSchema = v.pipe(
+const SignUpSchema = v.pipe(
     v.object({
         firstName: v.pipe(
             v.string(),
-            v.nonEmpty("Enter first name"),
-            v.minLength(2, "First name must be at least 2 characters long"),
+            v.nonEmpty("First name is required"),
+            v.minLength(2, "First name must be at least 2 characters"),
         ),
         lastName: v.pipe(
             v.string(),
-            v.nonEmpty("Enter last name"),
-            v.minLength(2, "Last name must be at least 2 characters long"),
+            v.nonEmpty("Last name is required"),
+            v.minLength(2, "Last name must be at least 2 characters"),
         ),
         email: v.pipe(
             v.string(),
@@ -46,7 +52,7 @@ const signUpSchema = v.pipe(
         password: v.pipe(
             v.string(),
             v.nonEmpty("Password is required"),
-            v.minLength(8, "Password must be at least 8 characters long"),
+            v.minLength(8, "Password must be at least 8 characters"),
         ),
         confirmPassword: v.pipe(
             v.string(),
@@ -61,8 +67,48 @@ const signUpSchema = v.pipe(
         ),
         ["confirmPassword"],
     ),
-)
+);
+
+const BasicInfoSchema = v.object(
+    {
+        currentWeight: v.pipe(
+            v.string(),
+            v.nonEmpty("Current weight is required"),
+            v.transform(Number),
+            v.number("Must be a valid number"),
+            v.minValue(1, "Weight must be greater than 0")
+        ),
+        goalWeight: v.pipe(
+            v.string(),
+            v.nonEmpty("Goal weight is required"),
+            v.transform(Number),
+            v.number("Must be a valid number"),
+            v.minValue(1, "Weight must be greater than 0")
+        ),
+        heightFeet: v.pipe(
+            v.string(),
+            v.nonEmpty("Ft is required"),
+            v.transform(Number),
+            v.number("Must be a valid number"),
+            v.minValue(1, "Height must be at least 1 foot"),
+            v.maxValue(8, "Height must be less than 8 feet"),
+        ),
+        heightInches: v.pipe(
+            v.string(),
+            v.nonEmpty("Inches is required"),
+            v.transform(Number),
+            v.number("Must be a valid number"),
+            v.minValue(0, "Inches must be 1 or greater"),
+            v.maxValue(11, "Inches must be less than 12"),
+        ),
+        bodyGoal: v.pipe(
+            v.string(),
+            v.nonEmpty("Please select a body goal"),
+        )
+    }
+);
 
 export {
-    signUpSchema
+    SignUpSchema,
+    BasicInfoSchema,
 }

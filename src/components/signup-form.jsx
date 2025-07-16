@@ -1,3 +1,6 @@
+"use client"
+
+import { Link } from "react-router"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "react-hook-form"
 import { valibotResolver } from '@hookform/resolvers/valibot'
-import { signUpSchema } from "../schemas/signup-schema"
+import { SignUpSchema } from "@/schemas/signup-schema"
 import { InputError } from "@/components/ui/inputError"
 
 export function SignUpForm(
@@ -13,13 +16,13 @@ export function SignUpForm(
     ...props
 ) {
 
-    // React Form Hook
+    // Signup Form Validation
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
     } = useForm({
-        resolver: valibotResolver(signUpSchema)
+        resolver: valibotResolver(SignUpSchema)
     });
 
     // Submit Handler
@@ -30,9 +33,9 @@ export function SignUpForm(
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
+                <CardHeader>
                     <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-                    <CardDescription>Enter your information below to create your account</CardDescription>
+                    <CardDescription>Step 1 of 3 - Create your account</CardDescription>
                 </CardHeader>
                 <CardContent>
 
@@ -87,14 +90,14 @@ export function SignUpForm(
                             </div>
 
                             <Button type="submit" className="w-full mt-2" disabled={isSubmitting}>
-                                {isSubmitting ? "Creating Account..." : "Create Account"}
+                                {isSubmitting ? "Next Step..." : "Continue"}
                             </Button>
 
                             <div className="text-center text-sm text-muted-foreground">
                                 Already have an account?{" "}
-                                <a href="#" className="underline underline-offset-4 hover:text-primary">
+                                <Link to={"/"} className="underline underline-offset-4 hover:text-primary" >
                                     Sign in
-                                </a>
+                                </Link>
                             </div>
                         </div>
 

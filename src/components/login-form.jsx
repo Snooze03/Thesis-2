@@ -1,3 +1,6 @@
+"use client"
+
+import { Link } from "react-router"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -6,14 +9,7 @@ import { Button } from "@/components/ui/button"
 import { useForm } from "react-hook-form"
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { InputError } from "@/components/ui/inputError"
-import {
-  pipe,
-  object,
-  string,
-  nonEmpty,
-  email,
-  safeParse,
-} from "valibot"
+import { pipe, object, string, nonEmpty, email, safeParse } from "valibot"
 
 // Prefix for Valibot
 const v = {
@@ -110,9 +106,9 @@ export function LoginForm({
 
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <a href="#" className="underline underline-offset-4">
+              <Link to={"/signup"} className="underline underline-offset-4">
                 Sign up
-              </a>
+              </Link>
             </div>
 
           </form>

@@ -3,5 +3,18 @@
 @import "tw-animate-css";
 
 @theme {
+    /* Break Points */
     --breakpoint-xs: 30rem;
+    --breakpoint-2xs: 20rem;
+    --breakpoint-3xs: 10rem;
+
+    /* Font-size */
+    --text-2xs: .6rem;
+
+    /* Colors */
+    --color-primary-500: oklch(0.885 0.088 200.3);
+    --color-primary-400: oklch(0.820 0.085 200.3);
+    --color-primary-300: oklch(0.756 0.078 200.3);
+    --color-primary-200: oklch(0.691 0.071 200.3);
+    --color-primary-100: oklch(0.756 0.078 200.3);
 }

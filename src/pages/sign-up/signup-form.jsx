@@ -1,15 +1,15 @@
 "use client"
 
-import { Link } from "react-router"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useForm } from "react-hook-form"
-import { valibotResolver } from '@hookform/resolvers/valibot'
-import { SignUpSchema } from "@/schemas/signup-schema"
-import { InputError } from "@/components/ui/inputError"
+import { Link } from "react-router";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { valibotResolver } from "@hookform/resolvers/valibot";
+import { SignUpSchema } from "@/schemas/signup-schema";
+import { InputError } from "@/components/ui/inputError";
 
 export function SignUpForm(
     className,

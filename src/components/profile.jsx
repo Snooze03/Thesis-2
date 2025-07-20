@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react";
-import { useEffect } from "react";
 import { clsx } from "clsx";
 import { MainLayout } from "@/layouts/main-layout";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Download, Dumbbell, Flag, Apple, Target, EllipsisVertical, Calendar, Clock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ const Profile = () => {
         <MainLayout>
 
             <CardTitle className="text-2xl">Profile</CardTitle>
+            {/* Profile Card */}
             <Card className="@container/profile gap-3 pt-0">
                 <CardHeader className="flex justify-between items-center gap-3 py-4 bg-primary rounded-t-md">
                     <div className="flex items-center gap-3">
@@ -53,7 +55,7 @@ const Profile = () => {
                         </Avatar>
                         <p className="font-semibold text-lg text-white">{userName}</p>
                     </div>
-                    <EllipsisVertical className="hover:bg-white"></EllipsisVertical>
+                    <KebabMenu />
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-3 items-center border-b-2 border-gray-300 pb-2 gap-3 md:gap-none">
@@ -182,6 +184,74 @@ const Profile = () => {
             </Card>
 
         </MainLayout >
+    );
+}
+
+const KebabMenu = () => {
+    const [openDialog, setOpenDialog] = useState(false);
+    const [openProgress, setProgress] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <EllipsisVertical />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-auto">
+                    <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    {/* Dialog Trigger nested in dropdown */}
+                    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                        <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={e => e.preventDefault()}>
+                                Edit Profile
+                            </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle className="font-semibold">Edit Profile</DialogTitle>
+                                <DialogDescription>
+                                    Make changes to your profile here. Click save when you're done.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setOpenDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={() => alert('Saved!')}>Save</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Progress Dialog */}
+                    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                        <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={e => e.preventDefault()}>
+                                Update Progress
+                            </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle className="font-semibold">Edit Profile</DialogTitle>
+                                <DialogDescription>
+                                    Make changes to your profile here. Click save when you're done.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setOpenDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={() => alert('Saved!')}>Save</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </>
     );
 }
 

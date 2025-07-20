@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react";
 import { clsx } from "clsx";
 import { MainLayout } from "@/layouts/main-layout";
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
 import * as v from "valibot";
 
 const Profile = () => {
@@ -44,7 +46,7 @@ const Profile = () => {
     return (
         <MainLayout>
 
-            <CardTitle className="text-2xl">Profile</CardTitle>
+            <SectionTitle>Profile</SectionTitle>
             {/* Profile Card */}
             <Card className="@container/profile gap-3 pt-0">
                 <CardHeader className="flex justify-between items-center gap-3 py-4 bg-primary rounded-t-md">
@@ -60,41 +62,41 @@ const Profile = () => {
                 <CardContent>
                     <div className="grid grid-cols-3 items-center border-b-2 border-gray-300 pb-2 gap-3 md:gap-none">
                         {/* Stats */}
-                        <div className="grid grid-rows-2 gap-1 text-center">
-                            <div className="flex gap-1 justify-center items-center">
-                                <Dumbbell className="stroke-green-500 size-4 @max-xs/profile:size-3" />
-                                <p className="font-semibold text-lg @max-xs/profile:text-sm">12</p>
-                            </div>
+                        <div className="grid grid-rows-2 place-items-center">
+                            <p className="font-semibold text-lg @max-xs/profile:text-sm">
+                                <Dumbbell className="inline mr-1.5 stroke-green-500 size-4 @max-xs/profile:size-3 " />
+                                12
+                            </p>
                             <p className="text-gray-600 @max-xs/profile:text-sm">Workouts</p>
                         </div>
-                        <div className="grid grid-rows-2 gap-1 text-center">
-                            <div className="flex gap-1 justify-center items-center">
-                                <Flag className="stroke-violet-500 size-4 @max-xs/profile:size-3" />
-                                <p className="font-semibold text-lg @max-xs/profile:text-sm">55 kg</p>
-                            </div>
+                        <div className="grid grid-rows-2 place-items-center">
+                            <p className="font-semibold text-lg @max-xs/profile:text-sm">
+                                <Flag className="inline mr-1.5 stroke-violet-500 size-4 @max-xs/profile:size-3" />
+                                55 kg
+                            </p>
                             <p className="text-gray-600 @max-xs/profile:text-sm">Weight</p>
                         </div>
-                        <div className="grid grid-rows-2 gap-1 text-center">
-                            <div className="flex gap-1 justify-center items-center">
-                                <Apple className="stroke-red-400 size-4 @max-xs/profile:size-3" />
-                                <p className="font-semibold text-lg @max-xs/profile:text-sm">-5 kg</p>
-                            </div>
+                        <div className="grid grid-rows-2 place-items-center ">
+                            <p className="font-semibold text-lg @max-xs/profile:text-sm">
+                                <Apple className="inline mr-1.5 stroke-red-400 size-4 @max-xs/profile:size-3" />
+                                -5 kg
+                            </p>
                             <p className="text-gray-600 @max-xs/profile:text-sm">Progress</p>
                         </div>
                     </div>
 
                     {/* Streak Stat */}
                     <div className="flex justify-between gap-3 mt-4">
-                        <div className="flex gap-2 items-center">
-                            <Target className="stroke-orange-300 size-5 @max-xs/profile:size-4"></Target>
-                            <div className="@max-xs/profile:text-sm">Current Streak</div>
+                        <div className="@max-xs/profile:text-sm">
+                            <Target className="inline mr-3 stroke-orange-300 size-5 @max-xs/profile:size-4"></Target>
+                            Current Streak
                         </div>
                         <Badge className="font-semibold @max-xs/profile:text-xs">7 days</Badge>
                     </div>
                 </CardContent>
             </Card>
 
-            <CardTitle className="text-gray-500">Progress Report</CardTitle>
+            <SectionSubTitle>Progerss Report</SectionSubTitle>
             <Card className="@container/report">
                 <CardContent className="space-y-4">
                     {/* Days Inteval */}
@@ -161,11 +163,13 @@ const Profile = () => {
                         </Card>
                     </div>
 
-                    <Button className="w-full mt-2">Save Settings</Button>
+                    <CardAction className="w-full mt-5">
+                        <Button className="w-full">Save Settings</Button>
+                    </CardAction>
                 </CardContent>
             </Card>
 
-            <CardTitle className="text-gray-500">Previous Reports</CardTitle>
+            <SectionSubTitle>Generated Reports</SectionSubTitle>
             <Card className="@container/previous gap-2">
                 <CardHeader className="grid grid-cols-2 grid-rows-2 gap-1 content-center">
                     {/* To Loop on using back-end later */}

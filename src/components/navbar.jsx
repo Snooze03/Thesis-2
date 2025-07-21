@@ -7,7 +7,7 @@ const navItems = [
     { to: "/", icon: <Album /> },
     { to: "/", icon: <Dumbbell /> },
     { to: "/", icon: <Clock /> },
-    { to: "/", icon: <BotMessageSquare /> },
+    { to: "/chat", icon: <BotMessageSquare /> },
     { to: "/nutrition", icon: <Beef /> },
     { to: "/profile", icon: <User /> },
 ]

@@ -1,6 +1,6 @@
 import { MainLayout } from "@/layouts/main-layout";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
+import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { RadialProgress } from "@/components/ui/radial-progress";
 import { Flag, CookingPot, Ham, EggFried, Salad, Pizza, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ const NutritionDashboard = () => {
     return (
         <MainLayout>
             <SectionTitle>Nutrition</SectionTitle>
-            <p className="-mt-4 text-gray-500">Track your food intake and etc etc</p>
+            <SectionSubText>Track your food intake and etc etc</SectionSubText>
 
             <Card className="py-5">
                 <CardContent className="flex items-center justify-center gap-5">

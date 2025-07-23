@@ -6,4 +6,8 @@ const SectionSubTitle = ({ children }) => {
     return <h2 className="text-gray-500 font-semibold">{children}</h2>;
 }
 
-export { SectionTitle, SectionSubTitle }
+const SectionSubText = ({ children }) => {
+    return <p className="-mt-4 text-gray-500">{children}</p>;
+}
+
+export { SectionTitle, SectionSubTitle, SectionSubText }

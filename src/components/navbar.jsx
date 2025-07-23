@@ -4,10 +4,10 @@ import { NavLink } from "react-router";
 import clsx from "clsx";
 
 const navItems = [
-    { to: "/", icon: <Album /> },
+    { to: "/resources", icon: <Album /> },
     { to: "/", icon: <Dumbbell /> },
     { to: "/", icon: <Clock /> },
-    { to: "/", icon: <BotMessageSquare /> },
+    { to: "/chat", icon: <BotMessageSquare /> },
     { to: "/nutrition", icon: <Beef /> },
     { to: "/profile", icon: <User /> },
 ]

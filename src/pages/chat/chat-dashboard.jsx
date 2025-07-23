@@ -40,7 +40,7 @@ const ChatDashboard = () => {
 const ChatCard = ({ title, description }) => {
     return (
         <Card className="pt-0 pb-0 gap-0">
-            <CardHeader className="px-5 py-3 pb-4 bg-primary rounded-t-md place-items-start gap-0">
+            <CardHeader className="px-5 py-3 pb-4 bg-primary-300 rounded-t-md place-items-start gap-0">
                 <CardTitle>{title}</CardTitle>
             </CardHeader>
             <CardDescription className="px-5 py-3">

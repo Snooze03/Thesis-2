@@ -12,9 +12,12 @@
     --text-2xs: .6rem;
 
     /* Colors */
-    --color-primary-500: oklch(0.885 0.088 200.3);
-    --color-primary-400: oklch(0.820 0.085 200.3);
-    --color-primary-300: oklch(0.756 0.078 200.3);
-    --color-primary-200: oklch(0.691 0.071 200.3);
-    --color-primary-100: oklch(0.756 0.078 200.3);
+    --color-primary-100: #d9f4f5;
+    --color-primary-200: #ccf0f2;
+    --color-primary-300: #c0ecef;
+    --color-primary-400: #b3e8eb;
+    --color-primary-500: #a6e4e8;
+    --color-primary-600: #99e1e5;
+    --color-primary-700: #8ddde1;
+    --color-primary-800: #80d9de;
 }

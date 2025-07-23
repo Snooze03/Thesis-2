@@ -4,7 +4,7 @@ import { NavLink } from "react-router";
 import clsx from "clsx";
 
 const navItems = [
-    { to: "/", icon: <Album /> },
+    { to: "/resources", icon: <Album /> },
     { to: "/", icon: <Dumbbell /> },
     { to: "/", icon: <Clock /> },
     { to: "/chat", icon: <BotMessageSquare /> },

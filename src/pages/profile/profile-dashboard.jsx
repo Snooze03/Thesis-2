@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import { KebabMenu } from "@/components/ui/kebab-menu";
+
 const Profile = () => {
     const userName = "Snooze";
 
@@ -34,6 +36,14 @@ const Profile = () => {
 }
 
 const ProfileCard = ({ userName }) => {
+    const menuItems = [
+        { type: "title", label: "My Account" },
+        { icon: Edit, label: "Edit", action: "edit" },
+        { icon: Settings, label: "Settings", action: "settings" },
+        { type: "separator" },
+        { icon: LogOut, label: "Logout", action: "logout", variant: "destructive" },
+    ]
+
     return (
         <Card className="@container/profile gap-3 pt-0" >
             <CardHeader className="flex justify-between items-center gap-3 py-4 bg-primary rounded-t-lg">
@@ -45,6 +55,7 @@ const ProfileCard = ({ userName }) => {
                     <p className="font-semibold text-lg text-white">{userName}</p>
                 </div>
 
+                <KebabMenu items={menuItems} />
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-3 items-center border-b-2 border-gray-300 pb-2 gap-3 md:gap-none">

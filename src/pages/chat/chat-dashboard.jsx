@@ -1,19 +1,27 @@
 import { MainLayout } from "@/layouts/main-layout"
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Clock } from "lucide-react";
 
 const ChatDashboard = () => {
     // Sample Data for previous chats
     const previousChats = [
         {
             title: "How to do a body recomp",
-            description: "Sint fugiat nostrud labore elit reprehenderit officia minim excepteur nulla Lorem cillum amet laborum."
+            description: "Sint fugiat nostrud labore elit reprehenderit officia minim excepteur nulla Lorem cillum amet laborum.",
+            tags: "training"
         },
         {
             title: "What is muscle hyperthrophy",
-            description: "Non aute sit esse tempor nisi et tempor tempor eu anim veniam eu. Eiusmod Lorem nostrud Lorem pariatur eiusmod esse in pariatur."
+            description: "Non aute sit esse tempor nisi et tempor tempor eu anim veniam eu. Eiusmod Lorem nostrud Lorem pariatur eiusmod esse in pariatur.",
+            tags: "training"
+        },
+        {
+            title: "How to diet correctly is muscle hyperthrophy",
+            description: "Non aute sit esse tempor nisi et tempor tempor eu anim veniam eu. Eiusmod Lorem nostrud Lorem pariatur eiusmod esse in pariatur.",
+            tags: "nutrition"
         },
     ];
 
@@ -24,28 +32,43 @@ const ChatDashboard = () => {
 
             <Button className="w-full"><Plus />New Chat</Button>
 
-            <SectionSubTitle>Previous Chats</SectionSubTitle>
+            <div className="flex justify-between gap-3">
+                <SectionSubTitle>Previous Chats</SectionSubTitle>
+                <p className="text-gray-500">2 conversations</p>
+            </div>
 
             {previousChats.map((chat, index) => (
                 <ChatCard
                     key={index}
                     title={chat.title}
                     description={chat.description}
+                    badge={chat.tags}
                 />
             ))}
         </MainLayout>
     );
 }
 
-const ChatCard = ({ title, description }) => {
+const ChatCard = ({ title, description, badge }) => {
     return (
-        <Card className="pt-0 pb-0 gap-0">
-            <CardHeader className="px-5 py-3 pb-4 bg-primary-300 rounded-t-md place-items-start gap-0">
-                <CardTitle>{title}</CardTitle>
+        <Card className="py-5 hover:shadow-lg transition-shadow delay-50 duration-200 ease-in-out">
+            <CardHeader className="px-6 -mb-5">
+                <div className="flex items-center gap-3 flex-wrap">
+                    <CardTitle>{title}</CardTitle>
+                    <Badge variant="secondary">{badge}</Badge>
+                </div>
             </CardHeader>
-            <CardDescription className="px-5 py-3">
-                {description}
-            </CardDescription>
+            <CardContent className="-mb-4">
+                <p className="text-gray-700">
+                    {description}
+                </p>
+            </CardContent>
+            <CardFooter>
+                <p className="text-gray-700 text-xs">
+                    <Clock className="inline size-3 mr-2" />
+                    2 days ago
+                </p>
+            </CardFooter>
         </Card>
     );
 }

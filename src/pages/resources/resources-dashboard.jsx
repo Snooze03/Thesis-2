@@ -1,6 +1,5 @@
 import { MainLayout } from "@/layouts/main-layout";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
+import { SectionTitle, SectionSubText } from "@/components/ui/section-title";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Article from "@/components/article";
 

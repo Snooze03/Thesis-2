@@ -1,0 +1,42 @@
+{
+    "articles": [
+        {
+            "id": "",
+            "title": "",
+            "author": {
+                "name": "",
+                "avatar": ""
+            },
+            "readTime": null,
+            "description": "",
+            "content": {
+                "sections": [
+                    {
+                        "id": "",
+                        "title": "",
+                        "content": ""
+                    },
+                    {
+                        "id": "",
+                        "title": "",
+                        "content": ""
+                    }
+                ]
+            },
+            "sources": [
+                {
+                    "title": "",
+                    "url": "",
+                    "author": ""
+                },
+                {
+                    "title": "",
+                    "url": "",
+                    "author": ""
+                }
+            ],
+            "publishedAt": "",
+            "tags": []
+        }
+    ]
+}

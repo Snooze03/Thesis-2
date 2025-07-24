@@ -6,7 +6,6 @@ import clsx from "clsx";
 const navItems = [
     { to: "/resources", icon: <Album /> },
     { to: "/", icon: <Dumbbell /> },
-    { to: "/", icon: <Clock /> },
     { to: "/chat", icon: <BotMessageSquare /> },
     { to: "/nutrition", icon: <Beef /> },
     { to: "/profile", icon: <User /> },
@@ -32,7 +31,7 @@ const Navbar = () => {
             <nav className={clsx(
                 "@container/nav",
                 "mx-auto fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300",
-                "px-3 py-3 mt-3 grid grid-cols-6 gap-3 place-items-center ring-2 ring-gray-200 rounded-md shadow-md text-sm bg-white",
+                "px-3 py-3 mt-3 grid grid-cols-5 gap-3 place-items-center ring-2 ring-gray-200 rounded-md shadow-md text-sm bg-white",
                 "block sm:hidden",
                 {
                     "translate-y-0": showNavbar,

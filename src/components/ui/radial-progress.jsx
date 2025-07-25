@@ -66,7 +66,7 @@ const RadialProgress = React.forwardRef(
                         stroke="currentColor"
                         strokeWidth={strokeWidth}
                         fill="none"
-                        className="text-muted-foreground/20"
+                        className="text-gray-100"
                     />
                     {/* Progress circle */}
                     <circle

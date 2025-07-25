@@ -55,7 +55,7 @@ export function KebabMenu({
                 key={item.action || index}
                 onClick={() => handleAction(item.action, item)}
                 disabled={item.disabled}
-                className={isDestructive ? "text-destructive focus:text-destructive" : ""}
+                className={clsx(isDestructive && "text-destructive focus:text-destructive")}
             >
                 {Icon && <Icon className={clsx("mr-1 size-4", isDestructive && "stroke-destructive")} />}
                 {item.label}
@@ -64,7 +64,7 @@ export function KebabMenu({
     }
 
     return (
-        <DropdownMenu {...props}>
+        <DropdownMenu {...props} >
             <DropdownMenuTrigger asChild>{renderTrigger()}</DropdownMenuTrigger>
             <DropdownMenuContent align={align} side={side}>
                 {items.length > 0 ? (

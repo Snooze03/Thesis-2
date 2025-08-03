@@ -1,6 +1,9 @@
 "use client"
 
-import { Link } from "react-router";
+import { useMutation } from "@tanstack/react-query";
+import api from "@/api";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "@/constants";
+import { Link, useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
 import { LoginLayout } from "@/layouts/login-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,20 +20,32 @@ export function Login({
   className,
   ...props
 }) {
+  const navigate = useNavigate();
+
   // React Form Hook
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: valibotResolver(LoginSchema)
   });
 
+  // Makes a post request, to check if user exist, if true, update access and refresh tokens
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationFn: async (data) => {
+      const response = await api.post("accounts/token/", data);
+      localStorage.setItem(ACCESS_TOKEN, response.data.access);
+      localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+    },
+    onSuccess: () => {
+      navigate("/");
+    }
+  });
+
   // Submit Handler
   const onSubmit = (data) => {
-    const result = safeParse(LoginSchema, data);
-    console.log(result.success ? "Form Success!" : "Form Fail");
-    console.log(data);
+    mutate(data);
   }
 
   return (
@@ -86,8 +101,8 @@ export function Login({
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Logging in..." : "Login"}
+                  <Button type="submit" className="w-full" disabled={isPending}>
+                    {isPending ? "Logging in..." : "Login"}
                   </Button>
                 </div>
               </div>

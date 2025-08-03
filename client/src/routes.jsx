@@ -48,7 +48,7 @@ function SignupAndLogout() {
 function ProtectedRoutes() {
     const refreshToken = async () => {
         const refresh = localStorage.getItem(REFRESH_TOKEN);
-        if (!refresh) throw new Error("No refresh token");
+        if (!refresh) alert("No refresh token");
 
         const response = await api.post("/accounts/token/refresh/", { refresh });
         const access = response.data.access;
@@ -59,7 +59,7 @@ function ProtectedRoutes() {
 
     const checkAuth = async () => {
         const token = localStorage.getItem(ACCESS_TOKEN);
-        if (!token) throw new Error("No access token");
+        if (!token) alert("No access token");
 
         const decoded = jwtDecode(token);
         const isExpired = decoded.exp < Date.now() / 1000;
@@ -79,5 +79,6 @@ function ProtectedRoutes() {
     });
 
     if (isPending) return <div>Loading...</div>;
+
     return isError ? <Navigate to="/login" /> : <Outlet />;
 }

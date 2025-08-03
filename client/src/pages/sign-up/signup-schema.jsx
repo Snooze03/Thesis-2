@@ -1,36 +1,4 @@
-import {
-    pipe,
-    object,
-    string,
-    nonEmpty,
-    email,
-    safeParse,
-    maxLength,
-    minLength,
-    forward, partialCheck,
-    number,
-    transform,
-    minValue,
-    maxValue,
-} from "valibot"
-
-// Prefix for Valibot
-const v = {
-    pipe,
-    object,
-    string,
-    nonEmpty,
-    email,
-    safeParse,
-    maxLength,
-    minLength,
-    forward,
-    partialCheck,
-    number,
-    transform,
-    minValue,
-    maxValue,
-}
+import * as v from "valibot";
 
 const SignUpSchema = v.pipe(
     v.object({

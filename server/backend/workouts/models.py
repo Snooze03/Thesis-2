@@ -10,3 +10,22 @@ class WorkoutTemplate(models.Model):
         related_name="workout_templates",
     )
     title = models.CharField(max_length=50)
+
+
+class Exercise(models.Model):
+    EXERCISE_TYPE = [
+        ("strength", "Strength"),
+        ("stretching", "Stretching"),
+        ("plyometrics", "Plyometrics"),
+        ("powerlifting", "Powerlifting"),
+        ("cardio", "Cardio"),
+    ]
+    # should be unique
+    title = models.CharField(max_length=150)
+    description = models.TextField(blank=True, null=True)
+    exercise_type = models.CharField(
+        choices=EXERCISE_TYPE,
+    )
+
+
+# USE ninja api work on this later bruh

@@ -32,7 +32,7 @@ export function Login({
   });
 
   // Makes a post request, to check if user exist, if true, update access and refresh tokens
-  const { mutate, isPending, isError, error } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: async (data) => {
       const response = await api.post("accounts/token/", data);
       localStorage.setItem(ACCESS_TOKEN, response.data.access);
@@ -40,7 +40,7 @@ export function Login({
     },
     onSuccess: () => {
       navigate("/");
-    }
+    },
   });
 
   // Submit Handler

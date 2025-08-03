@@ -11,7 +11,6 @@ import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { SignUpSchema } from "@/pages/sign-up/signup-schema";
 import { InputError } from "@/components/ui/inputError";
-import { useState } from "react";
 
 export function SignUp(
     className,

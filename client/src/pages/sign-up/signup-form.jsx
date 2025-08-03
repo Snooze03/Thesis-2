@@ -17,11 +17,6 @@ export function SignUp(
     className,
     ...props
 ) {
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-
     // Signup Form Validation
     const {
         register,
@@ -56,8 +51,7 @@ export function SignUp(
                                         <Input
                                             id="firstName"
                                             {...register("firstName")}
-                                            value={firstName}
-                                            onChange={(e) => setFirstName(e.target.value)}
+                                            type="text"
                                             placeholder="John"
                                             required
                                         />
@@ -67,8 +61,7 @@ export function SignUp(
                                         <Input
                                             id="lastName"
                                             {...register("lastName")}
-                                            value={lastName}
-                                            onChange={(e) => setLastName(e.target.value)}
+                                            type="text"
                                             placeholder="Doe"
                                             required
                                         />
@@ -86,8 +79,6 @@ export function SignUp(
                                     <Input
                                         id="email"
                                         {...register("email")}
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
                                         type="email"
                                         placeholder="john.doe@example.com"
                                         required
@@ -104,8 +95,6 @@ export function SignUp(
                                     <Input
                                         id="password"
                                         {...register("password")}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
                                         type="password"
                                         placeholder="Create a strong password"
                                         required
@@ -119,7 +108,13 @@ export function SignUp(
 
                                 <div className="space-y-2">
                                     <Label htmlFor="confirmPassword">Confirm password</Label>
-                                    <Input id="confirmPassword" {...register("confirmPassword")} type="password" placeholder="Confirm your password" required />
+                                    <Input
+                                        id="confirmPassword"
+                                        {...register("confirmPassword")}
+                                        type="password"
+                                        placeholder="Confirm your password"
+                                        required
+                                    />
                                     {errors.confirmPassword && (
                                         <InputError>
                                             {errors.confirmPassword.message}

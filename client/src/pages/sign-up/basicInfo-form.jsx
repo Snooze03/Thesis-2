@@ -46,7 +46,12 @@ export function BasicInfo(
                                 <div className="space-y-2">
                                     <Label htmlFor="currentWeight">Current Weight (kgs)</Label>
                                     <div className="relative">
-                                        <Input id="currentWeight" {...register("currentWeight")} type="number" placeholder="45" className="pr-12" />
+                                        <Input
+                                            id="currentWeight"
+                                            {...register("currentWeight")}
+                                            type="number"
+                                            placeholder="45" className="pr-12"
+                                        />
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
                                     </div>
                                     {errors.currentWeight && (
@@ -59,7 +64,12 @@ export function BasicInfo(
                                 <div className="space-y-2">
                                     <Label htmlFor="goalWeight">Goal Weight</Label>
                                     <div className="relative">
-                                        <Input id="goalWeight" {...register("goalWeight")} type="number" placeholder="53" className="pr-12" />
+                                        <Input
+                                            id="goalWeight"
+                                            {...register("goalWeight")}
+                                            type="number"
+                                            placeholder="53" className="pr-12"
+                                        />
                                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
                                     </div>
                                     {errors.goalWeight && (
@@ -74,9 +84,19 @@ export function BasicInfo(
                                 <div className="space-y-2">
                                     <Label htmlFor="height">Height</Label>
                                     <div className="flex gap-2">
-                                        <Input id="heightFeet" {...register("heightFeet")} type="number" placeholder="5" className="flex-1" />
+                                        <Input
+                                            id="heightFeet"
+                                            {...register("heightFeet")}
+                                            type="number"
+                                            placeholder="5" className="flex-1"
+                                        />
                                         <span className="flex items-center text-sm text-muted-foreground">ft</span>
-                                        <Input id="heightInches" {...register("heightInches")} type="number" placeholder="4" className="flex-1" />
+                                        <Input
+                                            id="heightInches"
+                                            {...register("heightInches")}
+                                            type="number"
+                                            placeholder="4" className="flex-1"
+                                        />
                                         <span className="flex items-center text-sm text-muted-foreground">in</span>
                                     </div>
                                     {(errors.heightFeet || errors.heightInches) && (

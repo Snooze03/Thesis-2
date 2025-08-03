@@ -9,45 +9,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
+import { LoginSchema } from "./login-schema";
 import { valibotResolver } from "@hookform/resolvers/valibot";
+import { safeParse } from "valibot";
 import { InputError } from "@/components/ui/inputError";
-import { pipe, object, string, nonEmpty, email, safeParse } from "valibot";
-
-// Prefix for Valibot
-const v = { pipe, object, string, nonEmpty, email, safeParse }
-
-// Schema for Login Form
-const loginSchema = v.object({
-  email: v.pipe(
-    v.string(),
-    v.nonEmpty("Please enter your email"),
-    v.email("Enter a valid email address"),
-  ),
-  password: v.pipe(
-    v.string(),
-    v.nonEmpty("Please enter your password")
-  )
-});
 
 export function Login({
   className,
   ...props
 }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   // React Form Hook
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: valibotResolver(loginSchema)
+    resolver: valibotResolver(LoginSchema)
   });
 
   // Submit Handler
   const onSubmit = (data) => {
-    const result = v.safeParse(loginSchema, data);
+    const result = safeParse(LoginSchema, data);
     console.log(result.success ? "Form Success!" : "Form Fail");
     console.log(data);
   }
@@ -72,8 +54,6 @@ export function Login({
                   <Input
                     id="email"
                     {...register("email")}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     type="email"
                     placeholder="myemail@gmail.com"
                   />
@@ -97,8 +77,6 @@ export function Login({
                   <Input
                     id="password"
                     {...register("password")}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     type="password"
                   />
                   {errors.password && (

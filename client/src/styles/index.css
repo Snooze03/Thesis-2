@@ -4,8 +4,8 @@
 
 @theme {
     /* Break Points */
-    --breakpoint-xs: 30rem;
-    --breakpoint-2xs: 20rem;
+    --breakpoint-xs: 370px;
+    --breakpoint-2xs: 330px;
     --breakpoint-3xs: 10rem;
 
     /* Font-size */

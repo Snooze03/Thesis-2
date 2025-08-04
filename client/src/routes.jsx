@@ -4,8 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useQuery } from '@tanstack/react-query';
 import api from './api';
 import { Login } from './pages/login/login-form';
-import { SignUp } from './pages/sign-up/signup-form';
-import { BasicInfo } from './pages/sign-up/basicInfo-form';
+import { MultiStepForm } from './pages/sign-up/multi-step-form';
 import { Profile } from '@/pages/profile/profile-dashboard';
 import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
 import { ChatDashboard } from './pages/chat/chat-dashboard';
@@ -19,7 +18,6 @@ export const Router = () => {
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignupAndLogout />} />
-                <Route path="/basicinfo" element={<BasicInfo />} />
                 <Route path="/logout" element={<Logout />} />
                 <Route path="*" element={<h1>Not Found</h1>} />
 
@@ -42,7 +40,8 @@ function Logout() {
 
 function SignupAndLogout() {
     localStorage.clear();
-    return <SignUp />;
+    // return <SignUp />;
+    return <MultiStepForm />
 }
 
 function ProtectedRoutes() {

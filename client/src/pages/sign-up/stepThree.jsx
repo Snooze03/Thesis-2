@@ -30,34 +30,34 @@ export function AdditionalInfo({ prevStep }) {
                     <div className="flex flex-col gap-4">
                         {/* Medical Condition */}
                         <div className="flex flex-col gap-3">
-                            <Label htmlFor="medicalCondition">
+                            <Label htmlFor="injuries">
                                 Do you have any existing medical conditions, injuries, or physical limitations?
                             </Label>
                             <Textarea
-                                id="medicalCondition"
-                                {...register("medicalCondition")}
+                                id="injuries"
+                                {...register("injuries")}
                                 placeholder="Please describe any medical conditions or leave blank if none"
                             />
-                            {errors.medicalCondition && (
+                            {errors.injuries && (
                                 <InputError>
-                                    {errors.medicalCondition.message}
+                                    {errors.injuries.message}
                                 </InputError>
                             )}
                         </div>
 
                         {/* Dietary Restrictions */}
                         <div className="flex flex-col gap-3">
-                            <Label htmlFor="dietaryRestrictions">
+                            <Label htmlFor="food_allergies">
                                 Food allergies/dietary restrictions.
                             </Label>
                             <Textarea
-                                id="dietaryRestrictions"
-                                {...register("dietaryRestrictions")}
+                                id="food_allergies"
+                                {...register("food_allergies")}
                                 placeholder="Please describe any dietary restrictions or leave blank if none"
                             />
-                            {errors.dietaryRestrictions && (
+                            {errors.food_allergies && (
                                 <InputError>
-                                    {errors.dietaryRestrictions.message}
+                                    {errors.food_allergies.message}
                                 </InputError>
                             )}
                         </div>
@@ -68,8 +68,8 @@ export function AdditionalInfo({ prevStep }) {
                                 How many days per week can you commit to a workout?
                             </Label>
                             <RadioGroup
-                                value={watch("workoutFrequency")}
-                                onValueChange={(val) => setValue("workoutFrequency", val)}
+                                value={watch("workout_frequency")}
+                                onValueChange={(val) => setValue("workout_frequency", val)}
                                 className="flex flex-col gap-3"
                             >
                                 {formOptions.workoutFrequencies.map((frequency) => (
@@ -79,9 +79,9 @@ export function AdditionalInfo({ prevStep }) {
                                     </div>
                                 ))}
                             </RadioGroup>
-                            {errors.workoutFrequency && (
+                            {errors.workout_frequency && (
                                 <InputError>
-                                    {errors.workoutFrequency.message}
+                                    {errors.workout_frequency.message}
                                 </InputError>
                             )}
                         </div>
@@ -90,8 +90,8 @@ export function AdditionalInfo({ prevStep }) {
                         <div className="flex flex-col gap-3">
                             <Label>Where will you primarily workout?</Label>
                             <RadioGroup
-                                value={watch("workoutLocation")}
-                                onValueChange={(val) => setValue("workoutLocation", val)}
+                                value={watch("workout_location")}
+                                onValueChange={(val) => setValue("workout_location", val)}
                                 className="flex flex-col gap-3"
                             >
                                 {formOptions.workoutLocations.map((location) => (
@@ -101,9 +101,9 @@ export function AdditionalInfo({ prevStep }) {
                                     </div>
                                 ))}
                             </RadioGroup>
-                            {errors.workoutLocation && (
+                            {errors.workout_location && (
                                 <InputError>
-                                    {errors.workoutLocation.message}
+                                    {errors.workout_location.message}
                                 </InputError>
                             )}
                         </div>

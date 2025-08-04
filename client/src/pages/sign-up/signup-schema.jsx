@@ -4,12 +4,12 @@ import * as v from "valibot";
 // Combined Multi-Step Schema
 export const MultiStepSchema = v.object({
     // Step 1 fields
-    firstName: v.pipe(
+    first_name: v.pipe(
         v.string(),
         v.nonEmpty("First name is required"),
         v.minLength(2, "First name must be at least 2 characters"),
     ),
-    lastName: v.pipe(
+    last_name: v.pipe(
         v.string(),
         v.nonEmpty("Last name is required"),
         v.minLength(2, "Last name must be at least 2 characters"),
@@ -27,13 +27,13 @@ export const MultiStepSchema = v.object({
         // v.regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter"),
         // v.regex(/(?=.*\d)/, "Password must contain at least one number"),
     ),
-    confirmPassword: v.pipe(
+    confirm_password: v.pipe(
         v.string(),
         v.nonEmpty("Please confirm your password")
     ),
 
     // Step 2 fields
-    currentWeight: v.pipe(
+    current_weight: v.pipe(
         v.string(),
         v.nonEmpty("Current weight is required"),
         v.transform(Number),
@@ -41,7 +41,7 @@ export const MultiStepSchema = v.object({
         v.minValue(20, "Weight must be at least 20 kg"),
         v.maxValue(300, "Weight must be less than 300 kg")
     ),
-    goalWeight: v.pipe(
+    goal_weight: v.pipe(
         v.string(),
         v.nonEmpty("Goal weight is required"),
         v.transform(Number),
@@ -49,7 +49,7 @@ export const MultiStepSchema = v.object({
         v.minValue(20, "Weight must be at least 20 kg"),
         v.maxValue(300, "Weight must be less than 300 kg")
     ),
-    heightFeet: v.pipe(
+    height_ft: v.pipe(
         v.string(),
         v.nonEmpty("Feet is required"),
         v.transform(Number),
@@ -57,7 +57,7 @@ export const MultiStepSchema = v.object({
         v.minValue(3, "Height must be at least 3 feet"),
         v.maxValue(8, "Height must be less than 9 feet"),
     ),
-    heightInches: v.pipe(
+    height_in: v.pipe(
         v.string(),
         v.nonEmpty("Inches is required"),
         v.transform(Number),
@@ -65,24 +65,24 @@ export const MultiStepSchema = v.object({
         v.minValue(0, "Inches must be 0 or greater"),
         v.maxValue(11, "Inches must be less than 12"),
     ),
-    bodyGoal: v.pipe(
+    body_goal: v.pipe(
         v.string(),
         v.nonEmpty("Please select a body goal"),
         v.picklist(
-            ["lose-weight", "gain-weight", "maintain", "gain-muscle", "strength"],
+            ["lose_weight", "gain_weight", "maintain_weight", "gain_muscle", "build_strength"],
             "Please select a valid body goal"
         )
     ),
 
     // Step 3 fields
-    medicalCondition: v.string(),
-    dietaryRestrictions: v.string(),
-    workoutFrequency: v.pipe(
+    injuries: v.string(),
+    food_allergies: v.string(),
+    workout_frequency: v.pipe(
         v.string(),
         v.nonEmpty("Please select workout frequency"),
         v.picklist(["1_2", "3_4", "5_6"], "Please select a valid workout frequency")
     ),
-    workoutLocation: v.pipe(
+    workout_location: v.pipe(
         v.string(),
         v.nonEmpty("Please select workout location"),
         v.picklist(["gym", "home", "mixed"], "Please select a valid workout location")
@@ -94,52 +94,52 @@ export const ValidatedMultiStepSchema = v.pipe(
     MultiStepSchema,
     v.forward(
         v.partialCheck(
-            [["password"], ["confirmPassword"]],
-            (input) => input.password === input.confirmPassword,
+            [["password"], ["confirm_password"]],
+            (input) => input.password === input.confirm_password,
             "Passwords do not match",
         ),
-        ["confirmPassword"],
+        ["confirm_password"],
     ),
 );
 
 // Default values for the form
 export const defaultFormValues = {
     // Step 1
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    confirm_password: "",
 
     // Step 2
-    currentWeight: "",
-    goalWeight: "",
-    heightFeet: "",
-    heightInches: "",
-    bodyGoal: "",
+    current_weight: "",
+    goal_weight: "",
+    height_ft: "",
+    height_in: "",
+    body_goal: "",
 
     // Step 3
-    medicalCondition: "",
-    dietaryRestrictions: "",
-    workoutFrequency: "",
-    workoutLocation: "",
+    injuries: "",
+    food_allergies: "",
+    workout_frequency: "",
+    workout_location: "",
 };
 
 // Step field mappings for validation
 export const stepFields = {
-    1: ["firstName", "lastName", "email", "password", "confirmPassword"],
-    2: ["currentWeight", "goalWeight", "heightFeet", "heightInches", "bodyGoal"],
-    3: ["medicalCondition", "dietaryRestrictions", "workoutFrequency", "workoutLocation"]
+    1: ["first_name", "last_name", "email", "password", "confirm_password"],
+    2: ["current_weight", "goal_weight", "height_ft", "height_in", "body_goal"],
+    3: ["injuries", "food_allergies", "workout_frequency", "workout_location"]
 };
 
 // Form options for select/radio inputs
 export const formOptions = {
     bodyGoals: [
-        { value: "lose-weight", label: "Lose Weight" },
-        { value: "gain-weight", label: "Gain Weight" },
-        { value: "maintain", label: "Maintain Weight" },
-        { value: "gain-muscle", label: "Gain Muscle" },
-        { value: "strength", label: "Build Strength" },
+        { value: "lose_weight", label: "Lose Weight" },
+        { value: "gain_weight", label: "Gain Weight" },
+        { value: "maintain_weight", label: "Maintain Weight" },
+        { value: "gain_muscle", label: "Gain Muscle" },
+        { value: "build_strength", label: "Build Strength" },
     ],
     workoutFrequencies: [
         { value: "1_2", label: "1-2 Days", id: "1-2-days" },

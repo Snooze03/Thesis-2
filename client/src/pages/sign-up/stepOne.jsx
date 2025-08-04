@@ -27,30 +27,30 @@ export function SignUp({ nextStep }) {
                     <div className="flex flex-col gap-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="firstName">First name</Label>
+                                <Label htmlFor="first_name">First name</Label>
                                 <Input
-                                    id="firstName"
-                                    {...register("firstName")}
+                                    id="first_name"
+                                    {...register("first_name")}
                                     type="text"
                                     placeholder="John"
                                 />
-                                {errors.firstName && (
+                                {errors.first_name && (
                                     <InputError>
-                                        {errors.firstName.message}
+                                        {errors.first_name.message}
                                     </InputError>
                                 )}
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="lastName">Last name</Label>
+                                <Label htmlFor="last_name">Last name</Label>
                                 <Input
-                                    id="lastName"
-                                    {...register("lastName")}
+                                    id="last_name"
+                                    {...register("last_name")}
                                     type="text"
                                     placeholder="Doe"
                                 />
-                                {errors.lastName && (
+                                {errors.last_name && (
                                     <InputError>
-                                        {errors.lastName.message}
+                                        {errors.last_name.message}
                                     </InputError>
                                 )}
                             </div>
@@ -90,16 +90,16 @@ export function SignUp({ nextStep }) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">Confirm password</Label>
+                            <Label htmlFor="confirm_password">Confirm password</Label>
                             <Input
-                                id="confirmPassword"
-                                {...register("confirmPassword")}
+                                id="confirm_password"
+                                {...register("confirm_password")}
                                 type="password"
                                 placeholder="Confirm your password"
                             />
-                            {errors.confirmPassword && (
+                            {errors.confirm_password && (
                                 <InputError>
-                                    {errors.confirmPassword.message}
+                                    {errors.confirm_password.message}
                                 </InputError>
                             )}
                         </div>

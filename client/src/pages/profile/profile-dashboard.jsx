@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/api";
+import { useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
 import { MainLayout } from "@/layouts/main-layout";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +39,8 @@ const Profile = () => {
 }
 
 const ProfileCard = ({ userName }) => {
+    const navigate = useNavigate();
+
     const menuItems = [
         { type: "title", label: "My Account" },
         { icon: Edit, label: "Edit", action: "edit" },
@@ -55,7 +60,7 @@ const ProfileCard = ({ userName }) => {
                     <p className="font-semibold text-lg text-white">{userName}</p>
                 </div>
 
-                <KebabMenu items={menuItems} />
+                <KebabMenu items={menuItems} onAction={() => navigate("/logout")} />
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-3 items-center border-b-2 border-gray-300 pb-2 gap-3 md:gap-none">

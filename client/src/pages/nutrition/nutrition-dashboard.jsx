@@ -32,19 +32,19 @@ const Macros = () => {
                                 <Zap className="inline mr-1.5 size-4" />
                                 Calories
                             </CardTitle>
-                            <RadialProgress value="1503" max="2000" size="xl" label="remaining" className="-mb-3" />
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="grid grid-rows-3 gap-[4px] place-items-start bg-orange-100 px-5 py-2 rounded-lg">
+                            <RadialProgress value="1503" max="2000" size="xl" label="remaining" className="-mb-5" />
+                            <div className="grid grid-cols-2 gap-3 text-sm p-4 -mb-2">
+                                <div className="grid auto-rows-auto gap-[4px] place-items-start bg-orange-100 px-4 py-3 rounded-lg">
                                     <p>
-                                        <TrendingUp className="inline size-4 mr-2" />
+                                        <TrendingUp className="inline size-4 mr-1" />
                                         Consumed
                                     </p>
                                     <p className="font-semibold">500 <span className="text-muted-foreground font-normal">kcal</span></p>
                                     <Progress value={50} className="bg-gray-100 [&>*]:bg-orange-300 mt-1" />
                                 </div>
-                                <div className="grid grid-rows-3 gap-[4px] place-items-start bg-green-100 px-5 py-2 rounded-lg">
+                                <div className="grid auto-rows-auto gap-[4px] place-items-start bg-green-100 px-4 py-3 rounded-lg">
                                     <p>
-                                        <Target className="inline size-4 mr-2" />
+                                        <Target className="inline size-4 mr-1" />
                                         Goal
                                     </p>
                                     <p className="font-semibold">2000 <span className="text-muted-foreground font-normal">kcal</span></p>
@@ -54,15 +54,15 @@ const Macros = () => {
                         </Card>
                     </CarouselItem>
                     <CarouselItem>
-                        <Card className="place-items-center py-4 gap-2">
+                        <Card className="place-items-center py-4 gap-3">
                             <CardTitle>Macronutrients</CardTitle>
                             <div className="w-full px-6 grid grid-cols-[auto_1fr_1fr_1fr] grid-rows-3 items-center">
                                 <div className="mr-2 row-span-2 bg-orange-300 rounded-full">
                                     <Wheat className="size-4 m-2 stroke-white" />
                                 </div>
-                                <p className="col-start-2">Carbs</p>
+                                <p className="col-start-2 text-md">Carbs</p>
                                 <p className="col-start-2 row-start-2 text-muted-foreground text-sm">120/160 g</p>
-                                <p className="col-start-4 justify-self-end font-semibold">40 g</p>
+                                <p className="col-start-4 justify-self-end font-semibold text-md">40 g</p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>
                                 <Progress value={40} className="col-span-4 bg-gray-100 [&>*]:bg-orange-300" />
                             </div>
@@ -70,9 +70,9 @@ const Macros = () => {
                                 <div className="mr-2 row-span-2 bg-green-300 rounded-full">
                                     <Beef className="size-4 m-2 stroke-white" />
                                 </div>
-                                <p className="col-start-2">Protein</p>
+                                <p className="col-start-2 text-md">Protein</p>
                                 <p className="col-start-2 row-start-2 text-muted-foreground text-sm">88/100 g</p>
-                                <p className="col-start-4 justify-self-end font-semibold">80 g</p>
+                                <p className="col-start-4 justify-self-end font-semibold text-md">80 g</p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>
                                 <Progress value={80} className="col-span-4 bg-gray-100 [&>*]:bg-green-300" />
                             </div>
@@ -80,7 +80,7 @@ const Macros = () => {
                                 <div className="mr-2 row-span-2 bg-violet-300 rounded-full">
                                     <Citrus className="size-4 m-2 stroke-white" />
                                 </div>
-                                <p className="col-start-2">Fats</p>
+                                <p className="col-start-2 text-md">Fats</p>
                                 <p className="col-start-2 row-start-2 text-muted-foreground text-sm">50/90 g</p>
                                 <p className="col-start-4 justify-self-end font-semibold">20 g</p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>

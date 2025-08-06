@@ -1,17 +1,19 @@
-# 🤖 PrimeDFit 
+# 💻 Front-End
 A Progressive Web Application featuring a LLM Fitness Assistant!
 
 ### 🛠️ Tech Stack
-- **Frontend**: Javascript, Tailwind CSS, React
-- **Backend**: Python, Django **[ will do later on ]**
+- **Framework**: React Javascript
 
-### 📦Miscellaneous Stuff
+### 📦 Tools & Packages
 - CLI Tool: Vite
 - Package Manager: pnpm
-- Components: Shadcn
-- Input validation: valibot
-- Form hook: react-hook-form
-- Routes: react-router
+- Styles: TailwindCSS
+- U.I Components: Shadcn
+- Form hook: React-hook-form
+- Input validation: Valibot
+- Routes: React router
+- Queries: Tanstack Query
+- API Fetching: Axios
 
 ## 🚀 Getting Started
 **Prerequisites**
@@ -32,6 +34,3 @@ pnpm install
 ```
 pnpm run dev
 ```
-
-## 🖥️ Deployment
-- To be deployed at hostinger

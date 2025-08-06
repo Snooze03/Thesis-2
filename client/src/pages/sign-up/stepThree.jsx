@@ -23,8 +23,8 @@ export function AdditionalInfo({ prevStep }) {
         <LoginLayout>
             <Card className="w-full max-w-lg">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold">Additional Information</CardTitle>
-                    <CardDescription>Step 3 of 3 - Create your account</CardDescription>
+                    <CardTitle className="text-lg lg:text-xl font-bold">Additional Information</CardTitle>
+                    <CardDescription className="-mb-2 -mt-1">Step 3 of 3 - Create your account</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col gap-4">
@@ -37,6 +37,7 @@ export function AdditionalInfo({ prevStep }) {
                                 id="injuries"
                                 {...register("injuries")}
                                 placeholder="Please describe any medical conditions or leave blank if none"
+                                className="max-sm:placeholder:text-xs"
                             />
                             {errors.injuries && (
                                 <InputError>
@@ -54,6 +55,7 @@ export function AdditionalInfo({ prevStep }) {
                                 id="food_allergies"
                                 {...register("food_allergies")}
                                 placeholder="Please describe any dietary restrictions or leave blank if none"
+                                className="max-sm:placeholder:text-xs"
                             />
                             {errors.food_allergies && (
                                 <InputError>
@@ -108,7 +110,7 @@ export function AdditionalInfo({ prevStep }) {
                             )}
                         </div>
 
-                        <div className="flex gap-2 mt-4">
+                        <div className="grid grid-cols-2 gap-4 mt-4">
                             <Button
                                 type="button"
                                 variant="outline"

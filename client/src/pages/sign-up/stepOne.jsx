@@ -20,7 +20,7 @@ export function SignUp({ nextStep }) {
         <LoginLayout>
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+                    <CardTitle>Create an account</CardTitle>
                     <CardDescription>Step 1 of 3 - Create your account</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -34,11 +34,6 @@ export function SignUp({ nextStep }) {
                                     type="text"
                                     placeholder="John"
                                 />
-                                {errors.first_name && (
-                                    <InputError>
-                                        {errors.first_name.message}
-                                    </InputError>
-                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="last_name">Last name</Label>
@@ -48,12 +43,14 @@ export function SignUp({ nextStep }) {
                                     type="text"
                                     placeholder="Doe"
                                 />
-                                {errors.last_name && (
-                                    <InputError>
-                                        {errors.last_name.message}
-                                    </InputError>
-                                )}
                             </div>
+                            {(errors.first_name || errors.last_name) && (
+                                <div className="col-span-2 -mt-2">
+                                    <InputError>
+                                        {errors.first_name ? errors.first_name.message : errors.last_name.message}
+                                    </InputError>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -114,7 +111,7 @@ export function SignUp({ nextStep }) {
 
                         <div className="text-center text-sm text-muted-foreground">
                             Already have an account?{" "}
-                            <Link to={"/login"} className="underline underline-offset-4 hover:text-primary" >
+                            <Link to={"/login"} className="@max-2xs/card:block underline underline-offset-4 hover:text-primary" >
                                 Sign in
                             </Link>
                         </div>

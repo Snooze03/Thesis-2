@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { LoginSchema } from "./login-schema";
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { safeParse } from "valibot";
 import { InputError } from "@/components/ui/inputError";
 
 export function Login({
@@ -52,8 +51,8 @@ export function Login({
     <LoginLayout>
       <div className={cn("flex flex-col gap-6", className)} {...props}>
         <Card>
-          <CardHeader>
-            <CardTitle>Login to your account</CardTitle>
+          <CardHeader className="@container/header">
+            <CardTitle className="text-lg lg:text-xl">Login to your account</CardTitle>
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
@@ -79,12 +78,12 @@ export function Login({
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="@container/password flex flex-col gap-2">
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
                     <a
                       href="#"
-                      className="ml-auto inline-block text-sm underline-offset-4 hover:underline">
+                      className="ml-auto inline-block text-sm underline-offset-4 hover:underline max-2xs/password:text-xs">
                       Forgot your password?
                     </a>
                   </div>

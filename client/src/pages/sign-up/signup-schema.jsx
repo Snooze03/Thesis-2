@@ -17,12 +17,12 @@ export const MultiStepSchema = v.object({
     email: v.pipe(
         v.string(),
         v.nonEmpty("Email is required"),
-        v.email("Please enter a valid email address")
+        v.email("Enter a valid email address")
     ),
     password: v.pipe(
         v.string(),
         v.nonEmpty("Password is required"),
-        v.minLength(8, "Password must be at least 8 characters"),
+        v.minLength(8, "Must be at least 8 characters"),
         // v.regex(/(?=.*[a-z])/, "Password must contain at least one lowercase letter"),
         // v.regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter"),
         // v.regex(/(?=.*\d)/, "Password must contain at least one number"),
@@ -38,7 +38,7 @@ export const MultiStepSchema = v.object({
         v.nonEmpty("Current weight is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
-        v.minValue(20, "Weight must be at least 20 kg"),
+        v.minValue(20, "Must be at least 20 kg"),
         v.maxValue(300, "Weight must be less than 300 kg")
     ),
     goal_weight: v.pipe(
@@ -54,20 +54,19 @@ export const MultiStepSchema = v.object({
         v.nonEmpty("Feet is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
-        v.minValue(3, "Height must be at least 3 feet"),
-        v.maxValue(8, "Height must be less than 9 feet"),
+        v.minValue(3, "Feet must be at least 3 feet"),
+        v.maxValue(8, "Feet must be less than 9 feet"),
     ),
     height_in: v.pipe(
         v.string(),
         v.nonEmpty("Inches is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
-        v.minValue(0, "Inches must be 0 or greater"),
         v.maxValue(11, "Inches must be less than 12"),
     ),
     body_goal: v.pipe(
         v.string(),
-        v.nonEmpty("Please select a body goal"),
+        v.nonEmpty("Select a body goal"),
         v.picklist(
             ["lose_weight", "gain_weight", "maintain_weight", "gain_muscle", "build_strength"],
             "Please select a valid body goal"

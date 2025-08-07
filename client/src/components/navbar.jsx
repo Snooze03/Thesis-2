@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 const navItems = [
     { to: "/resources", icon: <Album /> },
-    { to: "/", icon: <Dumbbell /> },
+    { to: "/workouts", icon: <Dumbbell /> },
     { to: "/chat", icon: <BotMessageSquare /> },
     { to: "/nutrition", icon: <Beef /> },
     { to: "/", icon: <User /> },

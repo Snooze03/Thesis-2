@@ -24,7 +24,6 @@ const Profile = () => {
 
     return (
         <MainLayout>
-
             <SectionTitle>Profile</SectionTitle>
             <ProfileCard userName={userName} />
 

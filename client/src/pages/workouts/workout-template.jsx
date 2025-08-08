@@ -1,6 +1,6 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge";
-import { Button } from "./ui/button";
+import { Button } from "../../components/ui/button";
 import { Play, Trash2, Pencil } from "lucide-react";
 
 export function WorkoutTemplate({

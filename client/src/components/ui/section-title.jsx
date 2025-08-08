@@ -1,9 +1,9 @@
 const SectionTitle = ({ children }) => {
-    return <h1 className="text-2xl font-semibold">{children}</h1>;
+    return <h1 className="text-3xl font-semibold">{children}</h1>;
 }
 
 const SectionSubTitle = ({ children }) => {
-    return <h2 className="text-gray-500 font-semibold">{children}</h2>;
+    return <h2 className="text-xl text-gray-500 font-semibold">{children}</h2>;
 }
 
 const SectionSubText = ({ children }) => {

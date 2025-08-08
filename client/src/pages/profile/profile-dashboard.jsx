@@ -24,7 +24,6 @@ const Profile = () => {
 
     return (
         <MainLayout>
-
             <SectionTitle>Profile</SectionTitle>
             <ProfileCard userName={userName} />
 
@@ -113,7 +112,10 @@ const ReportSettings = () => {
                 <Label htmlFor="report-interval">Generate Report Every</Label>
                 <div className="grid grid-cols-3 gap-3 max-xs:grid-cols-5 max-2xs:grid-cols-6">
                     <div className="relative w-full block col-span-2 max-xs:col-span-3">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        <Calendar className={cn(
+                            "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
+                            "max-2xs:size-4"
+                        )} />
                         <Input id="report-interval" type="number" placeholder="22" className="pl-10" />
                     </div>
                     <Select>
@@ -132,7 +134,10 @@ const ReportSettings = () => {
                 <Label htmlFor="report-time-interval">Time</Label>
                 <div className="grid grid-cols-3 gap-3 max-xs:grid-cols-5 max-2xs:grid-cols-6">
                     <div className="relative w-full block col-start-1 col-end-3 max-xs:col-span-3">
-                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        <Clock className={cn(
+                            "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
+                            "max-2xs:size-4",
+                        )} />
                         <Input id="report-time-interval" type="number" placeholder="10:30" className="pl-10" />
                     </div>
                     <Select>

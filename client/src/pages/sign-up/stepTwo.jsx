@@ -41,7 +41,7 @@ export function BasicInfo({ nextStep, prevStep }) {
                                         {...register("current_weight")}
                                         type="number"
                                         placeholder="45"
-                                        className="pr-12 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                        className="pr-12"
                                     />
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
                                 </div>
@@ -60,7 +60,7 @@ export function BasicInfo({ nextStep, prevStep }) {
                                         {...register("goal_weight")}
                                         type="number"
                                         placeholder="53"
-                                        className="pr-12 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                        className="pr-12"
                                     />
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
                                 </div>
@@ -84,14 +84,12 @@ export function BasicInfo({ nextStep, prevStep }) {
                                         {...register("height_ft")}
                                         type="number"
                                         placeholder="5 ft"
-                                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none "
                                     />
                                     <Input
                                         id="height_in"
                                         {...register("height_in")}
                                         type="number"
                                         placeholder="4 in"
-                                        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                     />
                                 </div>
                                 {(errors.height_ft || errors.height_in) && (

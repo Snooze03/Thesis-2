@@ -1,36 +1,38 @@
 import * as React from "react";
 import { Dumbbell } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail } from "@/components/ui/sidebar";
+import { NavLink } from "react-router-dom";
 
 const data = {
   navMain: [
     {
       title: "Profile",
-      url: "#",
+      to: "/",
       items: [
         {
           title: "Settings",
-          url: "#",
+          to: "/",
+          isActive: true
         },
       ],
     },
     {
       title: "Nutrition",
-      url: "#",
+      to: "/nutrition",
       items: [
         {
           title: "Add food",
-          url: "#",
+          url: "/nutrition",
         },
         {
           title: "History",
-          url: "#",
+          url: "/nutrition",
         },
       ],
     },
     {
       title: "Fitness Assistant",
-      url: "#",
+      to: "/chat",
       items: [
         {
           title: "New Chat",
@@ -40,29 +42,29 @@ const data = {
     },
     {
       title: "Workouts",
-      url: "#",
+      to: "/workouts",
       items: [
         {
           title: "Push Day",
-          url: "#",
+          url: "/workouts",
         },
       ],
     },
     {
       title: "Resources",
-      url: "#",
+      to: "/resources",
       items: [
         {
           title: "Fitness",
-          url: "#",
+          to: "/resources",
         },
         {
           title: "Nutrition",
-          url: "#",
+          to: "/resources",
         },
         {
           title: "Recovery",
-          url: "#",
+          to: "/resources",
         },
       ],
     },
@@ -98,9 +100,12 @@ export function AppSidebar({
             {data.navMain.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url} className="font-semibold">
+                  <NavLink
+                    to={item.to}
+                    className="font-bold"
+                  >
                     {item.title}
-                  </a>
+                  </NavLink>
                 </SidebarMenuButton>
                 {item.items?.length ? (
                   <SidebarMenuSub>
@@ -119,6 +124,6 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
-    </Sidebar>
+    </Sidebar >
   );
 }

@@ -17,7 +17,8 @@ export const MultiStepSchema = v.object({
     email: v.pipe(
         v.string(),
         v.nonEmpty("Email is required"),
-        v.email("Enter a valid email address")
+        v.email("Enter a valid email address"),
+        v.endsWith("@gmail.com", "Invalid email address"),
     ),
     password: v.pipe(
         v.string(),
@@ -87,19 +88,6 @@ export const MultiStepSchema = v.object({
         v.picklist(["gym", "home", "mixed"], "Please select a valid workout location")
     ),
 });
-
-// Add password confirmation validation to the combined schema
-export const ValidatedMultiStepSchema = v.pipe(
-    MultiStepSchema,
-    v.forward(
-        v.partialCheck(
-            [["password"], ["confirm_password"]],
-            (input) => input.password === input.confirm_password,
-            "Passwords do not match",
-        ),
-        ["confirm_password"],
-    ),
-);
 
 // Default values for the form
 export const defaultFormValues = {

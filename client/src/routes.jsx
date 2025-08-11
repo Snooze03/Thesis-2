@@ -8,8 +8,9 @@ import { MultiStepForm } from './pages/sign-up/multi-step-form';
 import { Profile } from '@/pages/profile/profile-dashboard';
 import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
 import { ChatDashboard } from './pages/chat/chat-dashboard';
-import { WorkoutsDashboard } from './pages/workouts/workouts-dashboard';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
+
+import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
 
 
 export const Router = () => {
@@ -27,7 +28,7 @@ export const Router = () => {
                     <Route path="/" element={<Profile />} />
                     <Route path="/nutrition" element={<NutritionDashboard />} />
                     <Route path="/chat" element={<ChatDashboard />} />
-                    <Route path="/workouts" element={<WorkoutsDashboard />} />
+                    <Route path="/workouts/*" element={<WorkoutsRoutes />} />
                     <Route path="/resources" element={<ResourcesDashboard />} />
                 </Route>
             </Routes>

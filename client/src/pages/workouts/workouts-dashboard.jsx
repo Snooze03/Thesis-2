@@ -1,7 +1,7 @@
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
-import { WorkoutTemplate } from "./workout-template";
+import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 

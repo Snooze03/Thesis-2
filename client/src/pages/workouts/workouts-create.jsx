@@ -5,24 +5,46 @@ import { X, FlagTriangleRight, Lock, Plus, Trash2, Replace, AlarmClock, Minus } 
 import { SubLayout } from "@/layouts/sub-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
 
+    const handleCancel = () => {
+        navigate(-1);
+    }
     return (
         <SubLayout>
             {/* Header */}
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                <Button
-                    variant="ghost"
-                    className="h-7"
-                    onClick={() => navigate(-1)}
-                >
-                    <X />
-                </Button>
+                {/* Alert Dialog for closing/cancelling the creation */}
+                <AlertDialog>
+                    <AlertDialogTrigger>
+                        <X />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Template Creation?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you absolutely sure? This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleCancel}
+                                className={buttonVariants(
+                                    { variant: "destructive" }
+                                )}
+                            >Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 <Input variant="ghost" placeholder="New Workout Template" className="h-7"></Input>
 

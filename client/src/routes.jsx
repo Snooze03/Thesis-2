@@ -8,8 +8,9 @@ import { MultiStepForm } from './pages/sign-up/multi-step-form';
 import { Profile } from '@/pages/profile/profile-dashboard';
 import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
 import { ChatDashboard } from './pages/chat/chat-dashboard';
-import { WorkoutsDashboard } from './pages/workouts/workouts-dashboard';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
+
+import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
 
 
 export const Router = () => {
@@ -20,18 +21,27 @@ export const Router = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignupAndLogout />} />
                 <Route path="/logout" element={<Logout />} />
-                <Route path="*" element={<h1>Not Found</h1>} />
+                <Route path="*" element={<NotFound />} />
 
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoutes />}>
                     <Route path="/" element={<Profile />} />
                     <Route path="/nutrition" element={<NutritionDashboard />} />
                     <Route path="/chat" element={<ChatDashboard />} />
-                    <Route path="/workouts" element={<WorkoutsDashboard />} />
+                    <Route path="/workouts/*" element={<WorkoutsRoutes />} />
                     <Route path="/resources" element={<ResourcesDashboard />} />
                 </Route>
             </Routes>
         </BrowserRouter>
+    );
+}
+
+function NotFound() {
+    return (
+        <div className="w-screen h-screen flex flex-col items-center justify-center">
+            <h1 className="text-7xl font-bold">404</h1>
+            <p>The page you were looking for does not exist</p>
+        </div>
     );
 }
 
@@ -58,10 +68,9 @@ function ProtectedRoutes() {
         return access;
     };
 
-    // Checks if user has access token, if true, refresh it, if not alert
+    // Checks if user has access token, if true, refresh it
     const checkAuth = async () => {
         const token = localStorage.getItem(ACCESS_TOKEN);
-        if (!token) alert("No access token");
 
         const decoded = jwtDecode(token);
         const isExpired = decoded.exp < Date.now() / 1000;

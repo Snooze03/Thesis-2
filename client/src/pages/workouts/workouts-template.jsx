@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Play, Trash2, Pencil } from "lucide-react";
 
-export function WorkoutTemplate({
+function WorkoutTemplate({
     id,
     title,
     workouts,
@@ -59,3 +59,12 @@ export function WorkoutTemplate({
         </AccordionItem>
     );
 }
+
+function CreateWorkoutTemplate() {
+    return (
+        <>
+        </>
+    );
+}
+
+export { WorkoutTemplate, CreateWorkoutTemplate }

@@ -1,5 +1,5 @@
 "use client"
-
+import React from "react"; // Add React import
 import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/navbar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -7,10 +7,14 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useLocation, Link } from "react-router-dom"; // Added Link import
 
 // Layout for the app sections: profile, workouts, history, etc
 const MainLayout = ({ children }) => {
     const isMobile = useIsMobile();
+    const location = useLocation();
+    // Gets the current URL path
+    const pathnames = location.pathname.split("/").filter(Boolean);
 
     return (
         // Hides the sidebar for sm devices
@@ -26,15 +30,34 @@ const MainLayout = ({ children }) => {
                             <Separator orientation="vertical" className="mr-2 h-4" />
                             <Breadcrumb>
                                 <BreadcrumbList>
-                                    <BreadcrumbItem className="hidden md:block">
-                                        <BreadcrumbLink href="#">
-                                            Building Your Application
+                                    {/* Add Home/Root breadcrumb */}
+                                    {/* <BreadcrumbItem>
+                                        <BreadcrumbLink asChild>
+                                            <Link to="/">Home</Link>
                                         </BreadcrumbLink>
-                                    </BreadcrumbItem>
-                                    <BreadcrumbSeparator className="hidden md:block" />
-                                    <BreadcrumbItem>
-                                        <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                                    </BreadcrumbItem>
+                                    </BreadcrumbItem> */}
+
+                                    {/* dynamically get current route to display as breadcrumbs */}
+                                    {pathnames.map((segment, index) => {
+                                        const to = "/" + pathnames.slice(0, index + 1).join("/");
+                                        const isLast = index === pathnames.length - 1;
+                                        return (
+                                            <React.Fragment key={`breadcrumb-${index}`}>
+                                                <BreadcrumbSeparator />
+                                                <BreadcrumbItem>
+                                                    {isLast ? (
+                                                        <BreadcrumbPage className="capitalize font-semibold">
+                                                            {segment}
+                                                        </BreadcrumbPage>
+                                                    ) : (
+                                                        <BreadcrumbLink asChild>
+                                                            <Link to={to} className="capitalize">{segment}</Link>
+                                                        </BreadcrumbLink>
+                                                    )}
+                                                </BreadcrumbItem>
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </BreadcrumbList>
                             </Breadcrumb>
                         </div>

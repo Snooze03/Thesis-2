@@ -1,69 +1,47 @@
 import * as React from "react";
 import { Dumbbell } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail } from "@/components/ui/sidebar";
+import { NavLink } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const data = {
   navMain: [
     {
       title: "Profile",
-      url: "#",
+      to: "/",
       items: [
-        {
-          title: "Settings",
-          url: "#",
-        },
+        { title: "Settings", to: "/profile/settings" },
       ],
     },
     {
       title: "Nutrition",
-      url: "#",
+      to: "/nutrition",
       items: [
-        {
-          title: "Add food",
-          url: "#",
-        },
-        {
-          title: "History",
-          url: "#",
-        },
+        { title: "Add food", to: "/nutrition/add" },
+        { title: "History", to: "/nutrition/history" },
       ],
     },
     {
       title: "Fitness Assistant",
-      url: "#",
+      to: "/chat",
       items: [
-        {
-          title: "New Chat",
-          url: "#",
-        },
+        { title: "New Chat", to: "/chat/new" },
       ],
     },
     {
       title: "Workouts",
-      url: "#",
+      to: "/workouts",
       items: [
-        {
-          title: "Push Day",
-          url: "#",
-        },
+        { title: "Push Day", to: "/workouts/push" },
       ],
     },
     {
       title: "Resources",
-      url: "#",
+      to: "/resources",
       items: [
-        {
-          title: "Fitness",
-          url: "#",
-        },
-        {
-          title: "Nutrition",
-          url: "#",
-        },
-        {
-          title: "Recovery",
-          url: "#",
-        },
+        { title: "Fitness", to: "/resources/fitness" },
+        { title: "Nutrition", to: "/resources/fitness" },
+        { title: "Recovery", to: "/resources/fitness" },
       ],
     },
   ],
@@ -72,6 +50,8 @@ const data = {
 export function AppSidebar({
   ...props
 }) {
+  const location = useLocation();
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -95,30 +75,37 @@ export function AppSidebar({
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
+
             {data.navMain.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <a href={item.url} className="font-semibold">
+                <SidebarMenuButton asChild isActive={location.pathname === item.to}>
+                  <NavLink
+                    to={item.to}
+                    className="font-bold"
+                  >
                     {item.title}
-                  </a>
+                  </NavLink>
                 </SidebarMenuButton>
+
                 {item.items?.length ? (
                   <SidebarMenuSub>
                     {item.items.map((item) => (
                       <SidebarMenuSubItem key={item.title}>
-                        <SidebarMenuSubButton asChild isActive={item.isActive}>
+                        <SidebarMenuSubButton asChild isActive={location.pathname === item.to}>
                           <a href={item.url}>{item.title}</a>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
                 ) : null}
+
               </SidebarMenuItem>
             ))}
+
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
-    </Sidebar>
+    </Sidebar >
   );
 }

@@ -1,3 +1,5 @@
+"use client"
+
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { useState } from "react";
@@ -5,7 +7,7 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { SignUp } from "./stepOne";
 import { BasicInfo } from "./stepTwo";
 import { AdditionalInfo } from "./stepThree";
-import { ValidatedMultiStepSchema, defaultFormValues, stepFields } from "./signup-schema";
+import { MultiStepSchema, defaultFormValues, stepFields } from "./signup-schema";
 import api from "@/api";
 import { useMutation } from "@tanstack/react-query";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "@/constants";
@@ -15,10 +17,12 @@ export const MultiStepForm = () => {
     const [step, setStep] = useState(1);
 
     const methods = useForm({
-        resolver: valibotResolver(ValidatedMultiStepSchema),
+        resolver: valibotResolver(MultiStepSchema),
         defaultValues: defaultFormValues,
         mode: "onChange",
     });
+
+    const { getValues } = methods;
 
     // Function to exclude certain fields to post request
     const excludeFields = (data, fieldsToExclude) => {
@@ -54,7 +58,17 @@ export const MultiStepForm = () => {
         const fieldsToValidate = stepFields[step];
         const valid = await methods.trigger(fieldsToValidate);
 
-        // If fields are valid move on to the next form
+        const { password, confirm_password } = getValues();
+
+        // Special check for Step 1: Password Confirmation
+        if (password !== confirm_password) {
+            methods.setError("confirm_password", {
+                type: "manual",
+                message: "Passwords do not match",
+            });
+            return;
+        }
+        // If everything is valid, move to the next step
         if (valid) {
             setStep((prev) => prev + 1);
         }

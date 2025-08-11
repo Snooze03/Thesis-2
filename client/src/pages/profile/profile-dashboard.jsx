@@ -46,7 +46,7 @@ const ProfileCard = ({ userName }) => {
         { icon: Edit, label: "Edit", action: "edit" },
         { icon: Settings, label: "Settings", action: "settings" },
         { type: "separator" },
-        { icon: LogOut, label: "Logout", action: "logout", variant: "destructive" },
+        { icon: LogOut, label: "Logout", action: () => navigate("/logout"), variant: "destructive" },
     ]
 
     return (
@@ -60,7 +60,7 @@ const ProfileCard = ({ userName }) => {
                     <p className="font-semibold text-lg text-white">{userName}</p>
                 </div>
 
-                <KebabMenu items={menuItems} onAction={() => navigate("/logout")} />
+                <KebabMenu items={menuItems} />
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-3 items-center border-b-2 border-gray-300 pb-2 gap-3 md:gap-none">

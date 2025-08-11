@@ -1,5 +1,5 @@
 "use client"
-
+import React from "react"; // Add React import
 import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/navbar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -7,13 +7,12 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom"; // Added Link import
 
 // Layout for the app sections: profile, workouts, history, etc
 const MainLayout = ({ children }) => {
     const isMobile = useIsMobile();
     const location = useLocation();
-
     // Gets the current URL path
     const pathnames = location.pathname.split("/").filter(Boolean);
 
@@ -31,21 +30,32 @@ const MainLayout = ({ children }) => {
                             <Separator orientation="vertical" className="mr-2 h-4" />
                             <Breadcrumb>
                                 <BreadcrumbList>
+                                    {/* Add Home/Root breadcrumb */}
+                                    {/* <BreadcrumbItem>
+                                        <BreadcrumbLink asChild>
+                                            <Link to="/">Home</Link>
+                                        </BreadcrumbLink>
+                                    </BreadcrumbItem> */}
+
+                                    {/* dynamically get current route to display as breadcrumbs */}
                                     {pathnames.map((segment, index) => {
                                         const to = "/" + pathnames.slice(0, index + 1).join("/");
                                         const isLast = index === pathnames.length - 1;
-
                                         return (
-                                            <BreadcrumbItem key={to}>
+                                            <React.Fragment key={`breadcrumb-${index}`}>
                                                 <BreadcrumbSeparator />
-                                                {isLast ? (
-                                                    <span className="capitalize font-semibold">{segment}</span>
-                                                ) : (
-                                                    <BreadcrumbLink asChild>
-                                                        <Link to={to} className="capitalize">{segment}</Link>
-                                                    </BreadcrumbLink>
-                                                )}
-                                            </BreadcrumbItem>
+                                                <BreadcrumbItem>
+                                                    {isLast ? (
+                                                        <BreadcrumbPage className="capitalize font-semibold">
+                                                            {segment}
+                                                        </BreadcrumbPage>
+                                                    ) : (
+                                                        <BreadcrumbLink asChild>
+                                                            <Link to={to} className="capitalize">{segment}</Link>
+                                                        </BreadcrumbLink>
+                                                    )}
+                                                </BreadcrumbItem>
+                                            </React.Fragment>
                                         );
                                     })}
                                 </BreadcrumbList>

@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react";
 import { X, FlagTriangleRight, Lock, Plus, Trash2, Replace, AlarmClock, Minus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { Card } from "@/components/ui/card";

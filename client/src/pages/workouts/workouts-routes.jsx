@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { WorkoutsDashboard } from "./workouts-dashboard";
-import { CreateTemplate } from "./workouts-search";
+import { CreateTemplate } from "./workouts-create";
 
 export function WorkoutsRoutes() {
     return (

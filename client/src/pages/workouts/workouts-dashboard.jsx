@@ -1,9 +1,14 @@
+"use client"
+
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
 import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
+
 
 const WorkoutsDashboard = () => {
     return (
@@ -19,11 +24,13 @@ const WorkoutsDashboard = () => {
 }
 
 function Routines() {
+    const navigate = useNavigate();
+
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
                 <SectionSubTitle>My Routines</SectionSubTitle>
-                <Button className="h-min">
+                <Button className="h-min" onClick={() => navigate(`${location.pathname}/create`)}>
                     <Plus />
                     Create
                 </Button>

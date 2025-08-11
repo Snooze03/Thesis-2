@@ -1,5 +1,6 @@
 "use client"
 
+import { useNavigate } from "react-router-dom";
 import { X, FlagTriangleRight, Lock, Plus, Trash2, Replace, AlarmClock, Minus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,8 @@ import { Input } from "@/components/ui/input";
 
 // Main function
 function CreateTemplate() {
+    const navigate = useNavigate();
+
     return (
         <SubLayout>
             {/* Header */}
@@ -29,7 +32,13 @@ function CreateTemplate() {
             <div className="flex flex-col gap-3">
                 <ExerciseCard />
                 <ExerciseCard />
-                <Button variant="ghost" className="text-primary font-semibold">ADD EXERCISE</Button>
+                <Button
+                    variant="ghost"
+                    className="text-primary font-semibold"
+                    onClick={() => navigate(`${location.pathname}/search`)}
+                >
+                    ADD EXERCISE
+                </Button>
             </div>
         </SubLayout>
     );

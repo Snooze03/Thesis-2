@@ -16,7 +16,11 @@ export function KebabMenu({
     ...props
 }) {
     const handleAction = (action, item) => {
-        if (onAction) {
+        // If action is a function, call it directly
+        if (typeof action === 'function') {
+            action(item);
+        } else if (onAction) {
+            // Fallback to original behavior for string actions
             onAction(action, item)
         }
     }
@@ -25,7 +29,6 @@ export function KebabMenu({
         if (trigger) {
             return trigger
         }
-
         return (
             <Button variant="ghost" size="sm" className={`size-8 p-0 ${className}`} disabled={disabled}>
                 <MoreVertical className="size-4" />
@@ -38,7 +41,6 @@ export function KebabMenu({
         if (item.type === "separator") {
             return <DropdownMenuSeparator key={`separator-${index}`} />
         }
-
         if (item.type === "title") {
             return (
                 <div key={`title-${index}`} className="px-2 py-1.5 text-sm font-semibold text-gray-800">
@@ -52,7 +54,7 @@ export function KebabMenu({
 
         return (
             <DropdownMenuItem
-                key={item.action || index}
+                key={item.action?.toString() || index}
                 onClick={() => handleAction(item.action, item)}
                 disabled={item.disabled}
                 className={clsx(isDestructive && "text-destructive focus:text-destructive")}

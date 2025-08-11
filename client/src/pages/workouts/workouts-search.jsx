@@ -1,4 +1,5 @@
 "use client"
+
 import { SubLayout } from "@/layouts/sub-layout";
 import { X, Search, ListFilter, Check } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
@@ -7,14 +8,18 @@ import { Input } from "@/components/ui/input";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 
 function SearchExercise() {
+    const navigate = useNavigate();
+
     const exercises = [
         { id: 1, name: "Push-ups", bodyPart: "Chest", equipment: "Bodyweight" },
         { id: 2, name: "Squats", bodyPart: "Legs", equipment: "Bodyweight" },
         { id: 3, name: "Bench Press", bodyPart: "Chest", equipment: "Barbell" },
     ];
 
+    // Handles item selected state
     const [selectedItems, setSelectedItems] = useState(new Set());
 
     const toggleItemSelection = (itemId) => {
@@ -35,7 +40,10 @@ function SearchExercise() {
         <SubLayout>
             {/* Header */}
             <div className="grid grid-cols-[auto_1fr_auto_auto] grid-rows-2 items-center gap-2">
-                <Button variant="ghost">
+                <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                >
                     <X />
                 </Button>
 
@@ -64,16 +72,17 @@ function SearchExercise() {
                     />
                 ))}
 
-                {/* Conditional button - only shows when items are selected */}
-                {hasSelectedItems && (
-                    <Button
-                        variant="ghost"
-                        className="h-10 fixed bottom-4 right-4 rounded-full bg-primary-500 text-white shadow-lg"
-                    >
-                        <Check className="size-5 stroke-3" />
-                    </Button>
-                )}
             </div>
+
+            {/* Conditional button - only shows when items are selected */}
+            {hasSelectedItems && (
+                <Button
+                    variant="ghost"
+                    className="h-10 fixed bottom-4 right-4 rounded-full bg-primary-500 text-white shadow-lg"
+                >
+                    <Check className="size-5 stroke-3" />
+                </Button>
+            )}
         </SubLayout>
     );
 }

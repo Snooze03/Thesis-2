@@ -16,7 +16,11 @@ function CreateTemplate() {
         <SubLayout>
             {/* Header */}
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                <Button variant="ghost" className="h-7">
+                <Button
+                    variant="ghost"
+                    className="h-7"
+                    onClick={() => navigate(-1)}
+                >
                     <X />
                 </Button>
 

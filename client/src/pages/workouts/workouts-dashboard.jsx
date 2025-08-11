@@ -30,7 +30,7 @@ function Routines() {
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
                 <SectionSubTitle>My Routines</SectionSubTitle>
-                <Button className="h-min" onClick={() => navigate(`${location.pathname}/create`)}>
+                <Button className="h-min" onClick={() => navigate(`${location.pathname}create`)}>
                     <Plus />
                     Create
                 </Button>

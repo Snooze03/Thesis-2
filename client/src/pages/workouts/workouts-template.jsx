@@ -60,11 +60,4 @@ function WorkoutTemplate({
     );
 }
 
-function CreateWorkoutTemplate() {
-    return (
-        <>
-        </>
-    );
-}
-
-export { WorkoutTemplate, CreateWorkoutTemplate }
+export { WorkoutTemplate }

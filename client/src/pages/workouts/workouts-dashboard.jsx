@@ -1,9 +1,8 @@
 "use client"
 
 import api from "@/api";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
@@ -34,20 +33,33 @@ function Routines() {
         return response.data;
     }
 
+    const deleteTemplate = async (id) => {
+        await api.delete(`workouts/templates/${id}/`);
+    }
+
+    // For fetching
     const { data, isPending, isError } = useQuery({
         queryKey: ["templates"],
         queryFn: getTemplates,
     });
 
-    if (isPending) {
-        return <h1>Loading...</h1>
-    }
+    // For posts requests
+    const { mutate: deleteTemplateMutate, isLoading: isDeleting } = useMutation({
+        mutationFn: deleteTemplate,
+        onSuccess: () => alert("deleted"),
+    });
+
+    if (isPending) return <h1>Loading...</h1>
+    if (isError) return <h1>Error</h1>
 
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
                 <SectionSubTitle>My Routines</SectionSubTitle>
-                <Button className="h-min" onClick={() => navigate(`${location.pathname}/create`)}>
+                <Button
+                    className="h-min"
+                    onClick={() => navigate(`${location.pathname}/create`)}
+                >
                     <Plus />
                     Create
                 </Button>
@@ -60,6 +72,8 @@ function Routines() {
                             key={item.id}
                             id={item.id}
                             title={item.title}
+                            onDelete={() => deleteTemplateMutate(item.id)}
+                            isDeleting={isDeleting}
                         />
                     );
                 })}

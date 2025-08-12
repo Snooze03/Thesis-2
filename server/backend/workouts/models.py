@@ -2,9 +2,8 @@ from django.db import models
 from accounts.models import Account
 
 
-# Create your models here.
-class WorkoutTemplate(models.Model):
-    user = models.ForeignKey(
+class Template(models.Model):
+    user_id = models.ForeignKey(
         Account,
         on_delete=models.CASCADE,
         related_name="workout_templates",
@@ -13,19 +12,13 @@ class WorkoutTemplate(models.Model):
 
 
 class Exercise(models.Model):
-    EXERCISE_TYPE = [
-        ("strength", "Strength"),
-        ("stretching", "Stretching"),
-        ("plyometrics", "Plyometrics"),
-        ("powerlifting", "Powerlifting"),
-        ("cardio", "Cardio"),
-    ]
-    # should be unique
-    title = models.CharField(max_length=150)
-    description = models.TextField(blank=True, null=True)
-    exercise_type = models.CharField(
-        choices=EXERCISE_TYPE,
+    template_id = models.ForeignKey(
+        Template,
+        on_delete=models.CASCADE,
     )
-
-
-# USE ninja api work on this later bruh
+    name = models.CharField(max_length=150)
+    type = models.CharField()
+    muscle = models.CharField()
+    equipment = models.CharField()
+    difficulty = models.CharField()
+    instructions = models.TextField()

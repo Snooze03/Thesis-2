@@ -1,12 +1,11 @@
 "use client"
 
 import { useNavigate } from "react-router-dom";
-import { X, FlagTriangleRight, Lock, Plus, Trash2, Replace, AlarmClock, Minus } from "lucide-react";
+import { X, FlagTriangleRight } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
-import { Card } from "@/components/ui/card";
+import { ExerciseCard } from "./exercise-card";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
-import { KebabMenu } from "@/components/ui/kebab-menu";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
@@ -17,6 +16,7 @@ function CreateTemplate() {
     const handleCancel = () => {
         navigate(-1);
     }
+
     return (
         <SubLayout>
             {/* Header */}
@@ -46,6 +46,7 @@ function CreateTemplate() {
                     </AlertDialogContent>
                 </AlertDialog>
 
+                {/* For changing template name */}
                 <Input variant="ghost" placeholder="New Workout Template" className="h-7"></Input>
 
                 <Button className="h-7 ml-3">
@@ -67,74 +68,6 @@ function CreateTemplate() {
                 </Button>
             </div>
         </SubLayout>
-    );
-}
-
-function PropertyContainer({ children }) {
-    return (
-        <div className="flex flex-col items-center justify-center gap-2">
-            {children}
-            {/* Adds additional space below */}
-            <span className="block" />
-        </div>
-    )
-}
-
-function ExerciseCard() {
-    const menuItems = [
-        { type: "title", label: "My Account" },
-        { icon: Plus, label: "Add Set", action: "add_set" },
-        { icon: Trash2, label: "Delete Set", action: "delete_set" },
-        { icon: AlarmClock, label: "Rest Timer", action: "set_restTimer" },
-        { icon: Replace, label: "Replace Exercise", action: "change_exercise" },
-        { icon: Minus, label: "Remove Exercise", variant: "destructive", action: "change_exercise" },
-    ]
-
-    return (
-        <Card className="px-5 py-3 gap-2">
-            {/* Header */}
-            <div>
-                <div className="flex justify-between items-center gap-3">
-                    <p className="font-semibold">Bench Press</p>
-                    <KebabMenu items={menuItems} />
-                </div>
-                <p className="-mt-2 text-gray-600">Barbell</p>
-            </div>
-
-            {/* Properties */}
-            <div className="grid grid-flow-col auto-cols-auto gap-3">
-                <PropertyContainer>
-                    <p>Sets</p>
-                    <p className="text-primary font-semibold">1</p>
-                    <p className="text-primary font-semibold">2</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Previous</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Weight</p>
-                    <Input className="size-5 w-full px-2 text-center" />
-                    <Input className="size-5 w-full px-2" />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Reps</p>
-                    <Input className="size-5 w-full px-2" />
-                    <Input className="size-5 w-full px-2" />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <br />
-                    <Lock className="text-gray-600 size-4" />
-                    <Lock className="text-gray-600 size-4" />
-                </PropertyContainer>
-            </div>
-
-        </Card>
     );
 }
 

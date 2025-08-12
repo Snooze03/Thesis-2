@@ -1,5 +1,8 @@
 "use client"
 
+import { useState } from "react";
+import api from "@/api";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { X, FlagTriangleRight } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
@@ -12,6 +15,26 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
+    const [title, setTitle] = useState("");
+
+    const createTemplate = async (template_title) => {
+        const post = await api.post("workouts/templates/", { title: template_title });
+    }
+
+    const mutation = useMutation({
+        mutationFn: createTemplate,
+        onSuccess: () => {
+            navigate(-1);
+        },
+        onError: (error) => {
+            alert(`Error: ${error.message}`);
+        }
+    })
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        mutation.mutate(title);
+    }
 
     const handleCancel = () => {
         navigate(-1);
@@ -20,7 +43,7 @@ function CreateTemplate() {
     return (
         <SubLayout>
             {/* Header */}
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            <div className="grid grid-cols-[auto_1fr] items-center gap-2">
                 {/* Alert Dialog for closing/cancelling the creation */}
                 <AlertDialog>
                     <AlertDialogTrigger>
@@ -46,19 +69,32 @@ function CreateTemplate() {
                     </AlertDialogContent>
                 </AlertDialog>
 
-                {/* For changing template name */}
-                <Input variant="ghost" placeholder="New Workout Template" className="h-7"></Input>
+                <form onSubmit={handleSubmit} className="grid grid-cols-[1fr_auto] gap-2">
+                    {/* For changing template name */}
+                    <Input
+                        type="text"
+                        id="template_title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        variant="ghost"
+                        className="h-7"
+                        placeholder="New Workout Template"
+                    />
 
-                <Button className="h-7 ml-3">
-                    <FlagTriangleRight />
-                    Save
-                </Button>
+                    <Button
+                        type="submit"
+                        className="h-7 ml-3"
+                    >
+                        <FlagTriangleRight />
+                        Save
+                    </Button>
+                </form>
             </div>
 
             {/* Body */}
             <div className="flex flex-col gap-3">
-                <ExerciseCard />
-                <ExerciseCard />
+                {/* <ExerciseCard />
+                <ExerciseCard /> */}
                 <Button
                     variant="ghost"
                     className="text-primary font-semibold"

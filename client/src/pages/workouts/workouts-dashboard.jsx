@@ -9,6 +9,7 @@ import { Accordion } from "@/components/ui/accordion";
 import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 
 const WorkoutsDashboard = () => {
@@ -26,7 +27,7 @@ const WorkoutsDashboard = () => {
 
 function Routines() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient(); // Add this line
+    const queryClient = useQueryClient();
 
     const getTemplates = async () => {
         const response = await api.get("workouts/templates/");
@@ -56,9 +57,10 @@ function Routines() {
         onSuccess: () => {
             // Invalidate the templates query to refetch data
             queryClient.invalidateQueries({ queryKey: ["templates"] });
+            toast.success("Template deleted!")
         },
         onError: (error) => {
-            alert(`Error deleting template: ${error.message}`);
+            toast.error(`Error: ${error.message}`);
         }
     });
 

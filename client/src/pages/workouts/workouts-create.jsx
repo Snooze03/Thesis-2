@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import api from "@/api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { X, FlagTriangleRight } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
@@ -11,13 +11,12 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { toast } from "react-hot-toast";
 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
     const [title, setTitle] = useState("");
-
-    // USE REACT HOOK FORM LATER
 
     const createTemplate = async (template_title) => {
         const response = await api.post("workouts/templates/", { title: template_title });
@@ -33,7 +32,7 @@ function CreateTemplate() {
             navigate(-1);
         },
         onError: (error) => {
-            alert(`Error: ${error.message}`);
+            toast.error(`Error: ${error.message}`);
         }
     })
 

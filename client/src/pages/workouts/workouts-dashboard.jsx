@@ -2,7 +2,7 @@
 
 import api from "@/api";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
@@ -26,10 +26,10 @@ const WorkoutsDashboard = () => {
 
 function Routines() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient(); // Add this line
 
     const getTemplates = async () => {
         const response = await api.get("workouts/templates/");
-        console.log(response.data);
         return response.data;
     }
 
@@ -43,10 +43,17 @@ function Routines() {
         queryFn: getTemplates,
     });
 
-    // For posts requests
+    // For posts requests 
     const { mutate: deleteTemplateMutate, isLoading: isDeleting } = useMutation({
         mutationFn: deleteTemplate,
-        onSuccess: () => alert("deleted"),
+        onSuccess: () => {
+            // Invalidate the templates query to refetch data
+            queryClient.invalidateQueries({ queryKey: ["templates"] });
+            alert("deleted");
+        },
+        onError: (error) => {
+            alert(`Error deleting template: ${error.message}`);
+        }
     });
 
     if (isPending) return <h1>Loading...</h1>
@@ -101,4 +108,4 @@ function Alternatives() {
     );
 }
 
-export { WorkoutsDashboard } 
+export { WorkoutsDashboard }

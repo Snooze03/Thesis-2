@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import api from "@/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { X, FlagTriangleRight } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
@@ -15,15 +15,21 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient(); // Add this
     const [title, setTitle] = useState("");
 
+    // USE REACT HOOK FORM LATER
+
     const createTemplate = async (template_title) => {
-        const post = await api.post("workouts/templates/", { title: template_title });
+        const response = await api.post("workouts/templates/", { title: template_title });
+        return response.data;
     }
 
     const mutation = useMutation({
         mutationFn: createTemplate,
         onSuccess: () => {
+            // Invalidate and refetch templates query
+            queryClient.invalidateQueries({ queryKey: ["templates"] });
             navigate(-1);
         },
         onError: (error) => {
@@ -33,6 +39,10 @@ function CreateTemplate() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!title.trim()) {
+            alert("Please enter a template title");
+            return;
+        }
         mutation.mutate(title);
     }
 
@@ -79,14 +89,16 @@ function CreateTemplate() {
                         variant="ghost"
                         className="h-7"
                         placeholder="New Workout Template"
+                        disabled={mutation.isLoading}
                     />
 
                     <Button
                         type="submit"
                         className="h-7 ml-3"
+                        disabled={mutation.isLoading || !title.trim()}
                     >
                         <FlagTriangleRight />
-                        Save
+                        {mutation.isLoading ? "Saving..." : "Save"}
                     </Button>
                 </form>
             </div>

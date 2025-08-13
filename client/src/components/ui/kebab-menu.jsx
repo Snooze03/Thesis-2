@@ -13,6 +13,7 @@ export function KebabMenu({
     side = "bottom",
     className = "",
     disabled = false,
+    icon,
     ...props
 }) {
     const handleAction = (action, item) => {
@@ -31,7 +32,11 @@ export function KebabMenu({
         }
         return (
             <Button variant="ghost" size="sm" className={`size-8 p-0 ${className}`} disabled={disabled}>
-                <MoreVertical className="size-4" />
+                {icon ? (
+                    icon
+                ) : (
+                    <MoreVertical className="size-4" />
+                )}
                 <span className="sr-only">Open menu</span>
             </Button>
         )

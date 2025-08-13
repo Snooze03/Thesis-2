@@ -2,9 +2,10 @@
 
 import api from "@/api";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Accordion } from "@/components/ui/accordion";
 import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
@@ -26,38 +27,21 @@ const WorkoutsDashboard = () => {
 
 function Routines() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient(); // Add this line
 
+    // ===== GET TEMPLATES =====
     const getTemplates = async () => {
         const response = await api.get("workouts/templates/");
         return response.data;
     }
 
-    const deleteTemplate = async (id) => {
-        await api.delete(`workouts/templates/${id}/`);
-    }
-
-    // For fetching
-    const { data, isPending, isError } = useQuery({
+    const {
+        data: exercises,
+        isPending,
+    } = useQuery({
         queryKey: ["templates"],
         queryFn: getTemplates,
     });
-
-    // For posts requests 
-    const { mutate: deleteTemplateMutate, isLoading: isDeleting } = useMutation({
-        mutationFn: deleteTemplate,
-        onSuccess: () => {
-            // Invalidate the templates query to refetch data
-            queryClient.invalidateQueries({ queryKey: ["templates"] });
-            alert("deleted");
-        },
-        onError: (error) => {
-            alert(`Error deleting template: ${error.message}`);
-        }
-    });
-
-    if (isPending) return <h1>Loading...</h1>
-    if (isError) return <h1>Error</h1>
+    // ===== END GET =====
 
     return (
         <>
@@ -72,19 +56,24 @@ function Routines() {
                 </Button>
             </div>
 
-            <Accordion type="single" collapsible className="space-y-3">
-                {data.map(item => {
-                    return (
-                        <WorkoutTemplate
-                            key={item.id}
-                            id={item.id}
-                            title={item.title}
-                            onDelete={() => deleteTemplateMutate(item.id)}
-                            isDeleting={isDeleting}
-                        />
-                    );
-                })}
-            </Accordion>
+            {isPending ? (
+                <LoadingSpinner message="templates" />
+            ) : exercises.length > 0 ? (
+                <Accordion type="single" collapsible className="space-y-3">
+                    {exercises.map((item, index) => {
+                        return (
+                            <WorkoutTemplate
+                                key={item.id + index}
+                                id={item.id}
+                                title={item.title}
+                            />
+                        );
+                    })}
+                </Accordion>
+            ) : (
+                <p>No Templates</p>
+            )
+            }
         </>
     );
 }

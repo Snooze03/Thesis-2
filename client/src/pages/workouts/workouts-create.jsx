@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import api from "@/api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { X, FlagTriangleRight } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
@@ -11,42 +11,47 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { toast } from "react-hot-toast";
 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient(); // Add this
     const [title, setTitle] = useState("");
 
-    // USE REACT HOOK FORM LATER
-
+    // ===== POST TEMPLATE =====
     const createTemplate = async (template_title) => {
         const response = await api.post("workouts/templates/", { title: template_title });
         return response.data;
     }
 
-    const mutation = useMutation({
+    const {
+        mutate,
+        isLoading: isSaving
+    } = useMutation({
         mutationFn: createTemplate,
         onSuccess: () => {
             navigate(-1);
         },
         onError: (error) => {
-            alert(`Error: ${error.message}`);
+            toast.error(`Error: ${error.message}`);
         }
     })
+    // ===== END POST =====
 
+    // ===== ON CLICK HANDLERS =====
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!title.trim()) {
             alert("Please enter a template title");
             return;
         }
-        mutation.mutate(title);
+        mutate(title);
     }
 
     const handleCancel = () => {
         navigate(-1);
     }
+    // ===== END ONCLICK =====
 
     return (
         <SubLayout>
@@ -87,24 +92,29 @@ function CreateTemplate() {
                         variant="ghost"
                         className="h-7"
                         placeholder="New Workout Template"
-                        disabled={mutation.isLoading}
+                        disabled={isSaving}
                     />
 
                     <Button
                         type="submit"
                         className="h-7 ml-3"
-                        disabled={mutation.isLoading || !title.trim()}
+                        disabled={isSaving || !title.trim()}
                     >
                         <FlagTriangleRight />
-                        {mutation.isLoading ? "Saving..." : "Save"}
+                        {isSaving ? "Saving..." : "Save"}
                     </Button>
                 </form>
             </div>
 
             {/* Body */}
             <div className="flex flex-col gap-3">
-                {/* <ExerciseCard />
-                <ExerciseCard /> */}
+                {/* {exercises.map((exercise, index) => (
+                    <ExerciseCard
+                        key={exercise.name + index}
+                        exercise={exercise.name}
+                        equipment={exercise.equipment}
+                    />
+                ))} */}
                 <Button
                     variant="ghost"
                     className="text-primary font-semibold"

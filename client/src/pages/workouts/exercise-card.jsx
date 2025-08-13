@@ -8,7 +8,7 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
 
 
-function ExerciseCard() {
+function ExerciseCard({ exercise, equipment }) {
     const [weight, setWeight] = useState(0);
     const [reps, setReps] = useState(0);
     const [isDone, setIsDone] = useState(false);
@@ -34,10 +34,10 @@ function ExerciseCard() {
             {/* Header */}
             <div>
                 <div className="flex justify-between items-center gap-3">
-                    <p className="font-semibold">Bench Press</p>
+                    <p className="font-semibold">{exercise}</p>
                     <KebabMenu items={menuItems} />
                 </div>
-                <p className="-mt-2 text-gray-600">Barbell</p>
+                <p className="-mt-2 text-gray-600">{equipment}</p>
             </div>
 
             {/* Properties */}

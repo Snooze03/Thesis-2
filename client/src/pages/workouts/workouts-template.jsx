@@ -1,13 +1,29 @@
+import axios from "axios";
+import api from "@/api";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Play, Trash2, Pencil } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 
 function WorkoutTemplate({
     id,
     title,
     workouts,
+    onDelete,
+    isDeleting
 }) {
+
+    const handleDelete = async () => {
+        const response = await api.delete(`workouts/templates/${id}/`);
+        return response;
+    }
+
+    const { isPending } = useMutation({
+        mutationFn: handleDelete,
+        onSuccess: () => console.log(`Success`),
+    });
+
     return (
 
         <AccordionItem value={`item-${id}`} className="shadow-sm rounded-lg">
@@ -42,7 +58,12 @@ function WorkoutTemplate({
 
                 {/* Button Controls */}
                 <div className="grid grid-cols-[auto_auto_auto] gap-3 mt-5">
-                    <Button variant="delete" size="sm">
+                    <Button
+                        variant="delete"
+                        size="sm"
+                        onClick={onDelete}
+                        disabled={isDeleting}
+                    >
                         <Trash2 className="size-3" />
                         Delete
                     </Button>
@@ -60,11 +81,4 @@ function WorkoutTemplate({
     );
 }
 
-function CreateWorkoutTemplate() {
-    return (
-        <>
-        </>
-    );
-}
-
-export { WorkoutTemplate, CreateWorkoutTemplate }
+export { WorkoutTemplate }

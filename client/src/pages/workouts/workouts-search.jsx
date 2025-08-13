@@ -1,107 +1,108 @@
 "use client"
 
-import { useState } from "react";
-import { X, FlagTriangleRight, Lock, Plus, Trash2, Replace, AlarmClock, Minus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { X, Search, ListFilter, Check } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useNavigate } from "react-router";
 
-// Main function
-function CreateTemplate() {
+function SearchExercise() {
+    const navigate = useNavigate();
+
+    const exercises = [
+        { id: 1, name: "Push-ups", bodyPart: "Chest", equipment: "Bodyweight" },
+        { id: 2, name: "Squats", bodyPart: "Legs", equipment: "Bodyweight" },
+        { id: 3, name: "Bench Press", bodyPart: "Chest", equipment: "Barbell" },
+    ];
+
+    // Handles item selected state
+    const [selectedItems, setSelectedItems] = useState(new Set());
+
+    const toggleItemSelection = (itemId) => {
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            return newSet;
+        });
+    };
+
+    const hasSelectedItems = selectedItems.size > 0;
+
     return (
         <SubLayout>
             {/* Header */}
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                <Button variant="ghost" className="h-7">
+            <div className="grid grid-cols-[auto_1fr_auto_auto] grid-rows-2 items-center gap-2">
+                <Button
+                    variant="ghost"
+                    onClick={() => navigate(-1)}
+                >
                     <X />
                 </Button>
 
-                <Input variant="ghost" placeholder="New Workout Template" className="h-7"></Input>
+                <h1 className="font-bold">Add Exercise</h1>
+                <ListFilter />
+                <KebabMenu />
 
-                <Button className="h-7 ml-3">
-                    <FlagTriangleRight />
-                    Save
+                <div className="relative w-full block col-span-4">
+                    <Input className="col-span-4 pl-10" placeholder="search for an exercise" />
+                    <Search className={cn(
+                        "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
+                        // "max-2xs:size-4"
+                    )} />
+                </div>
+            </div>
+
+            {/* List items */}
+            <div className="flex flex-col gap-2">
+                {exercises.map(exercise => (
+                    <ListItem
+                        key={exercise.id}
+                        id={exercise.id}
+                        exercise={exercise}
+                        isSelected={selectedItems.has(exercise.id)}
+                        onToggle={() => toggleItemSelection(exercise.id)}
+                    />
+                ))}
+
+            </div>
+
+            {/* Conditional button - only shows when items are selected */}
+            {hasSelectedItems && (
+                <Button
+                    variant="ghost"
+                    className="h-10 fixed bottom-4 right-4 rounded-full bg-primary-500 text-white shadow-lg"
+                >
+                    <Check className="size-5 stroke-3" />
                 </Button>
-            </div>
-
-            {/* Body */}
-            <div className="flex flex-col gap-3">
-                <ExerciseCard />
-                <ExerciseCard />
-                <Button variant="ghost" className="text-primary font-semibold">ADD EXERCISE</Button>
-            </div>
+            )}
         </SubLayout>
     );
 }
 
-function PropertyContainer({ children }) {
+function ListItem({ id, exercise, isSelected, onToggle }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-2">
-            {children}
-            {/* Adds additional space below */}
-            <span className="block" />
+        <div
+            className={clsx(
+                "px-3 py-2 rounded-lg hover:bg-primary-100 hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer",
+                { "bg-primary-300 shadow-sm": isSelected }
+            )}
+            onClick={onToggle}
+        >
+            <div className="flex gap-2">
+                <p>{exercise.name}</p>
+                <p>({exercise.bodyPart})</p>
+            </div>
+            <p className="text-gray-600">{exercise.equipment}</p>
         </div>
-    )
-}
-
-function ExerciseCard() {
-    const menuItems = [
-        { type: "title", label: "My Account" },
-        { icon: Plus, label: "Add Set", action: "add_set" },
-        { icon: Trash2, label: "Delete Set", action: "delete_set" },
-        { icon: AlarmClock, label: "Rest Timer", action: "set_restTimer" },
-        { icon: Replace, label: "Replace Exercise", action: "change_exercise" },
-        { icon: Minus, label: "Remove Exercise", variant: "destructive", action: "change_exercise" },
-    ]
-
-    return (
-        <Card className="px-5 py-3 gap-2">
-            {/* Header */}
-            <div>
-                <div className="flex justify-between items-center gap-3">
-                    <p className="font-semibold">Bench Press</p>
-                    <KebabMenu items={menuItems} />
-                </div>
-                <p className="-mt-2 text-gray-600">Barbell</p>
-            </div>
-
-            {/* Properties */}
-            <div className="grid grid-flow-col auto-cols-auto gap-3">
-                <PropertyContainer>
-                    <p>Sets</p>
-                    <p className="text-primary font-semibold">1</p>
-                    <p className="text-primary font-semibold">2</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Previous</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Weight</p>
-                    <Input className="size-5 w-full px-2 text-center" />
-                    <Input className="size-5 w-full px-2" />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Reps</p>
-                    <Input className="size-5 w-full px-2" />
-                    <Input className="size-5 w-full px-2" />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <br />
-                    <Lock className="text-gray-600 size-4" />
-                    <Lock className="text-gray-600 size-4" />
-                </PropertyContainer>
-            </div>
-
-        </Card>
     );
 }
 
-export { CreateTemplate }
+export { SearchExercise }

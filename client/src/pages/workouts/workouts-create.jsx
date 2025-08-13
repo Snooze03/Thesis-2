@@ -28,8 +28,6 @@ function CreateTemplate() {
     const mutation = useMutation({
         mutationFn: createTemplate,
         onSuccess: () => {
-            // Invalidate and refetch templates query
-            queryClient.invalidateQueries({ queryKey: ["templates"] });
             navigate(-1);
         },
         onError: (error) => {

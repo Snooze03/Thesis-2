@@ -1,27 +1,49 @@
 "use client"
 
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import apiNinjas from "@/apiNinjas";
+import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
 import { SubLayout } from "@/layouts/sub-layout";
 import { X, Search, ListFilter, Check } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { clsx } from "clsx";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { useNavigate } from "react-router";
 
 function SearchExercise() {
     const navigate = useNavigate();
-
-    const exercises = [
-        { id: 1, name: "Push-ups", bodyPart: "Chest", equipment: "Bodyweight" },
-        { id: 2, name: "Squats", bodyPart: "Legs", equipment: "Bodyweight" },
-        { id: 3, name: "Bench Press", bodyPart: "Chest", equipment: "Barbell" },
-    ];
-
-    // Handles item selected state
+    const [searchTerm, setSearchTerm] = useState("");
+    const [submittedSearchTerm, setSubmittedSearchTerm] = useState(""); // State to trigger search
     const [selectedItems, setSelectedItems] = useState(new Set());
 
+    const getExercises = async ({ queryKey }) => {
+        const [_, searchName] = queryKey;
+        // if a search term is provided, use that to query
+        if (searchName) {
+            const response = await apiNinjas.get(`exercises?name=${searchName}`);
+            return response.data;
+        } else {
+            // if no search term is provided, default to beginner
+            const response = await apiNinjas.get(`exercises?difficulty=beginner`);
+            return response.data;
+        }
+    };
+
+    const {
+        data,
+        isPending,
+        isError,
+        isSuccess,
+    } = useQuery({
+        queryKey: ["search_exercises", submittedSearchTerm],
+        queryFn: getExercises,
+        staleTime: Infinity,
+        cacheTime: Infinity,
+    });
+
+    // Handles item selection
     const toggleItemSelection = (itemId) => {
         setSelectedItems(prev => {
             const newSet = new Set(prev);
@@ -36,9 +58,15 @@ function SearchExercise() {
 
     const hasSelectedItems = selectedItems.size > 0;
 
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setSubmittedSearchTerm(searchTerm);
+    };
+
+    const exercises = data || [];
+
     return (
         <SubLayout>
-            {/* Header */}
             <div className="grid grid-cols-[auto_1fr_auto_auto] grid-rows-2 items-center gap-2">
                 <Button
                     variant="ghost"
@@ -48,33 +76,58 @@ function SearchExercise() {
                 </Button>
 
                 <h1 className="font-bold">Add Exercise</h1>
+
                 <ListFilter />
                 <KebabMenu />
 
-                <div className="relative w-full block col-span-4">
-                    <Input className="col-span-4 pl-10" placeholder="search for an exercise" />
+                <form onSubmit={handleSubmit} className="relative w-full block col-span-4">
+                    <Input
+                        id="search_input"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="col-span-4 pl-10"
+                        placeholder="search for an exercise"
+                    />
                     <Search className={cn(
                         "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
-                        // "max-2xs:size-4"
                     )} />
+                </form>
+            </div>
+
+            <div className="flex flex-col gap-2">
+                {/* Error State */}
+                {isError && (
+                    <div className="flex justify-center items-center h-64">
+                        <p>Error loading exercises. Please try again.</p>
+                    </div>
+                )}
+
+                {/* List out exercises upon success */}
+                <div className="flex flex-col gap-2">
+                    {/* Loading state */}
+                    {isPending ? (
+                        <div className="flex justify-center items-center h-64">
+                            <p>Loading exercises...</p>
+                        </div>
+                    ) : exercises.length > 0 ? ( // upon receiving the data, list out the items
+                        exercises.map((exercise, index) => (
+                            <ListItem
+                                key={exercise.name + index}
+                                id={exercise.name + index}
+                                exercise={exercise}
+                                isSelected={selectedItems.has(exercise.name + index)}
+                                onToggle={() => toggleItemSelection(exercise.name + index)}
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-gray-500">
+                            No exercises found
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* List items */}
-            <div className="flex flex-col gap-2">
-                {exercises.map(exercise => (
-                    <ListItem
-                        key={exercise.id}
-                        id={exercise.id}
-                        exercise={exercise}
-                        isSelected={selectedItems.has(exercise.id)}
-                        onToggle={() => toggleItemSelection(exercise.id)}
-                    />
-                ))}
-
-            </div>
-
-            {/* Conditional button - only shows when items are selected */}
+            {/* Show button if an item is selected */}
             {hasSelectedItems && (
                 <Button
                     variant="ghost"
@@ -88,19 +141,42 @@ function SearchExercise() {
 }
 
 function ListItem({ id, exercise, isSelected, onToggle }) {
+    // Function to format muscle group
+    const formatString = (str) => {
+        if (!str) return "";
+        return str
+            .split("_") // Splits "lower_back" into ["lower", "back"]
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalizes each word
+            .join(" "); // Joins them back with a space: "Lower Back"
+    };
+
+    const formattedMuscle = formatString(exercise.muscle);
+
     return (
         <div
             className={clsx(
-                "px-3 py-2 rounded-lg hover:bg-primary-100 hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer",
+                "px-3 py-2 rounded-lg  hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer",
+                { "hover:bg-primary-100": !isSelected },
                 { "bg-primary-300 shadow-sm": isSelected }
             )}
             onClick={onToggle}
         >
+            {/* Render list items using the exercise lists */}
             <div className="flex gap-2">
-                <p>{exercise.name}</p>
-                <p>({exercise.bodyPart})</p>
+                <p className="font-medium">
+                    {exercise.name}
+                </p>
+                {exercise.muscle &&
+                    <p className="text-gray-600">
+                        ({formattedMuscle})
+                    </p>
+                }
             </div>
-            <p className="text-gray-600">{exercise.equipment}</p>
+            {exercise.equipment && (
+                <p className="text-gray-600 text-sm">
+                    {exercise.equipment}
+                </p>
+            )}
         </div>
     );
 }

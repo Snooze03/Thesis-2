@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // Main function
 function CreateTemplate() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient(); // Add this
     const [title, setTitle] = useState("");
 
     // USE REACT HOOK FORM LATER
@@ -25,7 +24,10 @@ function CreateTemplate() {
         return response.data;
     }
 
-    const mutation = useMutation({
+    const {
+        mutate,
+        isLoading: isSaving
+    } = useMutation({
         mutationFn: createTemplate,
         onSuccess: () => {
             navigate(-1);
@@ -41,7 +43,7 @@ function CreateTemplate() {
             alert("Please enter a template title");
             return;
         }
-        mutation.mutate(title);
+        mutate(title);
     }
 
     const handleCancel = () => {
@@ -87,16 +89,16 @@ function CreateTemplate() {
                         variant="ghost"
                         className="h-7"
                         placeholder="New Workout Template"
-                        disabled={mutation.isLoading}
+                        disabled={isSaving}
                     />
 
                     <Button
                         type="submit"
                         className="h-7 ml-3"
-                        disabled={mutation.isLoading || !title.trim()}
+                        disabled={isSaving || !title.trim()}
                     >
                         <FlagTriangleRight />
-                        {mutation.isLoading ? "Saving..." : "Save"}
+                        {isSaving ? "Saving..." : "Save"}
                     </Button>
                 </form>
             </div>

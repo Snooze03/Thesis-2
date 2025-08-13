@@ -38,18 +38,24 @@ function Routines() {
     }
 
     // For fetching
-    const { data, isPending, isError } = useQuery({
+    const {
+        data,
+        isPending,
+        isError
+    } = useQuery({
         queryKey: ["templates"],
         queryFn: getTemplates,
     });
 
     // For posts requests 
-    const { mutate: deleteTemplateMutate, isLoading: isDeleting } = useMutation({
+    const {
+        mutate,
+        isLoading: isDeleting
+    } = useMutation({
         mutationFn: deleteTemplate,
         onSuccess: () => {
             // Invalidate the templates query to refetch data
             queryClient.invalidateQueries({ queryKey: ["templates"] });
-            alert("deleted");
         },
         onError: (error) => {
             alert(`Error deleting template: ${error.message}`);
@@ -79,7 +85,7 @@ function Routines() {
                             key={item.id}
                             id={item.id}
                             title={item.title}
-                            onDelete={() => deleteTemplateMutate(item.id)}
+                            onDelete={() => mutate(item.id)}
                             isDeleting={isDeleting}
                         />
                     );

@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import apiNinjas from "@/apiNinjas";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
 import { SubLayout } from "@/layouts/sub-layout";
-import { X, Search, ListFilter, Check } from "lucide-react";
-import { KebabMenu } from "@/components/ui/kebab-menu";
+import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -18,6 +17,7 @@ function SearchExercise() {
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState(""); // State to trigger search
     const [selectedItems, setSelectedItems] = useState(new Set());
 
+    // ===== GET EXERCISES =====
     const getExercises = async ({ queryKey }) => {
         const [_, searchName] = queryKey;
         // if a search term is provided, use that to query
@@ -35,18 +35,19 @@ function SearchExercise() {
         data,
         isPending,
         isError,
-        isSuccess,
     } = useQuery({
         queryKey: ["search_exercises", submittedSearchTerm],
         queryFn: getExercises,
         staleTime: Infinity,
         cacheTime: Infinity,
     });
+    // ===== END GET =====
 
-    // Handles item selection
+    // ===== SELECT STATE =====
     const toggleItemSelection = (itemId) => {
         setSelectedItems(prev => {
             const newSet = new Set(prev);
+            // if already selected, de-select it
             if (newSet.has(itemId)) {
                 newSet.delete(itemId);
             } else {
@@ -56,7 +57,9 @@ function SearchExercise() {
         });
     };
 
+    // Bool value for check button
     const hasSelectedItems = selectedItems.size > 0;
+    // ===== END SELECT =====
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -67,19 +70,23 @@ function SearchExercise() {
 
     return (
         <SubLayout>
-            <div className="grid grid-cols-[auto_1fr_auto_auto] grid-rows-2 items-center gap-2">
+            <div className="grid grid-cols-[auto_1fr_auto] grid-rows-2 items-center gap-2">
+                {/* Row 1 */}
                 <Button
                     variant="ghost"
                     onClick={() => navigate(-1)}
                 >
-                    <X />
+                    <ArrowLeft />
                 </Button>
 
                 <h1 className="font-bold">Add Exercise</h1>
 
-                <ListFilter />
-                <KebabMenu />
+                {/* Filter, do this later on after CRUD */}
+                <Button variant="ghost" className="justify-self-end">
+                    <ListFilter />
+                </Button>
 
+                {/* Row 2 */}
                 <form onSubmit={handleSubmit} className="relative w-full block col-span-4">
                     <Input
                         id="search_input"
@@ -95,7 +102,6 @@ function SearchExercise() {
             </div>
 
             <div className="flex flex-col gap-2">
-                {/* Error State */}
                 {isError && (
                     <div className="flex justify-center items-center h-64">
                         <p>Error loading exercises. Please try again.</p>
@@ -104,12 +110,12 @@ function SearchExercise() {
 
                 {/* List out exercises upon success */}
                 <div className="flex flex-col gap-2">
-                    {/* Loading state */}
                     {isPending ? (
                         <div className="flex justify-center items-center h-64">
                             <p>Loading exercises...</p>
                         </div>
-                    ) : exercises.length > 0 ? ( // upon receiving the data, list out the items
+                    ) : exercises.length > 0 ? (
+                        // Render lists items
                         exercises.map((exercise, index) => (
                             <ListItem
                                 key={exercise.name + index}

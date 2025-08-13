@@ -18,6 +18,7 @@ function CreateTemplate() {
     const navigate = useNavigate();
     const [title, setTitle] = useState("");
 
+    // ===== POST TEMPLATE =====
     const createTemplate = async (template_title) => {
         const response = await api.post("workouts/templates/", { title: template_title });
         return response.data;
@@ -35,7 +36,9 @@ function CreateTemplate() {
             toast.error(`Error: ${error.message}`);
         }
     })
+    // ===== END POST =====
 
+    // ===== ON CLICK HANDLERS =====
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!title.trim()) {
@@ -48,6 +51,7 @@ function CreateTemplate() {
     const handleCancel = () => {
         navigate(-1);
     }
+    // ===== END ONCLICK =====
 
     return (
         <SubLayout>
@@ -104,8 +108,13 @@ function CreateTemplate() {
 
             {/* Body */}
             <div className="flex flex-col gap-3">
-                {/* <ExerciseCard />
-                <ExerciseCard /> */}
+                {/* {exercises.map((exercise, index) => (
+                    <ExerciseCard
+                        key={exercise.name + index}
+                        exercise={exercise.name}
+                        equipment={exercise.equipment}
+                    />
+                ))} */}
                 <Button
                     variant="ghost"
                     className="text-primary font-semibold"

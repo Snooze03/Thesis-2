@@ -9,12 +9,10 @@ import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Play, Trash2, Pencil } from "lucide-react";
-import { Heading1 } from "lucide-react";
 
 function WorkoutTemplate({
     id,
     title,
-    workouts,
 }) {
     const queryClient = useQueryClient();
 
@@ -61,7 +59,7 @@ function WorkoutTemplate({
             <AccordionTrigger>
                 {title}
                 <Badge>
-                    {workouts} workouts
+                    workouts
                 </Badge>
             </AccordionTrigger>
             <AccordionContent className="px-5 py-4 space-y-3">
@@ -84,7 +82,6 @@ function WorkoutTemplate({
                     })) : (
                     <h1>No exercises</h1>
                 )}
-
                 {/* Button Controls */}
                 <div className="grid grid-cols-[auto_auto_auto] gap-3 mt-5">
                     <Button

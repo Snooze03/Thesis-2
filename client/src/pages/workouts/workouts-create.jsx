@@ -19,18 +19,20 @@ function CreateTemplate() {
     const [title, setTitle] = useState("");
 
     // ===== POST TEMPLATE =====
-    const createTemplate = async (template_title) => {
-        const response = await api.post("workouts/templates/", { title: template_title });
+    const createTemplate = async () => {
+        const response = await api.post("workouts/templates/", { title: title });
+        // Returns the data of the newly created template
         return response.data;
     }
 
     const {
+        data: template,
         mutate,
         isLoading: isSaving
     } = useMutation({
         mutationFn: createTemplate,
-        onSuccess: () => {
-            navigate(-1);
+        onSuccess: (template) => {
+            navigate(`${location.pathname}/search/${template.id}`);
         },
         onError: (error) => {
             toast.error(`Error: ${error.message}`);
@@ -41,11 +43,14 @@ function CreateTemplate() {
     // ===== ON CLICK HANDLERS =====
     const handleSubmit = (e) => {
         e.preventDefault();
+        mutate();
+    }
+
+    const handleAddExercise = () => {
         if (!title.trim()) {
-            alert("Please enter a template title");
-            return;
+            return toast.error("Enter a template title first");
         }
-        mutate(title);
+        mutate();
     }
 
     const handleCancel = () => {
@@ -118,7 +123,7 @@ function CreateTemplate() {
                 <Button
                     variant="ghost"
                     className="text-primary font-semibold"
-                    onClick={() => navigate(`${location.pathname}/search`)}
+                    onClick={handleAddExercise}
                 >
                     ADD EXERCISE
                 </Button>

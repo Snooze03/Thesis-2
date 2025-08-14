@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import apiNinjas from "@/apiNinjas";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ function SearchExercise() {
     const [searchTerm, setSearchTerm] = useState("");
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState(""); // State to trigger search
     const [selectedItems, setSelectedItems] = useState(new Set());
+    let { template_id } = useParams();
 
     // ===== GET EXERCISES =====
     const getExercises = async ({ queryKey }) => {

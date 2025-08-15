@@ -7,8 +7,9 @@ export function WorkoutsRoutes() {
     return (
         <Routes>
             <Route index element={<WorkoutsDashboard />} />
-            <Route path="create" element={<CreateTemplate />} />
-            <Route path="create/search/:template_id" element={<SearchExercise />} />
+            <Route path="templates/create" element={<CreateTemplate />} />
+            <Route path="templates/:template_id/edit" element={<CreateTemplate />} />
+            <Route path="templates/:template_id/search" element={<SearchExercise />} />
         </Routes>
     );
 }

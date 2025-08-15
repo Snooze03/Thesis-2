@@ -10,6 +10,7 @@ import { Accordion } from "@/components/ui/accordion";
 import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { EmptyItems } from "@/components/empty-items";
 
 
 const WorkoutsDashboard = () => {
@@ -71,7 +72,10 @@ function Routines() {
                     })}
                 </Accordion>
             ) : (
-                <p>No Templates</p>
+                <EmptyItems
+                    title="No templates added yet"
+                    description="Click 'Create` to make one"
+                />
             )
             }
         </>
@@ -89,10 +93,14 @@ function Alternatives() {
                 </Button>
             </div>
 
-            <Accordion type="single" collapsible className="space-y-3">
-                {/* <WorkoutTemplate id="1" title="Push Day" workouts="2" />
-                <WorkoutTemplate id="2" title="Pull Day" workouts="2" /> */}
-            </Accordion>
+            <EmptyItems
+                title="No alternatives added yet"
+                description="Click 'Create` to make one"
+            />
+            {/* <Accordion type="single" collapsible className="space-y-3">
+                <WorkoutTemplate id="1" title="Push Day" workouts="2" />
+                <WorkoutTemplate id="2" title="Pull Day" workouts="2" />
+            </Accordion> */}
         </>
     );
 }

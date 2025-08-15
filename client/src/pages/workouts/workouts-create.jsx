@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "react-hot-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { EmptyItems } from "@/components/empty-items";
 
 function CreateTemplate() {
     const navigate = useNavigate();
@@ -291,10 +292,10 @@ function CreateTemplate() {
                                 </div>
                             </>
                         ) : (
-                            <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                                <p>No exercises added yet</p>
-                                <p className="text-sm">Click "Add Exercise" to get started</p>
-                            </div>
+                            <EmptyItems
+                                title="No exercises added yet"
+                                description="Click 'Add Exercises' to get started!"
+                            />
                         )}
                     </div>
                 )}

@@ -28,7 +28,7 @@ function WorkoutTemplate({
         isPending: isPendingExercise,
         isError: isErrorExercise,
     } = useQuery({
-        queryKey: ["template_exercises", id],   // Include template id in query key
+        queryKey: ["template_exercises_list", id],   // Include template id in query key
         queryFn: getTemplateExercises,
         enabled: Boolean(id),                   // Only run if we have a template id
     });

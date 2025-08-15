@@ -117,7 +117,6 @@ function CreateTemplate() {
     } = useMutation({
         mutationFn: removeExerciseFromTemplate,
         onSuccess: (data) => {
-            toast.success(data.message || "Exercise removed successfully!");
             refetchExercises(); // Refresh the exercises list
         },
         onError: (error) => {
@@ -169,8 +168,18 @@ function CreateTemplate() {
         }
     };
 
-    const handleCancel = () => {
-        navigate("/workouts");
+    const handleCancel = async () => {
+        try {
+            if (exercises.length === 0) {
+                await api.delete(`workouts/templates/${template_id}/`);
+            }
+        }
+        catch (err) {
+            console.log(err);
+        }
+        finally {
+            navigate("/workouts");
+        }
     }
     // ===== END EVENT HANDLERS =====
 

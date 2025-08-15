@@ -35,7 +35,7 @@ function Routines() {
     }
 
     const {
-        data: exercises,
+        data: templates,
         isPending,
     } = useQuery({
         queryKey: ["templates"],
@@ -49,7 +49,7 @@ function Routines() {
                 <SectionSubTitle>My Routines</SectionSubTitle>
                 <Button
                     className="h-min"
-                    onClick={() => navigate(`${location.pathname}/create`)}
+                    onClick={() => navigate(`${location.pathname}/templates/create`)}
                 >
                     <Plus />
                     Create
@@ -58,9 +58,9 @@ function Routines() {
 
             {isPending ? (
                 <LoadingSpinner message="templates" />
-            ) : exercises.length > 0 ? (
+            ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
-                    {exercises.map((item, index) => {
+                    {templates.map((item, index) => {
                         return (
                             <WorkoutTemplate
                                 key={item.id + index}

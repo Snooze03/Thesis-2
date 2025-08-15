@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import api from "@/api"; // Make sure this import path is correct
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { buttonVariants } from "@/components/ui/button";
 
 
 function WorkoutTemplate({
@@ -57,9 +59,7 @@ function WorkoutTemplate({
 
     // ===== EVENT HANDLERS =====
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
-            deleteTemplateMutation(id);
-        }
+        deleteTemplateMutation(id);
     };
 
     const handleEdit = () => {
@@ -139,16 +139,28 @@ function WorkoutTemplate({
 
                 {/* Button Controls */}
                 <div className="grid grid-cols-3 gap-3 mt-5 pt-4 border-t">
-                    <Button
-                        variant="delete"
-                        size="sm"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="w-full"
-                    >
-                        <Trash2 className="size-3 mr-2" />
-                        {isDeleting ? "Deleting..." : "Delete"}
-                    </Button>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger className="border-2 border-red-400 rounded-lg">
+                            <p className="flex items-center justify-center gap-1 text-red-400">
+                                <Trash2 className="size-3 mr-2" />
+                                Delete
+                            </p>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete your template
+                                    and remove it from our servers.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>{isDeleting ? "Deleting..." : "Delete"}</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
 
                     <Button
                         variant="edit"

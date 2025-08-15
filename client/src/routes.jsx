@@ -11,6 +11,7 @@ import { ChatDashboard } from './pages/chat/chat-dashboard';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
 
 import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
+import { LoadingSpinner } from './components/ui/loading-spinner';
 
 
 export const Router = () => {
@@ -89,7 +90,7 @@ function ProtectedRoutes() {
         staleTime: 5 * 60 * 1000,
     });
 
-    if (isPending) return <div>Loading...</div>;
+    if (isPending) return <LoadingSpinner message="Page" />
 
     return isError ? <Navigate to="/login" /> : <Outlet />;
 }

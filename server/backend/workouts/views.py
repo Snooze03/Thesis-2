@@ -176,6 +176,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         """
         Search exercises by name or muscle
         URL: /workouts/exercises/search/?q=push&muscle=chest
+        if ninja api is down use this as the fall back
         """
         query = request.query_params.get("q", "")
         muscle = request.query_params.get("muscle", "")
@@ -208,3 +209,20 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
         return TemplateExercise.objects.filter(
             template__user_id=self.request.user
         ).select_related("exercise", "template")
+
+    @action(detail=True, methods=["post"])
+    def set_params(self, request, pk=None):
+        """
+        Set sets, weight, and reps for a TemplateExercise instance.
+        URL: /workouts/template-exercises/{id}/set_params/
+        """
+        template_exercise = get_object_or_404(TemplateExercise, pk=pk)
+
+        serializer = self.get_serializer(
+            template_exercise, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

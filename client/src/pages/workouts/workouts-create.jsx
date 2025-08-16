@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { X, FlagTriangleRight, Plus, Trash2 } from "lucide-react";
+import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
 import { Button } from "@/components/ui/button";
@@ -102,29 +102,8 @@ function CreateTemplate() {
             toast.error(`Error: ${error.response?.data?.message || error.message}`);
         }
     });
-    // ===== END CREATE/EDIT =====
+    // ===== END POST/UPDATE =====
 
-    // ===== REMOVE EXERCISE FROM TEMPLATE =====
-    const removeExerciseFromTemplate = async ({ templateId, exerciseId }) => {
-        const response = await api.delete(`workouts/templates/${templateId}/remove_exercise/`, {
-            data: { exercise_id: exerciseId }
-        });
-        return response.data;
-    };
-
-    const {
-        mutate: removeExercise,
-        isLoading: isRemoving
-    } = useMutation({
-        mutationFn: removeExerciseFromTemplate,
-        onSuccess: (data) => {
-            refetchExercises(); // Refresh the exercises list
-        },
-        onError: (error) => {
-            toast.error(`Error removing exercise: ${error.response?.data?.error || error.message}`);
-        }
-    });
-    // ===== END REMOVE EXERCISE =====
 
     // ===== SYNC LOCAL TITLE WITH FETCHED TEMPLATE =====
     useEffect(() => {
@@ -159,15 +138,6 @@ function CreateTemplate() {
             navigate(`/workouts/templates/${template_id}/search`);
         }
     }
-
-    const handleRemoveExercise = (exerciseId, exerciseName) => {
-        if (window.confirm(`Remove "${exerciseName}" from this template?`)) {
-            removeExercise({
-                templateId: template_id,
-                exerciseId: exerciseId
-            });
-        }
-    };
 
     const handleCancel = async () => {
         try {
@@ -267,27 +237,16 @@ function CreateTemplate() {
                                     {exercises.map((templateExercise) => (
                                         <div key={templateExercise.id} className="relative group">
                                             <ExerciseCard
+                                                template_Id={template_id}
+                                                template_exercise_id={templateExercise.exercise.id}
                                                 exercise={templateExercise.exercise.name}
                                                 equipment={templateExercise.exercise.equipment}
                                                 muscle={templateExercise.exercise.muscle}
                                                 difficulty={templateExercise.exercise.difficulty}
                                                 sets={templateExercise.sets}
                                                 reps={templateExercise.reps}
+                                                weight={templateExercise.weight}
                                             />
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() =>
-                                                    handleRemoveExercise(
-                                                        templateExercise.exercise.id,
-                                                        templateExercise.exercise.name
-                                                    )
-                                                }
-                                                disabled={isRemoving}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
                                         </div>
                                     ))}
                                 </div>

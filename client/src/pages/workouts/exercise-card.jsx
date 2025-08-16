@@ -1,4 +1,8 @@
+"use client"
+
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/api";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
@@ -6,13 +10,24 @@ import { Plus, Trash2, AlarmClock, Replace, Minus, Lock } from "lucide-react";
 import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
 
 
-function ExerciseCard({ exercise, equipment }) {
-    const [weight, setWeight] = useState(0);
-    const [reps, setReps] = useState(0);
+function ExerciseCard({
+    template_Id,
+    template_exercise_id,
+    exercise,
+    equipment,
+    muscle,
+    difficulty,
+    sets,
+    reps,
+    weight,
+}) {
     const [isDone, setIsDone] = useState(false);
+    const queryClient = useQueryClient();
 
+    // Hook Form and valibot validation for weights and reps input
     const {
         register,
         handleSubmit,
@@ -21,12 +36,44 @@ function ExerciseCard({ exercise, equipment }) {
         resolver: valibotResolver(ExerciseSchema)
     });
 
+    // ===== REMOVE EXERCISE FROM TEMPLATE =====
+    const removeExerciseFromTemplate = async ({ templateId, exerciseId }) => {
+        const response = await api.delete(`workouts/templates/${templateId}/remove_exercise/`, {
+            data: { exercise_id: exerciseId }
+        });
+        return response.data;
+    };
+
+    const {
+        mutate: removeExercise,
+        isLoading: isRemoving
+    } = useMutation({
+        mutationFn: removeExerciseFromTemplate,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["template_exercises"] })
+            // refetchExercises(); // Refresh the exercises list
+        },
+        onError: (error) => {
+            toast.error(`Error removing exercise: ${error.response?.data?.error || error.message}`);
+        }
+    });
+    // ===== END REMOVE EXERCISE =====
+
+    // ===== EVENT HANDLERS =====
+    const handleRemoveExercise = () => {
+        removeExercise({
+            templateId: template_Id,
+            exerciseId: template_exercise_id,
+        });
+    };
+
+
     const menuItems = [
         { icon: Plus, label: "Add Set", action: "add_set" },
         { icon: Trash2, label: "Delete Set", action: "delete_set" },
         { icon: AlarmClock, label: "Rest Timer", action: "set_restTimer" },
         { icon: Replace, label: "Replace Exercise", action: "change_exercise" },
-        { icon: Minus, label: "Remove Exercise", variant: "destructive", action: "remove_exercise" },
+        { icon: Minus, label: "Remove Exercise", variant: "destructive", action: handleRemoveExercise },
     ]
 
     return (
@@ -34,7 +81,12 @@ function ExerciseCard({ exercise, equipment }) {
             {/* Header */}
             <div>
                 <div className="flex justify-between items-center gap-3">
-                    <p className="font-semibold">{exercise}</p>
+                    <p className="font-semibold">
+                        {exercise}
+                        <span className="font-normal text-gray-600 ml-2 capitalize">
+                            ({muscle})
+                        </span>
+                    </p>
                     <KebabMenu items={menuItems} />
                 </div>
                 <p className="-mt-2 text-gray-600">{equipment}</p>

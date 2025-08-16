@@ -48,7 +48,7 @@ class TemplateExercise(models.Model):
     )
 
     # You can add template-specific fields here like:
-    sets = models.IntegerField(default=3, blank=True, null=True)
+    sets = models.IntegerField(default=1, blank=True, null=True)
     reps = models.CharField(max_length=20, blank=True)  # e.g., "8-12" or "to failure"
     weight = models.CharField(max_length=20, blank=True)  # e.g., "bodyweight" or "50kg"
     rest_time = models.CharField(max_length=20, blank=True)  # e.g., "60s" or "2min"

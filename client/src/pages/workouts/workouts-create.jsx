@@ -171,7 +171,8 @@ function CreateTemplate() {
 
     const handleCancel = async () => {
         try {
-            if (exercises.length === 0) {
+            if ((exercises.length === 0) && (isEditing)) {
+                await new Promise((resolve) => setTimeout(resolve, 350));
                 await api.delete(`workouts/templates/${template_id}/`);
             }
         }

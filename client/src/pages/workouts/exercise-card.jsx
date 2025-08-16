@@ -11,15 +11,12 @@ import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Item } from "@radix-ui/react-accordion";
-import { Key } from "lucide-react";
 
 
 function ExerciseCard({
     template_exercise,
     isEditing,
 }) {
-    const [isDone, setIsDone] = useState(false);
     const queryClient = useQueryClient();
 
     // Variables to easily refer to certain properties
@@ -59,6 +56,31 @@ function ExerciseCard({
     });
     // ===== END REMOVE EXERCISE =====
 
+    // ===== ADD/REMOVE SET =====
+    const updateExerciseSet = async ({ template_exercise_ID, newSet }) => {
+        if (newSet === 0) {
+            toast.error("Cannot have zero sets!");
+        }
+        else {
+            const response = await api.post(`/workouts/template-exercises/${template_exercise_ID}/set_params/`, { sets: newSet });
+            return response.data;
+        }
+    }
+
+    const {
+        mutate: updateSet,
+        isLoading: isAddingSet,
+    } = useMutation({
+        mutationFn: updateExerciseSet,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["template_exercises"] }) // invalidate to refetch exercise data
+        },
+        onError: (error) => {
+            toast.error(`Error adding set: ${error.response?.data?.error || error.message}`);
+        }
+    })
+    // ===== END ADD/REMOVE SET =====
+
     // ===== EVENT HANDLERS =====
     const handleRemoveExercise = () => {
         removeExercise({
@@ -67,10 +89,26 @@ function ExerciseCard({
         });
     };
 
+    const handleAddSet = () => {
+        updateSet(
+            {
+                template_exercise_ID: template_exercise.id,
+                newSet: template_exercise.sets + 1,
+            });
+    }
+
+    const handleDeleteSet = () => {
+        updateSet(
+            {
+                template_exercise_ID: template_exercise.id,
+                newSet: template_exercise.sets - 1,
+            });
+    }
+
 
     const menuItems = [
-        { icon: Plus, label: "Add Set", action: "add_set" },
-        { icon: Trash2, label: "Delete Set", action: "delete_set" },
+        { icon: Plus, label: "Add Set", action: handleAddSet },
+        { icon: Trash2, label: "Delete Set", action: handleDeleteSet },
         { icon: AlarmClock, label: "Rest Timer", action: "set_restTimer" },
         { icon: Replace, label: "Replace Exercise", action: "change_exercise" },
         { icon: Minus, label: "Remove Exercise", variant: "destructive", action: handleRemoveExercise },
@@ -130,16 +168,6 @@ function ExerciseCard({
     );
 }
 
-// Container for sets, weight etc
-function PropertyContainer({ children }) {
-    return (
-        <div className="flex flex-col items-center justify-center gap-2">
-            {children}
-            {/* Adds additional space below */}
-            <span className="block" />
-        </div>
-    );
-}
 
 const ExerciseSchema = v.object({
     weight: v.pipe(

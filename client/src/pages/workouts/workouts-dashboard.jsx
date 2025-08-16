@@ -22,6 +22,8 @@ const WorkoutsDashboard = () => {
             <Routines />
 
             <Alternatives />
+
+            <WorkoutsHistory />
         </MainLayout>
     );
 }
@@ -101,6 +103,19 @@ function Alternatives() {
                 <WorkoutTemplate id="1" title="Push Day" workouts="2" />
                 <WorkoutTemplate id="2" title="Pull Day" workouts="2" />
             </Accordion> */}
+        </>
+    );
+}
+
+function WorkoutsHistory() {
+    return (
+        <>
+            <SectionSubTitle className="border-b-2 pb-3 mt-7">History</SectionSubTitle>
+            <EmptyItems
+                title="No workouts done"
+                description="perform any workouts from routines or alternatives"
+            />
+
         </>
     );
 }

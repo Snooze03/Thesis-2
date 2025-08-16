@@ -237,15 +237,8 @@ function CreateTemplate() {
                                     {exercises.map((templateExercise) => (
                                         <div key={templateExercise.id} className="relative group">
                                             <ExerciseCard
-                                                template_Id={template_id}
-                                                template_exercise_id={templateExercise.exercise.id}
-                                                exercise={templateExercise.exercise.name}
-                                                equipment={templateExercise.exercise.equipment}
-                                                muscle={templateExercise.exercise.muscle}
-                                                difficulty={templateExercise.exercise.difficulty}
-                                                sets={templateExercise.sets}
-                                                reps={templateExercise.reps}
-                                                weight={templateExercise.weight}
+                                                template_exercise={templateExercise}
+                                                isEditing={isEditing}
                                             />
                                         </div>
                                     ))}

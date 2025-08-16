@@ -11,21 +11,22 @@ import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { Item } from "@radix-ui/react-accordion";
+import { Key } from "lucide-react";
 
 
 function ExerciseCard({
-    template_Id,
-    template_exercise_id,
-    exercise,
-    equipment,
-    muscle,
-    difficulty,
-    sets,
-    reps,
-    weight,
+    template_exercise,
+    isEditing,
 }) {
     const [isDone, setIsDone] = useState(false);
     const queryClient = useQueryClient();
+
+    // Variables to easily refer to certain properties
+    const template_id = template_exercise.template;
+    const template_exercise_id = template_exercise.exercise.id;
+    const exercise = template_exercise.exercise;
+    const sets = [...Array(template_exercise.sets).keys()]
 
     // Hook Form and valibot validation for weights and reps input
     const {
@@ -50,8 +51,7 @@ function ExerciseCard({
     } = useMutation({
         mutationFn: removeExerciseFromTemplate,
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ["template_exercises"] })
-            // refetchExercises(); // Refresh the exercises list
+            queryClient.invalidateQueries({ queryKey: ["template_exercises"] }) // invalidate to refetch exercise data
         },
         onError: (error) => {
             toast.error(`Error removing exercise: ${error.response?.data?.error || error.message}`);
@@ -62,7 +62,7 @@ function ExerciseCard({
     // ===== EVENT HANDLERS =====
     const handleRemoveExercise = () => {
         removeExercise({
-            templateId: template_Id,
+            templateId: template_id,
             exerciseId: template_exercise_id,
         });
     };
@@ -82,68 +82,49 @@ function ExerciseCard({
             <div>
                 <div className="flex justify-between items-center gap-3">
                     <p className="font-semibold">
-                        {exercise}
+                        {exercise.name}
                         <span className="font-normal text-gray-600 ml-2 capitalize">
-                            ({muscle})
+                            ({exercise.muscle})
                         </span>
                     </p>
                     <KebabMenu items={menuItems} />
                 </div>
-                <p className="-mt-2 text-gray-600">{equipment}</p>
+                <p className="-mt-2 text-gray-600">{exercise.equipment}</p>
             </div>
 
             {/* Properties */}
-            <div className="grid grid-flow-col auto-cols-auto gap-3">
-                <PropertyContainer>
-                    <p>Sets</p>
-                    <p className="text-primary font-semibold">1</p>
-                    <p className="text-primary font-semibold">2</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Previous</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                    <p className="text-gray-600 ">30kg x 10</p>
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Weight</p>
-                    <Input
-                        id={`weight_${1}`}
-                        {...register("weight")}
-                        className="size-5 w-full px-2 text-center"
-                        type="number"
-                    />
-                    <Input
-                        id={`weight_${2}`}
-                        {...register("weight")}
-                        className="size-5 w-full px-2 text-center"
-                        type="number"
-                    />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <p>Reps</p>
-                    <Input
-                        id={`rep_${1}`}
-                        {...register("repetitions")}
-                        className="size-5 w-full px-2 text-center"
-                        type="number"
-                    />
-                    <Input
-                        id={`rep_${2}`}
-                        {...register("repetitions")}
-                        className="size-5 w-full px-2 text-center"
-                        type="number"
-                    />
-                </PropertyContainer>
-
-                <PropertyContainer>
-                    <br />
-                    <Lock className="text-gray-600 size-4" />
-                    <Lock className="text-gray-600 size-4" />
-                </PropertyContainer>
+            <div className="grid grid-cols-[.2fr_auto_.5fr_.5fr] items-start">
+                <p>Sets</p>
+                <p>Previous</p>
+                <p className="justify-self-center ml-2">Weight</p>
+                <p className="justify-self-center mr-6">Reps</p>
             </div>
+            {sets.map((_, index) => {
+                index++;
+                return (
+                    <div className="grid grid-cols-[.2fr_auto_.5fr_.5fr_auto] gap-3 place-items-center" key={index}>
+                        <p className="text-primary font-semibold">{index}</p>
+                        <p className="text-gray-600 ">30kg x 10</p>
+                        <Input
+                            id={`weight_${1}`}
+                            {...register("weight")}
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            disabled={isEditing}
+                        />
+                        <Input
+                            id={`rep_${1}`}
+                            {...register("repetitions")}
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            disabled={isEditing}
+                        />
+                        {isEditing ? <Lock className="text-gray-600 size-4" /> : <p>Not Eidting</p>}
+
+                    </div>
+                );
+            })}
+            <span />
 
         </Card>
     );

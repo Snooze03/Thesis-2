@@ -66,7 +66,7 @@ function SearchExercise() {
             const errorCount = data.errors?.length || 0;
 
             if (errorCount > 0) {
-                toast.success(`Added ${successCount} exercises. ${errorCount} had issues.`);
+                // toast.success(`Added ${successCount} exercises. ${errorCount} had issues.`);
                 // Show specific errors in console for debugging
                 if (data.errors) {
                     console.log('Exercise addition issues:', data.errors);
@@ -76,9 +76,10 @@ function SearchExercise() {
                         }
                     });
                 }
-            } else {
-                toast.success(`Successfully added ${successCount} exercise(s) to your template!`);
             }
+            // else {
+            //     toast.success(`Successfully added ${successCount} exercise(s) to your template!`);
+            // }
 
             // Clear selections and navigate back to template editing
             setSelectedItems(new Set());

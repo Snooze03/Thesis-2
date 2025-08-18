@@ -91,7 +91,7 @@ function CreateTemplate() {
         onSuccess: (templateData) => {
             if (isEditing) {
                 setTitle(templateData.title);
-                navigate("/workouts");
+                navigate("/workouts", { replace: true });
                 toast.success("Template updated successfully!");
             } else {
                 // Navigate to the search section with the new template ID
@@ -150,7 +150,7 @@ function CreateTemplate() {
             console.log(err);
         }
         finally {
-            navigate("/workouts");
+            navigate("/workouts", { replace: true });
         }
     }
     // ===== END EVENT HANDLERS =====

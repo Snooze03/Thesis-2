@@ -52,7 +52,7 @@ function Routines() {
                 <SectionSubTitle>My Routines</SectionSubTitle>
                 <Button
                     className="h-min"
-                    onClick={() => navigate(`${location.pathname}/templates/create`)}
+                    onClick={() => navigate(`${location.pathname}/templates/create`, { replace: true })}
                 >
                     <Plus />
                     Create

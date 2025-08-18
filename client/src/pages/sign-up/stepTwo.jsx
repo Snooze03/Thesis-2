@@ -32,6 +32,59 @@ export function BasicInfo({ nextStep, prevStep }) {
                         "grid grid-rows-2 gap-3",
                         "max-xs:grid-rows-1"
                     )}>
+                        <div className={cn(
+                            "grid grid-cols-2 gap-4",
+                            "max-xs:grid-cols-1 max-xs:grid-rows-2",
+                        )}>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select
+                                    value={watch("gender")}
+                                    onValueChange={(value) => setValue("gender", value)}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Gender" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {formOptions.genders.map((gender) => (
+                                            <SelectItem key={gender.value} value={gender.value}>
+                                                {gender.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.gender && (
+                                    <InputError>
+                                        {errors.gender.message}
+                                    </InputError>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="activity_level">Activity Level</Label>
+                                <Select
+                                    value={watch("activity_level")}
+                                    onValueChange={(value) => setValue("activity_level", value)}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Level" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {formOptions.activityLevel.map((lvl) => (
+                                            <SelectItem key={lvl.value} value={lvl.value}>
+                                                {lvl.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.activity_level && (
+                                    <InputError>
+                                        {errors.activity_level.message}
+                                    </InputError>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="current_weight">Current Weight</Label>

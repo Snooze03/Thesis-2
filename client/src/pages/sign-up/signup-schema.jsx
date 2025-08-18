@@ -1,7 +1,37 @@
 // schemas/multi-step-form-schema.js
 import * as v from "valibot";
 
-// Combined Multi-Step Schema
+// Form options for select/radio inputs
+export const formOptions = {
+    genders: [
+        { value: "male", label: "Male" },
+        { value: "female", label: "Female" },
+    ],
+    activityLevel: [
+        { value: "sedentary", label: "Sedentary" },
+        { value: "lightly_active", label: "Lightly Active" },
+        { value: "moderately_active", label: "Moderately Active" },
+        { value: "very_active", label: "Very Active" },
+    ],
+    bodyGoals: [
+        { value: "lose_weight", label: "Lose Weight" },
+        { value: "gain_weight", label: "Gain Weight" },
+        { value: "maintain_weight", label: "Maintain Weight" },
+        { value: "gain_muscle", label: "Gain Muscle" },
+        { value: "build_strength", label: "Build Strength" },
+    ],
+    workoutFrequencies: [
+        { value: "1_2", label: "1-2 Days", id: "1-2-days" },
+        { value: "3_4", label: "3-4 Days", id: "3-4-days" },
+        { value: "5_6", label: "5-6 Days", id: "5-6-days" },
+    ],
+    workoutLocations: [
+        { value: "gym", label: "Gym", id: "location-gym" },
+        { value: "home", label: "Home", id: "location-home" },
+        { value: "mixed", label: "Mixed", id: "location-mixed" },
+    ],
+};
+
 export const MultiStepSchema = v.object({
     // Step 1 fields
     first_name: v.pipe(
@@ -34,6 +64,14 @@ export const MultiStepSchema = v.object({
     ),
 
     // Step 2 fields
+    gender: v.pipe(
+        v.string(),
+        v.picklist(formOptions.genders.map((g) => g.value), "Please select a gender")
+    ),
+    activity_level: v.pipe(
+        v.string(),
+        v.picklist(formOptions.activityLevel.map((a) => a.value), "Please select a level")
+    ),
     current_weight: v.pipe(
         v.string(),
         v.nonEmpty("Current weight is required"),
@@ -67,11 +105,7 @@ export const MultiStepSchema = v.object({
     ),
     body_goal: v.pipe(
         v.string(),
-        v.nonEmpty("Select a body goal"),
-        v.picklist(
-            ["lose_weight", "gain_weight", "maintain_weight", "gain_muscle", "build_strength"],
-            "Please select a valid body goal"
-        )
+        v.picklist(formOptions.bodyGoals.map((b) => b.value), "Select a body goal")
     ),
 
     // Step 3 fields
@@ -79,13 +113,11 @@ export const MultiStepSchema = v.object({
     food_allergies: v.string(),
     workout_frequency: v.pipe(
         v.string(),
-        v.nonEmpty("Please select workout frequency"),
-        v.picklist(["1_2", "3_4", "5_6"], "Please select a valid workout frequency")
+        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select a valid workout frequency")
     ),
     workout_location: v.pipe(
         v.string(),
-        v.nonEmpty("Please select workout location"),
-        v.picklist(["gym", "home", "mixed"], "Please select a valid workout location")
+        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select a valid workout location")
     ),
 });
 
@@ -99,6 +131,8 @@ export const defaultFormValues = {
     confirm_password: "",
 
     // Step 2
+    gender: "",
+    activity_level: "",
     current_weight: "",
     goal_weight: "",
     height_ft: "",
@@ -115,27 +149,6 @@ export const defaultFormValues = {
 // Step field mappings for validation
 export const stepFields = {
     1: ["first_name", "last_name", "email", "password", "confirm_password"],
-    2: ["current_weight", "goal_weight", "height_ft", "height_in", "body_goal"],
+    2: ["gender", "activity_level", "current_weight", "goal_weight", "height_ft", "height_in", "body_goal"],
     3: ["injuries", "food_allergies", "workout_frequency", "workout_location"]
-};
-
-// Form options for select/radio inputs
-export const formOptions = {
-    bodyGoals: [
-        { value: "lose_weight", label: "Lose Weight" },
-        { value: "gain_weight", label: "Gain Weight" },
-        { value: "maintain_weight", label: "Maintain Weight" },
-        { value: "gain_muscle", label: "Gain Muscle" },
-        { value: "build_strength", label: "Build Strength" },
-    ],
-    workoutFrequencies: [
-        { value: "1_2", label: "1-2 Days", id: "1-2-days" },
-        { value: "3_4", label: "3-4 Days", id: "3-4-days" },
-        { value: "5_6", label: "5-6 Days", id: "5-6-days" },
-    ],
-    workoutLocations: [
-        { value: "gym", label: "Gym", id: "location-gym" },
-        { value: "home", label: "Home", id: "location-home" },
-        { value: "mixed", label: "Mixed", id: "location-mixed" },
-    ],
 };

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api";
 import { Card } from "@/components/ui/card";
@@ -18,6 +18,7 @@ function ExerciseCard({
     isEditing,
 }) {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     // Variables to easily refer to certain properties
     const template_id = template_exercise.template;
@@ -105,12 +106,20 @@ function ExerciseCard({
             });
     }
 
+    const handleReplace = () => {
+        removeExercise({
+            templateId: template_id,
+            exerciseId: template_exercise_id,
+        });
+        navigate(`/workouts/templates/${template_id}/search`, { replace: true });
+    }
+
 
     const menuItems = [
         { icon: Plus, label: "Add Set", action: handleAddSet },
         { icon: Trash2, label: "Delete Set", action: handleDeleteSet },
         { icon: AlarmClock, label: "Rest Timer", action: "set_restTimer" },
-        { icon: Replace, label: "Replace Exercise", action: "change_exercise" },
+        { icon: Replace, label: "Replace Exercise", action: handleReplace },
         { icon: Minus, label: "Remove Exercise", variant: "destructive", action: handleRemoveExercise },
     ]
 

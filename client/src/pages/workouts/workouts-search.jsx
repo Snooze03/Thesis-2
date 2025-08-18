@@ -66,13 +66,16 @@ function SearchExercise() {
             const errorCount = data.errors?.length || 0;
 
             if (errorCount > 0) {
-                // toast.success(`Added ${successCount} exercises. ${errorCount} had issues.`);
                 // Show specific errors in console for debugging
                 if (data.errors) {
                     console.log('Exercise addition issues:', data.errors);
                     data.errors.forEach(error => {
                         if (error.error !== 'Exercise already exists in this template') {
                             console.error(`Issue with ${error.exercise}:`, error.error);
+                            console.log("test");
+                        }
+                        if (error.error === 'Exercise already exists in this template') {
+                            toast.error(`Exercise already exists!`);
                         }
                     });
                 }
@@ -152,7 +155,7 @@ function SearchExercise() {
                 {/* Row 1 */}
                 <Button
                     variant="ghost"
-                    onClick={() => navigate(`/workouts/templates/${template_id}/edit`)}
+                    onClick={() => navigate(`/workouts/templates/${template_id}/edit`, { replace: true })}
                     disabled={isAdding}
                 >
                     <ArrowLeft />

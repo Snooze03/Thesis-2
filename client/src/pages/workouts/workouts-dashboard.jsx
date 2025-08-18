@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import api from "@/api";
 import { useNavigate } from "react-router-dom";
@@ -10,32 +10,19 @@ import { Accordion } from "@/components/ui/accordion";
 import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-
+import { EmptyItems } from "@/components/empty-items";
 
 const WorkoutsDashboard = () => {
-    return (
-        <MainLayout>
-            <SectionTitle>Workouts</SectionTitle>
-            <SectionSubText>Organize your routines</SectionSubText>
-
-            <Routines />
-
-            <Alternatives />
-        </MainLayout>
-    );
-}
-
-function Routines() {
     const navigate = useNavigate();
 
-    // ===== GET TEMPLATES =====
+    // ===== GET ALL TEMPLATES =====
     const getTemplates = async () => {
         const response = await api.get("workouts/templates/");
         return response.data;
-    }
+    };
 
     const {
-        data: exercises,
+        data: templates = [],
         isPending,
     } = useQuery({
         queryKey: ["templates"],
@@ -43,13 +30,49 @@ function Routines() {
     });
     // ===== END GET =====
 
+    // Separate into alternatives vs routines
+    const routines = templates.filter((t) => !t.isAlternative);
+    const alternatives = templates.filter((t) => t.isAlternative);
+
+    return (
+        <MainLayout>
+            <SectionTitle>Workouts</SectionTitle>
+            <SectionSubText>Organize your routines</SectionSubText>
+
+            <TemplatesList
+                title="My Routines"
+                templates={routines}
+                isPending={isPending}
+                navigate={navigate}
+                isAlternative={false}
+            />
+
+            <TemplatesList
+                title="Alternative Routines"
+                templates={alternatives}
+                isPending={isPending}
+                navigate={navigate}
+                isAlternative={true}
+            />
+
+            <WorkoutsHistory />
+        </MainLayout>
+    );
+};
+
+function TemplatesList({ title, templates, isPending, navigate, isAlternative }) {
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
-                <SectionSubTitle>My Routines</SectionSubTitle>
+                <SectionSubTitle>{title}</SectionSubTitle>
                 <Button
                     className="h-min"
-                    onClick={() => navigate(`${location.pathname}/create`)}
+                    onClick={() =>
+                        navigate(
+                            `${location.pathname}/templates/create?is_alternative=${isAlternative}`,
+                            { replace: true }
+                        )
+                    }
                 >
                     <Plus />
                     Create
@@ -58,43 +81,34 @@ function Routines() {
 
             {isPending ? (
                 <LoadingSpinner message="templates" />
-            ) : exercises.length > 0 ? (
+            ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
-                    {exercises.map((item, index) => {
-                        return (
-                            <WorkoutTemplate
-                                key={item.id + index}
-                                id={item.id}
-                                title={item.title}
-                            />
-                        );
-                    })}
+                    {templates.map((item) => (
+                        <WorkoutTemplate key={item.id} id={item.id} title={item.title} />
+                    ))}
                 </Accordion>
             ) : (
-                <p>No Templates</p>
-            )
-            }
+                <EmptyItems
+                    title="No templates added yet"
+                    description="Click 'Create' to make one"
+                />
+            )}
         </>
     );
 }
 
-function Alternatives() {
+function WorkoutsHistory() {
     return (
         <>
-            <div className="flex justify-between items-center border-b-2 pb-3 mt-7">
-                <SectionSubTitle>Alternatives</SectionSubTitle>
-                <Button className="h-min">
-                    <Plus />
-                    Create
-                </Button>
-            </div>
-
-            <Accordion type="single" collapsible className="space-y-3">
-                {/* <WorkoutTemplate id="1" title="Push Day" workouts="2" />
-                <WorkoutTemplate id="2" title="Pull Day" workouts="2" /> */}
-            </Accordion>
+            <SectionSubTitle className="border-b-2 pb-3 mt-7">
+                History
+            </SectionSubTitle>
+            <EmptyItems
+                title="No workouts done"
+                description="perform any workouts from routines or alternatives"
+            />
         </>
     );
 }
 
-export { WorkoutsDashboard }
+export { WorkoutsDashboard };

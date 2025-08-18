@@ -1,0 +1,49 @@
+{
+    "id": "3",
+    "title": "Understanding Async/Await and Promises in JavaScript",
+    "author": {
+        "name": "Emily Rodriguez",
+        "avatar": "/placeholder.svg?height=40&width=40"
+    },
+    "readTime": 10,
+    "description": "Master asynchronous JavaScript with promises and async/await. Learn how to handle API calls, avoid callback hell, and write cleaner asynchronous code.",
+    "content": {
+        "sections": [
+            {
+                "id": "async-basics",
+                "title": "Asynchronous JavaScript Basics",
+                "content": "JavaScript is **single-threaded**, but it can handle asynchronous operations through the event loop. Understanding async programming is crucial for modern web development.\n\nWe'll cover three main approaches:\n• Callbacks (the old way)\n• Promises (ES6)\n• Async/Await (ES2017)"
+            },
+            {
+                "id": "promises-explained",
+                "title": "Promises Explained",
+                "content": "A Promise represents a value that may be available now, in the future, or never. Promises have three states:\n\n1. **Pending**: Initial state, neither fulfilled nor rejected\n2. **Fulfilled**: Operation completed successfully\n3. **Rejected**: Operation failed\n\nPromises provide `.then()`, `.catch()`, and `.finally()` methods for handling results."
+            },
+            {
+                "id": "async-await-syntax",
+                "title": "Async/Await Syntax",
+                "content": "Async/await makes asynchronous code look and behave more like synchronous code:\n\n```javascript\nasync function fetchUserData() {\n  try {\n    const response = await fetch('/api/user');\n    const data = await response.json();\n    return data;\n  } catch (error) {\n    console.error('Error:', error);\n  }\n}\n```\n\nThis is much cleaner than promise chains!"
+            }
+        ]
+    },
+    "sources": [
+        {
+            "title": "MDN Async/Await",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function",
+            "author": "Mozilla"
+        },
+        {
+            "title": "JavaScript Promises",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise",
+            "author": "Mozilla"
+        }
+    ],
+    "publishedAt": "December 10, 2024",
+    "tags": [
+        "JavaScript",
+        "Async",
+        "Promises",
+        "API",
+        "ES6"
+    ]
+}

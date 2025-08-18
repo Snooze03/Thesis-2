@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
+import api from "@/api";
 import apiNinjas from "@/apiNinjas";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
@@ -10,22 +12,24 @@ import { SubLayout } from "@/layouts/sub-layout";
 import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "react-hot-toast";
 
 function SearchExercise() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
-    const [submittedSearchTerm, setSubmittedSearchTerm] = useState(""); // State to trigger search
+    const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
     const [selectedItems, setSelectedItems] = useState(new Set());
+    let { template_id } = useParams();
 
-    // ===== GET EXERCISES =====
+    // ===== GET EXERCISES VIA NINJA API =====
     const getExercises = async ({ queryKey }) => {
         const [_, searchName] = queryKey;
-        // if a search term is provided, use that to query
         if (searchName) {
+            // if a search term is provided, use it
             const response = await apiNinjas.get(`exercises?name=${searchName}`);
             return response.data;
         } else {
-            // if no search term is provided, default to beginner
+            // if not default to beginner parameter
             const response = await apiNinjas.get(`exercises?difficulty=beginner`);
             return response.data;
         }
@@ -41,13 +45,60 @@ function SearchExercise() {
         staleTime: Infinity,
         cacheTime: Infinity,
     });
-    // ===== END GET =====
+    // ===== END GET EXERCISES =====
+
+    // ===== ADD EXERCISES TO TEMPLATE =====
+    const addExercisesToTemplate = async ({ templateId, exercises }) => {
+        const response = await api.post(
+            `workouts/templates/${templateId}/add_exercises/`,
+            { exercises: exercises }
+        );
+        return response.data;
+    };
+
+    const {
+        mutate: addExercises,
+        isLoading: isAdding
+    } = useMutation({
+        mutationFn: addExercisesToTemplate,
+        onSuccess: (data) => {
+            const successCount = data.created?.length || 0;
+            const errorCount = data.errors?.length || 0;
+
+            if (errorCount > 0) {
+                // Show specific errors in console for debugging
+                if (data.errors) {
+                    console.log('Exercise addition issues:', data.errors);
+                    data.errors.forEach(error => {
+                        if (error.error !== 'Exercise already exists in this template') {
+                            console.error(`Issue with ${error.exercise}:`, error.error);
+                            console.log("test");
+                        }
+                        if (error.error === 'Exercise already exists in this template') {
+                            toast.error(`Exercise already exists!`);
+                        }
+                    });
+                }
+            }
+            // else {
+            //     toast.success(`Successfully added ${successCount} exercise(s) to your template!`);
+            // }
+
+            // Clear selections and navigate back to template editing
+            setSelectedItems(new Set());
+            navigate(`/workouts/templates/${template_id}/edit`);
+        },
+        onError: (error) => {
+            console.error('Error adding exercises:', error);
+            toast.error(`Error adding exercises: ${error.response?.data?.error || error.message}`);
+        }
+    });
+    // ===== END ADD EXERCISE =====
 
     // ===== SELECT STATE =====
     const toggleItemSelection = (itemId) => {
         setSelectedItems(prev => {
             const newSet = new Set(prev);
-            // if already selected, de-select it
             if (newSet.has(itemId)) {
                 newSet.delete(itemId);
             } else {
@@ -57,13 +108,43 @@ function SearchExercise() {
         });
     };
 
-    // Bool value for check button
     const hasSelectedItems = selectedItems.size > 0;
-    // ===== END SELECT =====
 
+    // ===== EVENT HANDLERS =====
     const handleSubmit = (e) => {
         e.preventDefault();
         setSubmittedSearchTerm(searchTerm);
+    };
+
+    const handleAddSelectedExercises = () => {
+        if (!hasSelectedItems) return;
+
+        const exercises = data || [];
+
+        // Get selected exercise objects and map their indices
+        const selectedExercises = exercises
+            .map((exercise, index) => ({ exercise, originalIndex: index }))
+            .filter(({ originalIndex }) =>
+                selectedItems.has(exercises[originalIndex].name + originalIndex)
+            )
+            .map(({ exercise }) => exercise);
+
+        // Transform exercises to match Django model fields
+        const exercisesToAdd = selectedExercises.map(exercise => ({
+            name: exercise.name || '',
+            type: exercise.type || '',
+            muscle: exercise.muscle || '',
+            equipment: exercise.equipment || '',
+            difficulty: exercise.difficulty || '',
+            instructions: exercise.instructions || ''
+        }));
+
+        // console.log('Adding exercises:', exercisesToAdd); // Debug log
+
+        addExercises({
+            templateId: template_id,
+            exercises: exercisesToAdd
+        });
     };
 
     const exercises = data || [];
@@ -74,7 +155,8 @@ function SearchExercise() {
                 {/* Row 1 */}
                 <Button
                     variant="ghost"
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate(`/workouts/templates/${template_id}/edit`, { replace: true })}
+                    disabled={isAdding}
                 >
                     <ArrowLeft />
                 </Button>
@@ -94,6 +176,7 @@ function SearchExercise() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="col-span-4 pl-10"
                         placeholder="search for an exercise"
+                        disabled={isAdding}
                     />
                     <Search className={cn(
                         "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
@@ -136,10 +219,22 @@ function SearchExercise() {
             {/* Show button if an item is selected */}
             {hasSelectedItems && (
                 <Button
-                    variant="ghost"
-                    className="h-10 fixed bottom-4 right-4 rounded-full bg-primary-500 text-white shadow-lg"
+                    variant="default"
+                    className="h-12 fixed bottom-6 right-6 rounded-full shadow-lg px-6"
+                    onClick={handleAddSelectedExercises}
+                    disabled={isAdding}
                 >
-                    <Check className="size-5 stroke-3" />
+                    {isAdding ? (
+                        <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            Adding...
+                        </>
+                    ) : (
+                        <>
+                            <Check className="size-5 stroke-3" />
+                            Add {selectedItems.size} Exercise{selectedItems.size !== 1 ? 's' : ''}
+                        </>
+                    )}
                 </Button>
             )}
         </SubLayout>
@@ -161,9 +256,11 @@ function ListItem({ id, exercise, isSelected, onToggle }) {
     return (
         <div
             className={clsx(
-                "px-3 py-2 rounded-lg  hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer",
-                { "hover:bg-primary-100": !isSelected },
-                { "bg-primary-300 shadow-sm": isSelected }
+                "px-3 py-2 rounded-lg hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer border",
+                {
+                    "hover:bg-primary-50 border-gray-200": !isSelected,
+                    "bg-primary-100 border-primary-300 shadow-sm": isSelected
+                }
             )}
             onClick={onToggle}
         >
@@ -181,6 +278,11 @@ function ListItem({ id, exercise, isSelected, onToggle }) {
             {exercise.equipment && (
                 <p className="text-gray-600 text-sm">
                     {exercise.equipment}
+                </p>
+            )}
+            {exercise.difficulty && (
+                <p className="text-xs text-gray-500 capitalize">
+                    {exercise.difficulty}
                 </p>
             )}
         </div>

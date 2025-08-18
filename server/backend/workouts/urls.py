@@ -1,11 +1,11 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TemplateViewSet, ExerciseViewSet
+from .views import TemplateViewSet, ExerciseViewSet, TemplateExerciseViewSet
 
 router = DefaultRouter()
-router.register("templates", TemplateViewSet, basename="template")
-router.register("exercises", ExerciseViewSet, basename="exercises")
+router.register(r"templates", TemplateViewSet, basename="template")
+router.register(r"exercises", ExerciseViewSet, basename="exercise")
+router.register(
+    r"template-exercises", TemplateExerciseViewSet, basename="template-exercise"
+)
 
-urlpatterns = [
-    path("", include(router.urls)),
-]
+urlpatterns = router.urls

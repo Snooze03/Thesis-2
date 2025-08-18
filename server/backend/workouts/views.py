@@ -18,9 +18,27 @@ class TemplateViewSet(viewsets.ModelViewSet):
     serializer_class = TemplateSerializer
     permission_classes = [IsAuthenticated]
 
-    # Get templates belonging to the authenticated user
     def get_queryset(self):
-        return Template.objects.filter(user_id=self.request.user)
+        """
+        gets alternative/main workouts
+        URL: /workouts/templates/?is_alternative=false || true
+        """
+        # Get templates belonging to the authenticated user
+        queryset = Template.objects.filter(user_id=self.request.user)
+        is_alternative = self.request.query_params.get("is_alternative")
+
+        # Check if the requests is asking for alternative templates
+        if is_alternative is not None:
+            url_param = is_alternative.lower()
+
+            if url_param == "true":
+                queryset = queryset.filter(isAlternative=True)
+            elif url_param == "false":
+                queryset = queryset.filter(isAlternative=False)
+            else:
+                raise ValidationError({"is_alternative": "Must be 'true' or 'false'"})
+
+        return queryset
 
     # Create template and assign user id as foreign key
     def perform_create(self, serializer):

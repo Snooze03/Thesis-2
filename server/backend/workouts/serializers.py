@@ -7,7 +7,7 @@ class TemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Template
-        fields = ["id", "user_id", "title", "exercise_count"]
+        fields = ["id", "user_id", "title", "isAlternative", "exercise_count"]
         extra_kwargs = {
             "user_id": {"read_only": True},
         }

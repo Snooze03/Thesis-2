@@ -8,6 +8,7 @@ class Template(models.Model):
         on_delete=models.CASCADE,
         related_name="workout_templates",
     )
+    isAlternative = models.BooleanField(default=False)
     title = models.CharField(max_length=50)
 
 

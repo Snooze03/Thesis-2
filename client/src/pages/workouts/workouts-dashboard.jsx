@@ -24,7 +24,6 @@ const WorkoutsDashboard = () => {
     const {
         data: templates = [],
         isPending,
-        isError,
     } = useQuery({
         queryKey: ["templates"],
         queryFn: getTemplates,
@@ -40,16 +39,20 @@ const WorkoutsDashboard = () => {
             <SectionTitle>Workouts</SectionTitle>
             <SectionSubText>Organize your routines</SectionSubText>
 
-            <Routines
-                isPending={isPending}
+            <TemplatesList
+                title="My Routines"
                 templates={routines}
+                isPending={isPending}
                 navigate={navigate}
+                isAlternative={false}
             />
 
-            <Alternatives
-                isPending={isPending}
+            <TemplatesList
+                title="Alternative Routines"
                 templates={alternatives}
+                isPending={isPending}
                 navigate={navigate}
+                isAlternative={true}
             />
 
             <WorkoutsHistory />
@@ -57,49 +60,18 @@ const WorkoutsDashboard = () => {
     );
 };
 
-function Routines({ templates, isPending, navigate }) {
+function TemplatesList({ title, templates, isPending, navigate, isAlternative }) {
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
-                <SectionSubTitle>My Routines</SectionSubTitle>
+                <SectionSubTitle>{title}</SectionSubTitle>
                 <Button
                     className="h-min"
                     onClick={() =>
-                        navigate(`${location.pathname}/templates/create`, { replace: true })
-                    }
-                >
-                    <Plus />
-                    Create
-                </Button>
-            </div>
-
-            {isPending ? (
-                <LoadingSpinner message="templates" />
-            ) : templates.length > 0 ? (
-                <Accordion type="single" collapsible className="space-y-3">
-                    {templates.map((item) => (
-                        <WorkoutTemplate key={item.id} id={item.id} title={item.title} />
-                    ))}
-                </Accordion>
-            ) : (
-                <EmptyItems
-                    title="No templates added yet"
-                    description="Click 'Create' to make one"
-                />
-            )}
-        </>
-    );
-}
-
-function Alternatives({ templates, isPending, navigate }) {
-    return (
-        <>
-            <div className="flex justify-between items-center border-b-2 pb-3">
-                <SectionSubTitle>Alternative Routines</SectionSubTitle>
-                <Button
-                    className="h-min"
-                    onClick={() =>
-                        navigate(`${location.pathname}/templates/create`, { replace: true })
+                        navigate(
+                            `${location.pathname}/templates/create?is_alternative=${isAlternative}`,
+                            { replace: true }
+                        )
                     }
                 >
                     <Plus />

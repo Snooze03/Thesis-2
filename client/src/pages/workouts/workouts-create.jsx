@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -17,7 +17,11 @@ import { EmptyItems } from "@/components/empty-items";
 
 function CreateTemplate() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
     const { template_id } = useParams();                // Get template_id from URL if editing existing
+    const isAlternative = searchParams.get("is_alternative") === "true";        // get alternative url param
+
     const [title, setTitle] = useState("");
     const [localTitle, setLocalTitle] = useState("");   // For local input changes
 
@@ -72,7 +76,9 @@ function CreateTemplate() {
     // ===== POST/UPDATE TEMPLATE =====
     const createTemplate = async (template_title) => {
         // If were not editing
-        const response = await api.post("workouts/templates/", { title: template_title });
+        const response = await api.post("workouts/templates/",
+            (isAlternative ? { title: template_title, isAlternative: true } : { title: template_title, isAlternative: false })
+        );
         return response.data;
     }
 

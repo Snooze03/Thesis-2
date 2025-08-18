@@ -9,33 +9,8 @@ import { Profile } from '@/pages/profile/profile-dashboard';
 import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
 import { ChatDashboard } from './pages/chat/chat-dashboard';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
-
 import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
 import { LoadingSpinner } from './components/ui/loading-spinner';
-
-
-export const Router = () => {
-    return (
-        <BrowserRouter>
-            <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignupAndLogout />} />
-                <Route path="/logout" element={<Logout />} />
-                <Route path="*" element={<NotFound />} />
-
-                {/* Protected Routes */}
-                <Route element={<ProtectedRoutes />}>
-                    <Route path="/" element={<Profile />} />
-                    <Route path="/nutrition" element={<NutritionDashboard />} />
-                    <Route path="/chat" element={<ChatDashboard />} />
-                    <Route path="/workouts/*" element={<WorkoutsRoutes />} />
-                    <Route path="/resources" element={<ResourcesDashboard />} />
-                </Route>
-            </Routes>
-        </BrowserRouter>
-    );
-}
 
 function NotFound() {
     return (
@@ -56,31 +31,50 @@ function SignupAndLogout() {
     return <MultiStepForm />
 }
 
-// Authenticator
+// ===== AUTHENTICATOR =====
 function ProtectedRoutes() {
+    // Refresh token handler
     const refreshToken = async () => {
         const refresh = localStorage.getItem(REFRESH_TOKEN);
-        if (!refresh) alert("No refresh token");
+        if (!refresh) {
+            throw new Error("No refresh token available");
+        }
 
-        const response = await api.post("/accounts/token/refresh/", { refresh });
-        const access = response.data.access;
-        localStorage.setItem(ACCESS_TOKEN, access);
-
-        return access;
+        try {
+            const response = await api.post("/accounts/token/refresh/", { refresh });
+            const access = response.data.access;
+            localStorage.setItem(ACCESS_TOKEN, access);
+            return access;
+        } catch (error) {
+            // Clear invalid tokens
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(REFRESH_TOKEN);
+            throw error;
+        }
     };
 
     // Checks if user has access token, if true, refresh it
     const checkAuth = async () => {
         const token = localStorage.getItem(ACCESS_TOKEN);
 
-        const decoded = jwtDecode(token);
-        const isExpired = decoded.exp < Date.now() / 1000;
-
-        if (isExpired) {
-            return await refreshToken();
+        if (!token) {
+            throw new Error("No access token");
         }
 
-        return token;
+        try {
+            const decoded = jwtDecode(token);
+            const isExpired = decoded.exp < Date.now() / 1000;
+
+            if (isExpired) {
+                return await refreshToken();
+            }
+            return token;
+        } catch (error) {
+            // Invalid token format
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(REFRESH_TOKEN);
+            throw error;
+        }
     };
 
     const { isPending, isError } = useQuery({
@@ -90,7 +84,37 @@ function ProtectedRoutes() {
         staleTime: 5 * 60 * 1000,
     });
 
-    if (isPending) return <LoadingSpinner message="Page" />
-
-    return isError ? <Navigate to="/login" /> : <Outlet />;
+    if (isPending) return <LoadingSpinner message="Authenticating..." />
+    return isError ? <Navigate to="/login" replace /> : <Outlet />;
 }
+// ===== END AUTHENTICATOR =====
+
+const Router = () => {
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignupAndLogout />} />
+                <Route path="/logout" element={<Logout />} />
+
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoutes />}>
+                    <Route path="/" element={<Profile />} />
+                    <Route path="/nutrition" element={<NutritionDashboard />} />
+                    <Route path="/chat" element={<ChatDashboard />} />
+                    <Route path="/workouts/*" element={<WorkoutsRoutes />} />
+                    <Route path="/resources" element={<ResourcesDashboard />} />
+
+                    {/* Catch-all for protected routes */}
+                    <Route path="*" element={<NotFound />} />
+                </Route>
+
+                {/* Global catch-all for any unmatched routes */}
+                <Route path="*" element={<NotFound />} />
+            </Routes>
+        </BrowserRouter>
+    );
+}
+
+export { NotFound, Router };

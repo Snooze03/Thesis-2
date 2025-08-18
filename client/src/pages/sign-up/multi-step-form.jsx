@@ -32,17 +32,21 @@ export const MultiStepForm = () => {
     };
 
     // Post request to create new account to server
-    const { mutate, isPending } = useMutation({
+    const {
+        mutate,
+        isPending
+    } = useMutation({
         mutationFn: async (data) => {
-            // After successfully creating a new account, get the token and save it
             const post_signup = await api.post("accounts/signup/", data);
-
+            return { ...data, ...post_signup.data }
+        },
+        onSuccess: async (data) => {
             const get_token = await api.post("accounts/token/", { email: data.email, password: data.password });
             localStorage.setItem(ACCESS_TOKEN, get_token.data.access);
             localStorage.setItem(REFRESH_TOKEN, get_token.data.refresh);
 
             navigate("/");
-        },
+        }
     });
 
     // Submit handler

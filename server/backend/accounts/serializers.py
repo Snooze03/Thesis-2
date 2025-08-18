@@ -12,6 +12,8 @@ class AccountSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "current_weight",
+            "gender",
+            "activity_level",
             "goal_weight",
             "height_ft",
             "height_in",

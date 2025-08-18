@@ -19,13 +19,13 @@ class AccountManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
-        extra_fields.setdefault("current_weight", 71.0)
-        extra_fields.setdefault("goal_weight", 60.0)
-        extra_fields.setdefault("height_ft", 5)
-        extra_fields.setdefault("height_in", 6)
-        extra_fields.setdefault("body_goal", "gain_muscle")
-        extra_fields.setdefault("workout_frequency", "1_2")
-        extra_fields.setdefault("workout_location", "gym")
+        # extra_fields.setdefault("current_weight", 71.0)
+        # extra_fields.setdefault("goal_weight", 60.0)
+        # extra_fields.setdefault("height_ft", 5)
+        # extra_fields.setdefault("height_in", 6)
+        # extra_fields.setdefault("body_goal", "gain_muscle")
+        # extra_fields.setdefault("workout_frequency", "1_2")
+        # extra_fields.setdefault("workout_location", "gym")
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
@@ -46,6 +46,18 @@ class Account(AbstractUser):
     REQUIRED_FIELDS = []
 
     # Step 2: Basic Info
+    GENDER = [
+        ("male", "Male"),
+        ("female", "Female"),
+    ]
+
+    ACTIVITY_LEVEL = [
+        ("sedentary", "Sedentary"),
+        ("lightly_active", "Lightly Active"),
+        ("moderately_active", "Moderately Active"),
+        ("very_active", "Very Active"),
+    ]
+
     BODY_GOALS = [
         ("lose_weight", "Lose Weight"),
         ("gain_weight", "Gain Weight"),
@@ -54,6 +66,10 @@ class Account(AbstractUser):
         ("build_strength", "Build Strength"),
     ]
 
+    gender = models.CharField(choices=GENDER, verbose_name="Gender")
+    activity_level = models.CharField(
+        choices=ACTIVITY_LEVEL, verbose_name="Activity Level"
+    )
     current_weight = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Current Weight"
     )

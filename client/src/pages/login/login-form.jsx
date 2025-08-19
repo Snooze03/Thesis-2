@@ -38,7 +38,7 @@ export function Login({
       localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
     },
     onSuccess: () => {
-      navigate("/");
+      navigate("/profile");
     },
   });
 

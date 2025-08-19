@@ -8,7 +8,7 @@ const data = {
   navMain: [
     {
       title: "Profile",
-      to: "/",
+      to: "/profile",
       items: [
         { title: "Settings", to: "/profile/settings" },
       ],

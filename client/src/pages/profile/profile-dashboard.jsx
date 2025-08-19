@@ -16,12 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
 import { KebabMenu } from "@/components/ui/kebab-menu";
+import { EmptyItems } from "@/components/empty-items";
 
 const Profile = () => {
-    const userName = "Snooze";
-
     const getProfile = async () => {
         const response = await api.get("accounts/profile/");
         return response.data;
@@ -40,13 +38,14 @@ const Profile = () => {
             <SectionTitle>Profile</SectionTitle>
             <ProfileCard user={user_data} />
 
-            <SectionSubTitle>Progress Report</SectionSubTitle>
-            <ReportSettings />
+            <SectionSubTitle></SectionSubTitle>
+            {/* <ReportSettings /> */}
 
             <SectionSubTitle>Generated Reports</SectionSubTitle>
             {/* To Loop on using back-end later */}
-            <Report number="1" date="March 12, 2025" description="Great progress on your strength goals! Your bench press has improved by 10% and you've been consistent with your workouts." />
-            <Report number="2" date="April 14, 2025" description="Dolor nisi enim in esse labore incididunt tempor consequat tempor ad Est Lorem officia laboris pariatur officia duis eiusmod." />
+            <EmptyItems title="No progress reports yet." description="make sure to properly configure the settings" />
+            {/* <Report number="1" date="March 12, 2025" description="Great progress on your strength goals! Your bench press has improved by 10% and you've been consistent with your workouts." />
+            <Report number="2" date="April 14, 2025" description="Dolor nisi enim in esse labore incididunt tempor consequat tempor ad Est Lorem officia laboris pariatur officia duis eiusmod." /> */}
         </MainLayout >
     );
 }

@@ -45,7 +45,7 @@ export const MultiStepForm = () => {
             localStorage.setItem(ACCESS_TOKEN, get_token.data.access);
             localStorage.setItem(REFRESH_TOKEN, get_token.data.refresh);
 
-            navigate("/");
+            navigate("/profile");
         }
     });
 

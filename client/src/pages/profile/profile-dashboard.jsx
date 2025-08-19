@@ -22,10 +22,23 @@ import { KebabMenu } from "@/components/ui/kebab-menu";
 const Profile = () => {
     const userName = "Snooze";
 
+    const getProfile = async () => {
+        const response = await api.get("accounts/profile/");
+        return response.data;
+    }
+
+    const {
+        data: user_data = [],
+        isPending,
+    } = useQuery({
+        queryKey: ["account_data"],
+        queryFn: getProfile,
+    });
+
     return (
         <MainLayout>
             <SectionTitle>Profile</SectionTitle>
-            <ProfileCard userName={userName} />
+            <ProfileCard user={user_data} />
 
             <SectionSubTitle>Progress Report</SectionSubTitle>
             <ReportSettings />
@@ -38,8 +51,17 @@ const Profile = () => {
     );
 }
 
-const ProfileCard = ({ userName }) => {
+const ProfileCard = ({ user }) => {
     const navigate = useNavigate();
+
+    const capitalize = (s) => {
+        if (typeof s !== 'string' || s.length === 0) return '';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    const userName = `${capitalize(user.first_name)} ${capitalize(user.last_name)}`
+    const weightDecimal = user.current_weight - Math.floor(user.current_weight);
+    const weight = weightDecimal > 0 ? weightDecimal.toFixed(2) : Math.floor(user.current_weight);
 
     const menuItems = [
         { type: "title", label: "My Account" },
@@ -54,7 +76,7 @@ const ProfileCard = ({ userName }) => {
             <CardHeader className="flex justify-between items-center gap-3 py-4 bg-primary rounded-t-lg">
                 <div className="flex items-center gap-3">
                     <Avatar className="size-10">
-                        <AvatarImage src="images/ken2.jpg" />
+                        <AvatarImage />
                         <AvatarFallback>{(userName[0] + userName[userName.length - 1]).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <p className="font-semibold text-lg text-white">{userName}</p>
@@ -75,7 +97,7 @@ const ProfileCard = ({ userName }) => {
                     <div className="grid grid-rows-2 place-items-center">
                         <p className="font-semibold text-lg max-xs:text-md">
                             <Flag className="inline mr-1.5 stroke-violet-500 size-4 max-xs:size-4" />
-                            55 <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
+                            {weight} <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
                         </p>
                         <p className="text-gray-600 max-xs:text-sm">Weight</p>
                     </div>

@@ -1,0 +1,33 @@
+        {
+            "id": "fitness-4",
+            "title": "High-Intensity Interval Training (HIIT) Explained",
+            "author": {
+                "name": "Sophia Martinez",
+                "avatar": "/placeholder.svg?height=40&width=40"
+            },
+            "readTime": 6,
+            "description": "HIIT workouts combine short bursts of intense activity with recovery periods, offering efficiency and improved cardiovascular health.",
+            "content": {
+                "sections": [
+                    {
+                        "id": "what-is-hiit",
+                        "title": "What is HIIT?",
+                        "content": "High-Intensity Interval Training alternates between intense effort and active recovery. It maximizes calorie burn and improves endurance in less time."
+                    },
+                    {
+                        "id": "benefits-of-hiit",
+                        "title": "Benefits of HIIT",
+                        "content": "HIIT improves cardiovascular health, burns fat efficiently, and can be adapted to bodyweight, cardio, or strength-based exercises."
+                    }
+                ]
+            },
+            "sources": [
+                {
+                    "title": "WebMD: HIIT (High-Intensity Interval Training)",
+                    "url": "https://www.webmd.com/fitness-exercise/high-intensity-interval-training-hiit",
+                    "author": "WebMD"
+                }
+            ],
+            "publishedAt": "February 18, 2025",
+            "tags": ["Fitness", "HIIT", "Cardio", "Endurance"]
+        }

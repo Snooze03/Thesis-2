@@ -19,6 +19,7 @@ class AccountManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
+        # Defaults for super user
         # extra_fields.setdefault("current_weight", 71.0)
         # extra_fields.setdefault("goal_weight", 60.0)
         # extra_fields.setdefault("height_ft", 5)

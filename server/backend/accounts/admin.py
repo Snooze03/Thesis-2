@@ -14,6 +14,8 @@ class AccountAdmin(UserAdmin):
             "Personal Info",
             {
                 "fields": (
+                    "gender",
+                    "activity_level",
                     "current_weight",
                     "goal_weight",
                     "height_ft",

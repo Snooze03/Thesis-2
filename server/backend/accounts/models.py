@@ -20,13 +20,15 @@ class AccountManager(BaseUserManager):
         extra_fields.setdefault("is_superuser", True)
 
         # Defaults for super user
-        # extra_fields.setdefault("current_weight", 71.0)
-        # extra_fields.setdefault("goal_weight", 60.0)
-        # extra_fields.setdefault("height_ft", 5)
-        # extra_fields.setdefault("height_in", 6)
-        # extra_fields.setdefault("body_goal", "gain_muscle")
-        # extra_fields.setdefault("workout_frequency", "1_2")
-        # extra_fields.setdefault("workout_location", "gym")
+        extra_fields.setdefault("gender", "male")
+        extra_fields.setdefault("activity_level", "sedentary")
+        extra_fields.setdefault("current_weight", 71.0)
+        extra_fields.setdefault("goal_weight", 60.0)
+        extra_fields.setdefault("height_ft", 5)
+        extra_fields.setdefault("height_in", 6)
+        extra_fields.setdefault("body_goal", "gain_muscle")
+        extra_fields.setdefault("workout_frequency", "1_2")
+        extra_fields.setdefault("workout_location", "gym")
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")

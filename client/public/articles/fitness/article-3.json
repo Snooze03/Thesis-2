@@ -1,0 +1,33 @@
+ {
+            "id": "fitness-3",
+            "title": "The Role of Flexibility and Mobility in Fitness",
+            "author": {
+                "name": "Jason Lee",
+                "avatar": "/placeholder.svg?height=40&width=40"
+            },
+            "readTime": 7,
+            "description": "Flexibility and mobility are often overlooked but essential for injury prevention and long-term performance in fitness.",
+            "content": {
+                "sections": [
+                    {
+                        "id": "flexibility-vs-mobility",
+                        "title": "Flexibility vs Mobility",
+                        "content": "Flexibility refers to muscle length, while mobility includes joint range of motion and control. Both are needed for safe and effective movement."
+                    },
+                    {
+                        "id": "improving-mobility",
+                        "title": "Improving Mobility in Your Routine",
+                        "content": "Incorporate dynamic stretching before workouts and static stretching afterward. Mobility drills like hip openers and shoulder rotations improve movement quality."
+                    }
+                ]
+            },
+            "sources": [
+               {
+                   "title": "ASFA: The Importance of Mobility for Flexibility",
+                   "url": "https://www.americansportandfitness.com/blogs/fitness-blog/the-importance-of-mobility-for-flexibility#:~:text=Flexibility%20and%20mobility%20are%20crucial%20components%20of%20physical,reduced%20risk%20of%20injury%2C%20and%20enhanced%20athletic%20performance.",
+                   "author": "American Sports & Fitness Association"
+               }
+            ],
+            "publishedAt": "February 15, 2025",
+            "tags": ["Fitness", "Flexibility", "Mobility", "Injury Prevention"]
+        }

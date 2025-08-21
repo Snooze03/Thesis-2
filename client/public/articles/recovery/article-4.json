@@ -1,0 +1,33 @@
+{
+      "id": "article-4",
+      "title": "How Active Recovery Speeds Muscle Repair",
+      "author": {
+        "name": "UCHealth Today",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 5,
+      "description": "Active recovery enhances blood flow to muscles, delivering nutrients and clearing waste, which supports healing after intense workouts.",
+      "content": {
+        "sections": [
+          {
+            "id": "active-recovery-benefits",
+            "title": "Benefits of Active Recovery",
+            "content": "Engaging in light activity post-exercise—like walking or gentle cycling—increases blood circulation, helping remove metabolic waste and delivering nutrients that repair muscles, tendons, and ligaments."
+          },
+          {
+            "id": "how-to-implement",
+            "title": "Implement It",
+            "content": "After training, spend 10–15 minutes doing low-intensity movements focusing on different muscle groups than those just worked."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "UCHealth: Why rest and recovery is essential for athletes",
+          "url": "https://www.uchealth.org/today/rest-and-recovery-for-athletes-physiological-psychological-well-being/",
+          "author": "UCHealth"
+        }
+      ],
+      "publishedAt": "April 2025",
+      "tags": ["Recovery", "Active Recovery", "Fitness"]
+    }

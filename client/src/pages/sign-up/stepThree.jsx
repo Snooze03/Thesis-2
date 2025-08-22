@@ -1,4 +1,3 @@
-// stepThree.jsx
 "use client"
 
 import { LoginLayout } from "@/layouts/login-layout";
@@ -11,12 +10,12 @@ import { useFormContext } from "react-hook-form";
 import { InputError } from "@/components/ui/inputError";
 import { formOptions } from "./signup-schema";
 
-export function AdditionalInfo({ prevStep }) {
+export function AdditionalInfo({ prevStep, isSubmitting }) {
     const {
         register,
         setValue,
         watch,
-        formState: { errors, isSubmitting },
+        formState: { errors },
     } = useFormContext();
 
     return (
@@ -24,7 +23,7 @@ export function AdditionalInfo({ prevStep }) {
             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <CardTitle className="text-lg lg:text-xl font-bold">Additional Information</CardTitle>
-                    <CardDescription className="-mb-2 -mt-1">Step 3 of 3 - Create your account</CardDescription>
+                    <CardDescription className="-mb-2 -mt-1">Step 3 of 3 - Complete your profile</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col gap-4">
@@ -38,6 +37,7 @@ export function AdditionalInfo({ prevStep }) {
                                 {...register("injuries")}
                                 placeholder="Please describe any medical conditions or leave blank if none"
                                 className="max-sm:placeholder:text-xs"
+                                maxLength={500}
                             />
                             {errors.injuries && (
                                 <InputError>
@@ -49,13 +49,14 @@ export function AdditionalInfo({ prevStep }) {
                         {/* Dietary Restrictions */}
                         <div className="flex flex-col gap-3">
                             <Label htmlFor="food_allergies">
-                                Food allergies/dietary restrictions.
+                                Food allergies/dietary restrictions
                             </Label>
                             <Textarea
                                 id="food_allergies"
                                 {...register("food_allergies")}
                                 placeholder="Please describe any dietary restrictions or leave blank if none"
                                 className="max-sm:placeholder:text-xs"
+                                maxLength={500}
                             />
                             {errors.food_allergies && (
                                 <InputError>
@@ -115,7 +116,7 @@ export function AdditionalInfo({ prevStep }) {
                                 type="button"
                                 variant="outline"
                                 onClick={prevStep}
-                                className="flex-1"
+                                disabled={isSubmitting}
                             >
                                 Back
                             </Button>
@@ -124,7 +125,7 @@ export function AdditionalInfo({ prevStep }) {
                                 className="flex-1"
                                 disabled={isSubmitting}
                             >
-                                {isSubmitting ? "Finishing..." : "Finish Signup"}
+                                {isSubmitting ? "Creating Account..." : "Create Account"}
                             </Button>
                         </div>
                     </div>

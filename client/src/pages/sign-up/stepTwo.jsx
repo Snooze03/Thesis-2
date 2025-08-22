@@ -1,4 +1,3 @@
-// stepTwo.jsx
 "use client"
 
 import { LoginLayout } from "@/layouts/login-layout";
@@ -25,13 +24,68 @@ export function BasicInfo({ nextStep, prevStep }) {
             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold">Basic Information</CardTitle>
-                    <CardDescription>Step 2 of 3 - Create your account</CardDescription>
+                    <CardDescription>Step 2 of 3 - Tell us about yourself</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className={cn(
-                        "grid grid-rows-2 gap-3",
-                        "max-xs:grid-rows-1"
+                        "grid grid-rows-3 gap-4",
+                        "max-xs:grid-rows-4"
                     )}>
+                        {/* Gender and Activity Level Row */}
+                        <div className={cn(
+                            "grid grid-cols-2 gap-4",
+                            "max-xs:grid-cols-1 max-xs:grid-rows-2",
+                        )}>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select
+                                    value={watch("gender")}
+                                    onValueChange={(value) => setValue("gender", value)}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Gender" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {formOptions.genders.map((gender) => (
+                                            <SelectItem key={gender.value} value={gender.value}>
+                                                {gender.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.gender && (
+                                    <InputError>
+                                        {errors.gender.message}
+                                    </InputError>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="activity_level">Activity Level</Label>
+                                <Select
+                                    value={watch("activity_level")}
+                                    onValueChange={(value) => setValue("activity_level", value)}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select Level" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {formOptions.activityLevel.map((lvl) => (
+                                            <SelectItem key={lvl.value} value={lvl.value}>
+                                                {lvl.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.activity_level && (
+                                    <InputError>
+                                        {errors.activity_level.message}
+                                    </InputError>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Weight Row */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="current_weight">Current Weight</Label>
@@ -40,10 +94,13 @@ export function BasicInfo({ nextStep, prevStep }) {
                                         id="current_weight"
                                         {...register("current_weight")}
                                         type="number"
-                                        placeholder="45"
+                                        placeholder="70"
                                         className="pr-12"
+                                        min="20"
+                                        max="500"
+                                        step="0.1"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kg</span>
                                 </div>
                                 {errors.current_weight && (
                                     <InputError>
@@ -59,10 +116,13 @@ export function BasicInfo({ nextStep, prevStep }) {
                                         id="goal_weight"
                                         {...register("goal_weight")}
                                         type="number"
-                                        placeholder="53"
+                                        placeholder="65"
                                         className="pr-12"
+                                        min="20"
+                                        max="500"
+                                        step="0.1"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kgs</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">kg</span>
                                 </div>
                                 {errors.goal_weight && (
                                     <InputError>
@@ -72,35 +132,48 @@ export function BasicInfo({ nextStep, prevStep }) {
                             </div>
                         </div>
 
+                        {/* Height and Body Goal Row */}
                         <div className={cn(
                             "grid grid-cols-2 gap-4",
                             "max-xs:grid-cols-1 max-xs:grid-rows-2",
                         )}>
                             <div className="space-y-2">
-                                <Label htmlFor="height_ft">Height</Label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Input
-                                        id="height_ft"
-                                        {...register("height_ft")}
-                                        type="number"
-                                        placeholder="5 ft"
-                                    />
-                                    <Input
-                                        id="height_in"
-                                        {...register("height_in")}
-                                        type="number"
-                                        placeholder="4 in"
-                                    />
+                                <Label>Height</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="relative">
+                                        <Input
+                                            id="height_ft"
+                                            {...register("height_ft")}
+                                            type="number"
+                                            placeholder="5"
+                                            className="pr-8"
+                                            min="3"
+                                            max="8"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">ft</span>
+                                    </div>
+                                    <div className="relative">
+                                        <Input
+                                            id="height_in"
+                                            {...register("height_in")}
+                                            type="number"
+                                            placeholder="8"
+                                            className="pr-8"
+                                            min="0"
+                                            max="11"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">in</span>
+                                    </div>
                                 </div>
                                 {(errors.height_ft || errors.height_in) && (
                                     <InputError>
-                                        {errors.height_ft ? errors.height_ft.message : errors.height_in.message}
+                                        {errors.height_ft?.message || errors.height_in?.message}
                                     </InputError>
                                 )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="body_goal">Body Goal</Label>
+                                <Label htmlFor="body_goal">Primary Goal</Label>
                                 <Select
                                     value={watch("body_goal")}
                                     onValueChange={(value) => setValue("body_goal", value)}
@@ -124,7 +197,8 @@ export function BasicInfo({ nextStep, prevStep }) {
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
+
+                    <div className="grid grid-cols-2 gap-4 mt-6">
                         <Button
                             type="button"
                             variant="outline"

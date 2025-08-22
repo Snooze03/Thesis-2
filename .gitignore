@@ -4,6 +4,7 @@ client/.env
 
 # --- Django (backend)
 server/__pycache__/
+__pycache__/
 server/db.sqlite3
 server/staticfiles/
 server/media/

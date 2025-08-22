@@ -1,4 +1,3 @@
-// stepOne.jsx
 "use client"
 
 import { Link } from "react-router";
@@ -21,7 +20,7 @@ export function SignUp({ nextStep }) {
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle>Create an account</CardTitle>
-                    <CardDescription>Step 1 of 3 - Create your account</CardDescription>
+                    <CardDescription>Step 1 of 3 - Basic account information</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col gap-4">
@@ -33,7 +32,13 @@ export function SignUp({ nextStep }) {
                                     {...register("first_name")}
                                     type="text"
                                     placeholder="John"
+                                    maxLength={150}
                                 />
+                                {errors.first_name && (
+                                    <InputError>
+                                        {errors.first_name.message}
+                                    </InputError>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="last_name">Last name</Label>
@@ -42,15 +47,14 @@ export function SignUp({ nextStep }) {
                                     {...register("last_name")}
                                     type="text"
                                     placeholder="Doe"
+                                    maxLength={150}
                                 />
-                            </div>
-                            {(errors.first_name || errors.last_name) && (
-                                <div className="col-span-2 -mt-2">
+                                {errors.last_name && (
                                     <InputError>
-                                        {errors.first_name ? errors.first_name.message : errors.last_name.message}
+                                        {errors.last_name.message}
                                     </InputError>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -81,9 +85,9 @@ export function SignUp({ nextStep }) {
                                     {errors.password.message}
                                 </InputError>
                             )}
-                            {/* <div className="text-xs text-muted-foreground">
-                                Password must contain uppercase, lowercase, and a number
-                            </div> */}
+                            <div className="text-xs text-muted-foreground">
+                                Password must be at least 8 characters long
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -111,7 +115,7 @@ export function SignUp({ nextStep }) {
 
                         <div className="text-center text-sm text-muted-foreground">
                             Already have an account?{" "}
-                            <Link to={"/login"} className="@max-2xs/card:block underline underline-offset-4 hover:text-primary" >
+                            <Link to={"/login"} className="@max-2xs/card:block underline underline-offset-4 hover:text-primary">
                                 Sign in
                             </Link>
                         </div>

@@ -12,6 +12,7 @@ import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
 import { Badge } from "@/components/ui/badge";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { EmptyItems } from "@/components/empty-items";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Profile = () => {
     const getProfile = async () => {
@@ -27,10 +28,17 @@ const Profile = () => {
         queryFn: getProfile,
     });
 
+
+    if (isPending) return <LoadingSpinner message="Profile" />
+
+    const account_data = user_data.data;
+    const account_profile = user_data.data.profile;
+    // console.log(account_profile);
+
     return (
         <MainLayout>
             <SectionTitle>Profile</SectionTitle>
-            <ProfileCard user={user_data} />
+            <ProfileCard acc_data={account_data} acc_profile={account_profile} />
 
             <SectionSubTitle></SectionSubTitle>
 
@@ -42,7 +50,7 @@ const Profile = () => {
     );
 }
 
-const ProfileCard = ({ user }) => {
+const ProfileCard = ({ acc_data, acc_profile }) => {
     const navigate = useNavigate();
 
     const capitalize = (s) => {
@@ -50,9 +58,10 @@ const ProfileCard = ({ user }) => {
         return s.charAt(0).toUpperCase() + s.slice(1);
     };
 
-    const userName = `${capitalize(user.first_name)} ${capitalize(user.last_name)}`
-    const weightDecimal = user.current_weight - Math.floor(user.current_weight);
-    const weight = weightDecimal > 0 ? weightDecimal.toFixed(2) : Math.floor(user.current_weight);
+    const first_name = acc_data.first_name;
+    const userName = `${capitalize(acc_data.first_name)} ${capitalize(acc_data.last_name)}`
+    const weightDecimal = acc_profile.current_weight - Math.floor(acc_profile.current_weight);
+    const weight = weightDecimal > 0 ? weightDecimal.toFixed(2) : Math.floor(acc_profile.current_weight);;
 
     const menuItems = [
         { type: "title", label: "My Account" },
@@ -68,7 +77,7 @@ const ProfileCard = ({ user }) => {
                 <div className="flex items-center gap-3">
                     <Avatar className="size-10">
                         <AvatarImage />
-                        <AvatarFallback>{(userName[0] + userName[userName.length - 1]).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(first_name[0] + first_name[first_name.length - 1]).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <p className="font-semibold text-lg text-white">{userName}</p>
                 </div>
@@ -81,7 +90,7 @@ const ProfileCard = ({ user }) => {
                     <div className="grid grid-rows-2 place-items-center">
                         <p className="font-semibold text-lg max-xs:text-md">
                             <Dumbbell className="inline mr-1.5 stroke-green-500 size-4 max-xs:size-4 " />
-                            12
+                            0
                         </p>
                         <p className="text-gray-600 max-xs:text-sm">Workouts</p>
                     </div>
@@ -95,7 +104,7 @@ const ProfileCard = ({ user }) => {
                     <div className="grid grid-rows-2 place-items-center ">
                         <p className="font-semibold text-lg max-xs:text-md">
                             <Apple className="inline mr-1.5 stroke-red-400 size-4 max-xs:size-4" />
-                            -5 <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
+                            {acc_profile.weight_progress} <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
                         </p>
                         <p className="text-gray-600 max-xs:text-sm">Progress</p>
                     </div>
@@ -107,7 +116,7 @@ const ProfileCard = ({ user }) => {
                         <Target className="mr-3 stroke-orange-300 size-5 max-xs:size-4" />
                         Current Streak
                     </div>
-                    <Badge className="font-semibold max-xs:text-xs">7 days</Badge>
+                    <Badge className="font-semibold max-xs:text-xs">0 days</Badge>
                 </div>
             </CardContent>
         </Card >

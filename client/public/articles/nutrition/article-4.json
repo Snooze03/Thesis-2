@@ -1,0 +1,33 @@
+{
+      "id": "nutrition-article-3",
+      "title": "Micronutrients That Support Strength and Endurance",
+      "author": {
+        "name": "Dr. Hannah Lee",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 9,
+      "description": "While macronutrients get the spotlight, vitamins and minerals are equally critical for energy metabolism, muscle contraction, and overall fitness performance.",
+      "content": {
+        "sections": [
+          {
+            "id": "key-micronutrients",
+            "title": "Essential Micronutrients for Athletes",
+            "content": "Iron supports oxygen transport, calcium strengthens bones, and magnesium aids in muscle function. Deficiencies can impair performance and increase injury risk."
+          },
+          {
+            "id": "food-sources",
+            "title": "Best Food Sources",
+            "content": "Leafy greens, nuts, seeds, dairy, lean meats, and fortified cereals provide a wide variety of essential vitamins and minerals."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "Micronutrients and Athletic Performance",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7019960/",
+          "author": "National Institutes of Health"
+        }
+      ],
+      "publishedAt": "February 18, 2025",
+      "tags": ["Nutrition", "Vitamins", "Minerals", "Performance"]
+    }

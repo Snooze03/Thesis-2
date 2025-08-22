@@ -1,4 +1,3 @@
-// schemas/multi-step-form-schema.js
 import * as v from "valibot";
 
 // Form options for select/radio inputs
@@ -6,12 +5,14 @@ export const formOptions = {
     genders: [
         { value: "male", label: "Male" },
         { value: "female", label: "Female" },
+        { value: "other", label: "Other" },
+        { value: "prefer_not_to_say", label: "Prefer not to say" },
     ],
     activityLevel: [
-        { value: "sedentary", label: "Sedentary" },
-        { value: "lightly_active", label: "Lightly Active" },
-        { value: "moderately_active", label: "Moderately Active" },
-        { value: "very_active", label: "Very Active" },
+        { value: "sedentary", label: "Sedentary (little/no exercise)" },
+        { value: "lightly_active", label: "Lightly Active (light exercise 1-3 days/week)" },
+        { value: "moderately_active", label: "Moderately Active (moderate exercise 3-5 days/week)" },
+        { value: "very_active", label: "Very Active (hard exercise 6-7 days/week)" },
     ],
     bodyGoals: [
         { value: "lose_weight", label: "Lose Weight" },
@@ -21,9 +22,10 @@ export const formOptions = {
         { value: "build_strength", label: "Build Strength" },
     ],
     workoutFrequencies: [
-        { value: "1_2", label: "1-2 Days", id: "1-2-days" },
-        { value: "3_4", label: "3-4 Days", id: "3-4-days" },
-        { value: "5_6", label: "5-6 Days", id: "5-6-days" },
+        { value: "1_2", label: "1-2 Days per week", id: "1-2-days" },
+        { value: "3_4", label: "3-4 Days per week", id: "3-4-days" },
+        { value: "5_6", label: "5-6 Days per week", id: "5-6-days" },
+        { value: "daily", label: "Daily", id: "daily" },
     ],
     workoutLocations: [
         { value: "gym", label: "Gym", id: "location-gym" },
@@ -38,25 +40,23 @@ export const MultiStepSchema = v.object({
         v.string(),
         v.nonEmpty("First name is required"),
         v.minLength(2, "First name must be at least 2 characters"),
+        v.maxLength(150, "First name must be less than 150 characters"),
     ),
     last_name: v.pipe(
         v.string(),
         v.nonEmpty("Last name is required"),
         v.minLength(2, "Last name must be at least 2 characters"),
+        v.maxLength(150, "Last name must be less than 150 characters"),
     ),
     email: v.pipe(
         v.string(),
         v.nonEmpty("Email is required"),
         v.email("Enter a valid email address"),
-        v.endsWith("@gmail.com", "Invalid email address"),
     ),
     password: v.pipe(
         v.string(),
         v.nonEmpty("Password is required"),
         v.minLength(8, "Must be at least 8 characters"),
-        // v.regex(/(?=.*[a-z])/, "Password must contain at least one lowercase letter"),
-        // v.regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter"),
-        // v.regex(/(?=.*\d)/, "Password must contain at least one number"),
     ),
     confirm_password: v.pipe(
         v.string(),
@@ -70,15 +70,15 @@ export const MultiStepSchema = v.object({
     ),
     activity_level: v.pipe(
         v.string(),
-        v.picklist(formOptions.activityLevel.map((a) => a.value), "Please select a level")
+        v.picklist(formOptions.activityLevel.map((a) => a.value), "Please select an activity level")
     ),
     current_weight: v.pipe(
         v.string(),
         v.nonEmpty("Current weight is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
-        v.minValue(20, "Must be at least 20 kg"),
-        v.maxValue(300, "Weight must be less than 300 kg")
+        v.minValue(20, "Weight must be at least 20 kg"),
+        v.maxValue(500, "Weight must be less than 500 kg")
     ),
     goal_weight: v.pipe(
         v.string(),
@@ -86,38 +86,45 @@ export const MultiStepSchema = v.object({
         v.transform(Number),
         v.number("Must be a valid number"),
         v.minValue(20, "Weight must be at least 20 kg"),
-        v.maxValue(300, "Weight must be less than 300 kg")
+        v.maxValue(500, "Weight must be less than 500 kg")
     ),
     height_ft: v.pipe(
         v.string(),
-        v.nonEmpty("Feet is required"),
+        v.nonEmpty("Height in feet is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
-        v.minValue(3, "Feet must be at least 3 feet"),
-        v.maxValue(8, "Feet must be less than 9 feet"),
+        v.minValue(3, "Height must be at least 3 feet"),
+        v.maxValue(8, "Height must be less than 9 feet"),
     ),
     height_in: v.pipe(
         v.string(),
-        v.nonEmpty("Inches is required"),
+        v.nonEmpty("Height in inches is required"),
         v.transform(Number),
         v.number("Must be a valid number"),
+        v.minValue(0, "Inches must be at least 0"),
         v.maxValue(11, "Inches must be less than 12"),
     ),
     body_goal: v.pipe(
         v.string(),
-        v.picklist(formOptions.bodyGoals.map((b) => b.value), "Select a body goal")
+        v.picklist(formOptions.bodyGoals.map((b) => b.value), "Please select a body goal")
     ),
 
-    // Step 3 fields
-    injuries: v.string(),
-    food_allergies: v.string(),
+    // Step 3 fields (optional fields, so just validate length if provided)
+    injuries: v.pipe(
+        v.string(),
+        v.maxLength(500, "Injuries description must be less than 500 characters")
+    ),
+    food_allergies: v.pipe(
+        v.string(),
+        v.maxLength(500, "Food allergies description must be less than 500 characters")
+    ),
     workout_frequency: v.pipe(
         v.string(),
-        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select a valid workout frequency")
+        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select workout frequency")
     ),
     workout_location: v.pipe(
         v.string(),
-        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select a valid workout location")
+        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select workout location")
     ),
 });
 

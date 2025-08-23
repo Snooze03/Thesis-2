@@ -112,7 +112,7 @@ function WeightAllEntries() {
                             <div className="space-y-2">
                                 {entries.map(entry => (
                                     <div key={entry.id} className={cn(
-                                        "px-4 py-3 rounded-lg hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer border",
+                                        "px-4 py-3 rounded-lg border",
                                         "flex justify-between items-center"
                                     )}>
                                         <div className="flex flex-col gap-1">

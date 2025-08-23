@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import Account, Profile, WeightHistory
 from datetime import date
+from decimal import Decimal
 
 
 class WeightHistorySerializer(serializers.ModelSerializer):
@@ -297,13 +298,22 @@ class CombinedSignupSerializer(serializers.Serializer):
 
     # Profile fields
     starting_weight = serializers.DecimalField(
-        max_digits=5, decimal_places=2, min_value=20.00, max_value=500.00
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("20.00"),
+        max_value=Decimal("500.00"),
     )
     current_weight = serializers.DecimalField(
-        max_digits=5, decimal_places=2, min_value=20.00, max_value=500.00
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("20.00"),
+        max_value=Decimal("500.00"),
     )
     goal_weight = serializers.DecimalField(
-        max_digits=5, decimal_places=2, min_value=20.00, max_value=500.00
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("20.00"),
+        max_value=Decimal("500.00"),
     )
     start_weight_date = serializers.DateField(required=False, default=date.today)
     activity_level = serializers.ChoiceField(choices=Profile.ACTIVITY_LEVEL_CHOICES)

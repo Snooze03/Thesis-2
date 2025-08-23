@@ -5,12 +5,11 @@ import api from "@/api";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { MainLayout } from "@/layouts/main-layout";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { WeightManager } from "./profile-dash-weight";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Download, Dumbbell, Flag, Apple, Target, Edit, Settings, LogOut, TrendingUp } from "lucide-react";
+import { Download, Dumbbell, Flag, Apple, Target, Edit, Settings, LogOut } from "lucide-react";
 import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
 import { Badge } from "@/components/ui/badge";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { EmptyItems } from "@/components/empty-items";
@@ -122,105 +121,6 @@ const ProfileCard = ({ acc_data, acc_profile }) => {
                 </div>
             </CardContent>
         </Card >
-    );
-}
-
-const WeightManager = () => {
-    const chartConfig = {
-        weight: {
-            label: "Weight",
-            color: "var(--chart-1)",
-        },
-    };
-
-    const {
-        data: weightHistory = [],
-        isPending,
-        isError
-    } = useQuery({
-        queryKey: ["weight_history"],
-        queryFn: async () => {
-            const response = await api.get("accounts/weight-history/recent/");
-            // console.log(response.data.data);
-            return response.data.data;
-        }
-    });
-
-    // Gets chart data from response and sort it from old -> new logs
-    const chartData = [...weightHistory]
-        .sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date))
-        .slice(-10)
-        .map((entry) => ({
-            month: new Date(entry.recorded_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-            }),
-            weight: parseFloat(entry.weight),
-        }))
-
-
-    if (isPending) return <LoadingSpinner message="Chart" />
-
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between gap-3 items-center">
-                    <div className="flex flex-col gap-1">
-                        <CardTitle>Weight Progress</CardTitle>
-                        <CardDescription>Recent entries</CardDescription>
-                    </div>
-                    <div>
-                        <KebabMenu />
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig}>
-                    <LineChart
-                        data={chartData}
-                        margin={{
-                            top: 20,
-                            left: 12,
-                            right: 12,
-                        }}
-                    >
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            interval="preserveStartEnd"
-                            tickFormatter={(value, index) => (index % 2 === 0 ? value : "")} // only show every 2nd label
-                        />
-                        <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent indicator="line" />}
-                        />
-                        <Line
-                            dataKey="weight"
-                            type="natural"
-                            stroke="var(--chart-1)"
-                            strokeWidth={2}
-                            dot={{ fill: "var(--chart-1)" }}
-                            activeDot={{ r: 6 }}
-                        >
-                            <LabelList
-                                position="top"
-                                offset={12}
-                                className="fill-foreground"
-                                fontSize={12}
-                            />
-                        </Line>
-                    </LineChart>
-                </ChartContainer>
-            </CardContent>
-            <CardFooter className="flex items-center text-sm">
-                <div className="text-muted-foreground leading-none">
-                    Showing your most recent {weightHistory.length} entries <TrendingUp className="size-4 inline" />
-                </div>
-            </CardFooter>
-        </Card>
     );
 }
 

@@ -87,7 +87,7 @@ export function AppSidebar({
                   </NavLink>
                 </SidebarMenuButton>
 
-                {item.items?.length ? (
+                {/* {item.items?.length ? (
                   <SidebarMenuSub>
                     {item.items.map((item) => (
                       <SidebarMenuSubItem key={item.title}>
@@ -97,7 +97,7 @@ export function AppSidebar({
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
-                ) : null}
+                ) : null} */}
 
               </SidebarMenuItem>
             ))}

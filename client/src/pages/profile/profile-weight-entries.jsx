@@ -41,7 +41,7 @@ function WeightAllEntries() {
         }
     });
 
-    console.log(weightEntries);
+    // console.log(weightEntries);
     const handleDelete = (id) => {
         deleteMutation.mutate(id);
     };

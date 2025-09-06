@@ -25,7 +25,7 @@ class CombinedSignupView(generics.CreateAPIView):
     - Profile creation with fitness/health data
     - Atomic transaction to ensure data consistency
 
-    POST /api/signup/
+    POST /accounts/signup/
     """
 
     permission_classes = [AllowAny]
@@ -169,12 +169,12 @@ class AccountProfileViewSet(viewsets.ReadOnlyModelViewSet):
         return Account.objects.filter(id=self.request.user.id).select_related("profile")
 
     def list(self, request):
-        """Return current user's complete profile - GET /api/profile/"""
+        """Return current user's complete profile - GET /accounts/profile/"""
         serializer = AccountDetailSerializer(request.user)
         return Response({"success": True, "data": serializer.data})
 
     def retrieve(self, request, pk=None):
-        """Return current user's profile by ID - GET /api/profile/{id}/"""
+        """Return current user's profile by ID - GET /accounts/profile/{id}/"""
         if int(pk) != request.user.id:
             return Response(
                 {"success": False, "message": "You can only access your own profile"},
@@ -199,7 +199,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return ProfileSerializer
 
     def create(self, request):
-        """Create profile for authenticated user - POST /api/profiles/"""
+        """Create profile for authenticated user - POST /accounts/profiles/"""
         # Check if profile already exists
         if hasattr(request.user, "profile"):
             return Response(
@@ -230,28 +230,27 @@ class ProfileViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def update(self, request, pk=None):
-        """Update user's profile - PUT /api/profiles/{id}/"""
+    def update(self, request, pk=None, partial=False):  # Add partial=False parameter
+        """Update user's profile - PUT /accounts/profiles/{id}/"""
         try:
-            profile = self.get_queryset().get(pk=pk)
+            profile = Profile.objects.get(account=request.user, pk=pk)
         except Profile.DoesNotExist:
             return Response(
-                {"success": False, "message": "Profile not found"},
+                {"success": False, "error": "Profile not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         serializer = ProfileCreateUpdateSerializer(
-            profile, data=request.data, context={"request": request}
+            profile,
+            data=request.data,
+            partial=partial,
+            context={"request": request},  # Pass partial to serializer
         )
         if serializer.is_valid():
-            profile = serializer.save()
-            response_serializer = ProfileSerializer(profile)
+            serializer.save()
             return Response(
-                {
-                    "success": True,
-                    "message": "Profile updated successfully",
-                    "data": response_serializer.data,
-                }
+                {"success": True, "data": serializer.data},
+                status=status.HTTP_200_OK,
             )
 
         return Response(
@@ -276,7 +275,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
         return WeightHistorySerializer
 
     def create(self, request):
-        """Add new weight entry - POST /api/weight-history/"""
+        """Add new weight entry - POST /accounts/weight-history/"""
         serializer = WeightHistoryCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -298,7 +297,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
         )
 
     def list(self, request):
-        """Get all weight history for user - GET /api/weight-history/"""
+        """Get all weight history for user - GET /accounts/weight-history/"""
         queryset = self.get_queryset()
         serializer = WeightHistorySerializer(queryset, many=True)
         return Response(
@@ -307,7 +306,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def recent(self, request):
-        """Get recent weight entries - GET /api/weight-history/recent/"""
+        """Get recent weight entries - GET /accounts/weight-history/recent/"""
         recent_entries = self.get_queryset()[:10]  # Last 10 entries
         serializer = WeightHistorySerializer(recent_entries, many=True)
         return Response(
@@ -316,7 +315,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def stats(self, request):
-        """Get weight statistics - GET /api/weight-history/stats/"""
+        """Get weight statistics - GET /accounts/weight-history/stats/"""
         queryset = self.get_queryset()
 
         if not queryset.exists():

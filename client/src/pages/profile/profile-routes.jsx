@@ -1,8 +1,8 @@
 import { Route, Routes } from "react-router-dom";
-import { Profile } from "./profile-dashboard";
+import { Profile } from "./dashboard/profile-dashboard";
 import { ProfileSettings } from "./profile-settings";
-import { ProfileEdit } from "./profile-edit";
-import { WeightAllEntries } from "./profile-weight-entries";
+import { ProfileEdit } from "./edit/profile-edit";
+import { WeightAllEntries } from "./dashboard/weight-all-entries";
 import { NotFound } from "@/routes";
 
 export function ProfileRoutes() {

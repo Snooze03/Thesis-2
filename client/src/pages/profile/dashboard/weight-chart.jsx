@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import api from "@/api";
@@ -10,13 +10,12 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { KebabMenu } from "@/components/ui/kebab-menu";
-import Calendar from "@/components/calendar";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { InputError } from "@/components/ui/inputError";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { WeightEntrySchema } from "./profile-schema";
+import { WeightEntrySchema } from "../schema/weight-entry-schema";
 import { TrendingUp, Plus, ListCollapse } from "lucide-react";
 
 function WeightManager() {
@@ -30,7 +29,6 @@ function WeightManager() {
     const {
         data: weightHistory = [],
         isPending,
-        isError,
         refetch
     } = useQuery({
         queryKey: ["weight_history"],
@@ -136,12 +134,13 @@ function WeightManager() {
 
 function AddWeight({ open, onOpenChange, onSuccess }) {
     const [apiError, setApiError] = useState("");
+    const queryClient = useQueryClient();
 
     const {
         register,
         handleSubmit,
         reset,
-        formState: { errors, isSubmitting },
+        formState: { errors },
         setError
     } = useForm({
         resolver: valibotResolver(WeightEntrySchema),
@@ -151,24 +150,25 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
         }
     });
 
-    const onSubmit = async (data) => {
-        // Clear previous API errors
-        setApiError("");
-
-        try {
+    const addWeightMutation = useMutation({
+        mutationFn: async (data) => {
             const payload = {
                 weight: data.weight.toFixed(2),
                 recorded_date: data.recorded_date
             };
-
-            await api.post("accounts/weight-history/", payload);
-
+            return await api.post("accounts/weight-history/", payload);
+        },
+        onSuccess: () => {
             // Reset form and close dialog
             reset();
             onOpenChange(false);
             onSuccess();
+            setApiError("");
 
-        } catch (err) {
+            // Invalidate and refetch weight history
+            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
+        },
+        onError: (err) => {
             console.error("Error adding weight:", err);
 
             // Handle different error types
@@ -215,10 +215,16 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                 setApiError("Failed to add weight entry. Please check your connection and try again.");
             }
         }
+    });
+
+    const onSubmit = async (data) => {
+        // Clear previous API errors
+        setApiError("");
+        addWeightMutation.mutate(data);
     };
 
     const handleClose = () => {
-        if (!isSubmitting) {
+        if (!addWeightMutation.isPending) {
             reset();
             setApiError("");
             onOpenChange(false);
@@ -249,7 +255,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             type="number"
                             step="0.01"
                             placeholder="55.00"
-                            disabled={isSubmitting}
+                            disabled={addWeightMutation.isPending}
                             {...register("weight")}
                         />
                         {errors.weight && (
@@ -263,7 +269,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             id="recorded_date"
                             type="date"
                             max={new Date().toISOString().split('T')[0]}
-                            disabled={isSubmitting}
+                            disabled={addWeightMutation.isPending}
                             {...register("recorded_date")}
                         />
                         {errors.recorded_date && (
@@ -275,15 +281,15 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                 <AlertDialogFooter>
                     <AlertDialogCancel
                         onClick={handleClose}
-                        disabled={isSubmitting}
+                        disabled={addWeightMutation.isPending}
                     >
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleSubmit(onSubmit)}
-                        disabled={isSubmitting}
+                        disabled={addWeightMutation.isPending}
                     >
-                        {isSubmitting ? "Saving..." : "Save"}
+                        {addWeightMutation.isPending ? "Saving..." : "Save"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

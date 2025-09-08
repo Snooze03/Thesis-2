@@ -5,7 +5,7 @@ import api from "@/api";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { MainLayout } from "@/layouts/main-layout";
-import { WeightManager } from "./profile-dash-weight";
+import { WeightManager } from "./weight-chart";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Download, Dumbbell, Flag, Apple, Target, Edit, Settings, LogOut } from "lucide-react";
@@ -66,7 +66,13 @@ const ProfileCard = ({ acc_data, acc_profile }) => {
 
     const menuItems = [
         { type: "title", label: "My Account" },
-        { icon: Edit, label: "Edit", action: () => navigate("/profile/edit") },
+        {
+            icon: Edit,
+            label: "Edit",
+            action: () => navigate("/profile/edit", {
+                state: { userData: { ...acc_data, profile: acc_profile } }
+            })
+        },
         { icon: Settings, label: "Settings", action: () => navigate("/profile/settings") },
         { type: "separator" },
         { icon: LogOut, label: "Logout", action: () => navigate("/logout"), variant: "destructive" },

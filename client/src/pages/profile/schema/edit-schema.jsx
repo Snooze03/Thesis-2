@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { formOptions } from "../../sign-up/signup-schema";
 
-const EditSchema = v.object({
+const BasicInformationSchema = v.object({
     starting_weight: v.pipe(
         v.string(),
         v.nonEmpty("Starting weight is required"),
@@ -28,4 +28,23 @@ const EditSchema = v.object({
     ),
 })
 
-export { EditSchema, defaultEditValues }
+const AdditionalInformationSchema = v.object({
+    injuries: v.pipe(
+        v.string(),
+        v.maxLength(500, "Injuries description must be less than 500 characters")
+    ),
+    food_allergies: v.pipe(
+        v.string(),
+        v.maxLength(500, "Food allergies description must be less than 500 characters")
+    ),
+    workout_frequency: v.pipe(
+        v.string(),
+        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select workout frequency")
+    ),
+    workout_location: v.pipe(
+        v.string(),
+        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select workout location")
+    ),
+})
+
+export { BasicInformationSchema, AdditionalInformationSchema }

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     # My Apps
     "accounts",
     "workouts",
+    "assistant",
 ]
 
 MIDDLEWARE = [

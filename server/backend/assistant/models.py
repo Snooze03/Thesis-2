@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from accounts.models import Account
 
 
-class Conversation(models.Model):
+class Chat(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     title = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -20,9 +20,7 @@ class Message(models.Model):
         ("system", "System"),
     ]
 
-    conversation = models.ForeignKey(
-        Conversation, on_delete=models.CASCADE, related_name="messages"
-    )
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)

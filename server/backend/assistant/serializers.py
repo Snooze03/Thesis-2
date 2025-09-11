@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Conversation, Message
+from .models import Chat, Message
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -9,13 +9,13 @@ class MessageSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "timestamp"]
 
 
-class ConversationSerializer(serializers.ModelSerializer):
+class ChatSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
     message_count = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
 
     class Meta:
-        model = Conversation
+        model = Chat
         fields = [
             "id",
             "title",
@@ -28,11 +28,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_message_count(self, obj):
-        """Return the total number of messages in the conversation"""
+        """Return the total number of messages in the chat"""
         return obj.messages.count()
 
     def get_last_message(self, obj):
-        """Return the last message in the conversation for preview"""
+        """Return the last message in the chat for preview"""
         last_message = obj.messages.filter(role__in=["user", "assistant"]).last()
         if last_message:
             return {
@@ -47,14 +47,14 @@ class ConversationSerializer(serializers.ModelSerializer):
         return None
 
 
-class ConversationListSerializer(serializers.ModelSerializer):
-    """Lighter serializer for listing conversations without all messages"""
+class ChatListSerializer(serializers.ModelSerializer):
+    """Lighter serializer for listing chats without all messages"""
 
     message_count = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
 
     class Meta:
-        model = Conversation
+        model = Chat
         fields = [
             "id",
             "title",

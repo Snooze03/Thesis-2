@@ -2,75 +2,111 @@ import { useState, useCallback } from 'react';
 import api from '@/api';
 
 export const useChatAssistant = () => {
-    const [conversations, setConversations] = useState([]);
-    const [currentConversation, setCurrentConversation] = useState(null);
+    const [chats, setChats] = useState([]);
+    const [currentChat, setCurrentChat] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const loadConversations = useCallback(async () => {
+    const loadChats = useCallback(async () => {
         try {
-            const response = await api.get('/assistant/conversations/');
-            setConversations(response.data);
+            const response = await api.get('/assistant/chats/');
+            setChats(response.data);
+            return response.data;
         } catch (error) {
-            console.error('Failed to load conversations:', error);
+            console.error('Failed to load chats:', error);
+            return [];
         }
     }, []);
 
-    const createConversation = useCallback(async (title = 'New Conversation') => {
+    const createChat = useCallback(async (title = 'New Chat') => {
         try {
             setIsLoading(true);
-            const response = await api.post('/assistant/conversations/', { title });
-            const newConversation = response.data;
-            setConversations(prev => [newConversation, ...prev]);
-            setCurrentConversation(newConversation);
+            const response = await api.post('/assistant/chats/', { title });
+            const newChat = response.data;
+            setChats(prev => [newChat, ...prev]);
+            setCurrentChat(newChat);
             setMessages([]);
-            return newConversation;
+            return newChat;
         } catch (error) {
-            console.error('Failed to create conversation:', error);
+            console.error('Failed to create chat:', error);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    const selectConversation = useCallback(async (conversationId) => {
+    const selectChat = useCallback(async (chatId) => {
         try {
             setIsLoading(true);
-            const conversation = conversations.find(c => c.id === conversationId);
-            setCurrentConversation(conversation);
+            // If chats array is empty, load chats first
+            let availableChats = chats;
+            if (chats.length === 0) {
+                availableChats = await loadChats();
+            }
 
-            const response = await api.get(`/assistant/conversations/${conversationId}/messages/`);
-            setMessages(response.data);
+            // Find the chat by ID
+            const chat = availableChats.find(c => c.id === chatId);
+
+            if (!chat) {
+                console.error('Chat not found with ID:', chatId);
+                return;
+            }
+
+            setCurrentChat(chat);
+
+            // Load messages for this chat
+            const response = await api.get(`/assistant/chats/${chatId}/messages/`);
+            setMessages(response.data || []);
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            console.error('Failed to load chat:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [conversations]);
+    }, [chats, loadChats]);
 
     const sendMessage = useCallback(async (content) => {
-        if (!currentConversation) return;
+        if (!currentChat) {
+            console.error('No current chat selected');
+            return;
+        }
 
         try {
             setIsLoading(true);
-            const response = await api.post(`/assistant/conversations/${currentConversation.id}/send/`, {
+
+            // Add user message immediately to the UI
+            const userMessage = {
+                id: Date.now(), // temporary ID
+                role: 'user',
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+
+            setMessages(prev => [...prev, userMessage]);
+
+            const response = await api.post(`/assistant/chats/${currentChat.id}/send/`, {
                 message: content
             });
-            setMessages(response.data.messages);
+
+            // Update with the complete messages from the server
+            if (response.data.messages) {
+                setMessages(response.data.messages);
+            }
         } catch (error) {
             console.error('Failed to send message:', error);
+            // Remove the optimistically added message on error
+            setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
         } finally {
             setIsLoading(false);
         }
-    }, [currentConversation]);
+    }, [currentChat]);
 
     return {
-        conversations,
-        currentConversation,
+        chats,
+        currentChat,
         messages,
         isLoading,
-        loadConversations,
-        createConversation,
-        selectConversation,
+        loadChats,
+        createChat,
+        selectChat,
         sendMessage
     };
 };

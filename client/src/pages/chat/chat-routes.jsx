@@ -7,7 +7,7 @@ export function ChatRoutes() {
     return (
         <Routes>
             <Route index element={<ChatDashboard />} />
-            <Route path="conversation/" element={<ChatConversation />} />
+            <Route path="new-chat/" element={<ChatConversation />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

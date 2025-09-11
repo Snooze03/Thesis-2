@@ -1,30 +1,61 @@
+"use client"
+
+import { useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
+import { SubLayout } from '@/layouts/sub-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SectionTitle } from '@/components/ui/section-title';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Send, Plus, MessageSquare } from 'lucide-react';
+import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
 import { useChatAssistant } from '@/hooks/useChatAssistant';
 
 const ChatConversation = () => {
+    const [inputMessage, setInputMessage] = useState('');
+    const [chatLoaded, setChatLoaded] = useState(false);
+    const messagesEndRef = useRef(null);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // chat id from navigation state
+    const chatId = location.state?.newChatId;
+    console.log(`Chat ID from state: ${chatId}`);
+
     const {
-        conversations,
-        currentConversation,
+        currentChat,
         messages,
         isLoading,
-        createConversation,
-        selectConversation,
+        selectChat,
         sendMessage,
-        loadConversations
     } = useChatAssistant();
 
-    const [inputMessage, setInputMessage] = useState('');
-    const messagesEndRef = useRef(null);
+    // Debug logs
+    // console.log('Current Chat:', currentChat);
+    // console.log('Messages:', messages);
+    // console.log('Is Loading:', isLoading);
+    // console.log('Chat Loaded:', chatLoaded);
 
+    // Load the specific chat upon component mount
     useEffect(() => {
-        loadConversations();
-    }, []);
+        const loadChat = async () => {
+            if (chatId) {
+                try {
+                    await selectChat(chatId);
+                    setChatLoaded(true);
+                } catch (error) {
+                    console.error('Error selecting chat:', error);
+                    setChatLoaded(true); // Set to true even on error to show the input
+                }
+            } else {
+                console.log('No chatId provided');
+                setChatLoaded(true);
+            }
+        };
+
+        loadChat();
+    }, [chatId, selectChat]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,84 +69,62 @@ const ChatConversation = () => {
         setInputMessage('');
     };
 
-    const handleNewConversation = async () => {
-        await createConversation('New Chat');
-    };
+    // Show loading only if we haven't attempted to load the chat yet
+    const showLoading = !chatLoaded && !currentChat;
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] gap-4 p-4">
-            {/* Sidebar - Conversations */}
-            <Card className="w-80 flex flex-col">
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">Conversations</CardTitle>
-                        <Button onClick={handleNewConversation} size="sm" variant="outline">
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 p-0">
-                    <ScrollArea className="h-full">
-                        <div className="space-y-2 p-3">
-                            {conversations.map((conversation) => (
-                                <div
-                                    key={conversation.id}
-                                    onClick={() => selectConversation(conversation.id)}
-                                    className={`p-3 rounded-lg cursor-pointer transition-colors ${currentConversation?.id === conversation.id
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'hover:bg-muted'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4" />
-                                        <span className="truncate text-sm">{conversation.title}</span>
-                                    </div>
-                                    <span className="text-xs opacity-70">
-                                        {new Date(conversation.updated_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-
-            {/* Main Chat Area */}
-            <Card className="flex-1 flex flex-col">
-                <CardHeader className="pb-3">
+        <SubLayout>
+            <div className="flex gap-2 items-center">
+                <Button variant="ghost" onClick={() => navigate(-1)}>
+                    <ArrowLeft className="size-5" />
+                </Button>
+                <SectionTitle>Fitness Assistant</SectionTitle>
+            </div>
+            {/* Main Chat Area - Full Width */}
+            <Card className="flex-1 flex flex-col pb-4">
+                {/* <CardHeader className="pb-3">
                     <CardTitle>
-                        {currentConversation ? 'PrimeFit Assistant' : 'Select a conversation or start a new one'}
+                        {currentChat ? `${currentChat.title} - PrimeFit Assistant` : chatLoaded ? 'PrimeFit Assistant' : 'Loading chat...'}
                     </CardTitle>
-                </CardHeader>
+                </CardHeader> */}
 
-                {currentConversation ? (
+                {/* Always show the chat interface once chat is loaded, even if currentChat is null */}
+                {chatLoaded || currentChat ? (
                     <>
                         {/* Messages */}
                         <CardContent className="flex-1 p-0">
                             <ScrollArea className="h-full p-4">
                                 <div className="space-y-4">
-                                    {messages.map((message, index) => (
-                                        <div
-                                            key={index}
-                                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'bg-muted'
-                                                    }`}
-                                            >
-                                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                                <span className="text-xs opacity-70 block mt-1">
-                                                    {new Date(message.timestamp).toLocaleTimeString()}
-                                                </span>
-                                            </div>
+                                    {messages.length === 0 && !isLoading ? (
+                                        <div className="text-center text-muted-foreground py-8">
+                                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                            <p>Start your conversation with PrimeFit Assistant</p>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        messages.map((message, index) => (
+                                            <div
+                                                key={index}
+                                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                            >
+                                                <div
+                                                    className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'bg-muted'
+                                                        }`}
+                                                >
+                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                    <span className="text-xs opacity-70 block mt-1">
+                                                        {new Date(message.timestamp).toLocaleTimeString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                     {isLoading && (
                                         <div className="flex justify-start">
                                             <div className="bg-muted p-3 rounded-lg">
                                                 <LoadingSpinner className="h-4 w-4" />
+                                                <span className="ml-2 text-sm">Assistant is typing...</span>
                                             </div>
                                         </div>
                                     )}
@@ -124,8 +133,8 @@ const ChatConversation = () => {
                             </ScrollArea>
                         </CardContent>
 
-                        {/* Message Input */}
-                        <div className="p-4 border-t">
+                        {/* Message Input - Always show once chat is loaded */}
+                        <div className="p-4 border-t pb-0">
                             <form onSubmit={handleSendMessage} className="flex gap-2">
                                 <Input
                                     value={inputMessage}
@@ -143,13 +152,13 @@ const ChatConversation = () => {
                 ) : (
                     <CardContent className="flex-1 flex items-center justify-center">
                         <div className="text-center text-muted-foreground">
-                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Start a conversation with your fitness assistant</p>
+                            <LoadingSpinner className="h-8 w-8 mx-auto mb-4" />
+                            <p>Loading your chat...</p>
                         </div>
                     </CardContent>
                 )}
             </Card>
-        </div>
+        </SubLayout>
     );
 };
 

@@ -1,112 +1,180 @@
 import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/api';
 
+const QUERY_KEYS = {
+    chats: ['chats'],
+    chat: (id) => ['chat', id],
+    messages: (chatId) => ['messages', chatId],
+};
+
 export const useChatAssistant = () => {
-    const [chats, setChats] = useState([]);
-    const [currentChat, setCurrentChat] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [currentChatId, setCurrentChatId] = useState(null);
+    const queryClient = useQueryClient();
 
-    const loadChats = useCallback(async () => {
-        try {
+    const {
+        data: chats = [],
+        isLoading: isLoadingChats,
+        error: chatsError
+    } = useQuery({
+        queryKey: QUERY_KEYS.chats,
+        queryFn: async () => {
             const response = await api.get('/assistant/chats/');
-            setChats(response.data);
             return response.data;
-        } catch (error) {
-            console.error('Failed to load chats:', error);
-            return [];
-        }
-    }, []);
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
 
-    const createChat = useCallback(async (title = 'New Chat') => {
-        try {
-            setIsLoading(true);
+    // Get current chat from chats array
+    const currentChat = chats.find(chat => chat.id === currentChatId) || null;
+
+    // Fetch messages for current chat
+    const {
+        data: messages = [],
+        isLoading: isLoadingMessages,
+        error: messagesError
+    } = useQuery({
+        queryKey: QUERY_KEYS.messages(currentChatId),
+        queryFn: async () => {
+            if (!currentChatId) return [];
+            const response = await api.get(`/assistant/chats/${currentChatId}/messages/`);
+            return response.data || [];
+        },
+        enabled: !!currentChatId,
+        staleTime: 30 * 1000, // 30 seconds
+    });
+
+    // Create new chat mutation
+    const createChatMutation = useMutation({
+        mutationFn: async (title = 'New Chat') => {
             const response = await api.post('/assistant/chats/', { title });
-            const newChat = response.data;
-            setChats(prev => [newChat, ...prev]);
-            setCurrentChat(newChat);
-            setMessages([]);
-            return newChat;
-        } catch (error) {
+            return response.data;
+        },
+        onSuccess: (newChat) => {
+            // Update chats cache
+            queryClient.setQueryData(QUERY_KEYS.chats, (oldChats = []) => [
+                newChat,
+                ...oldChats
+            ]);
+            // Set as current chat
+            setCurrentChatId(newChat.id);
+            // Initialize empty messages for new chat
+            queryClient.setQueryData(QUERY_KEYS.messages(newChat.id), []);
+        },
+        onError: (error) => {
             console.error('Failed to create chat:', error);
-        } finally {
-            setIsLoading(false);
         }
-    }, []);
+    });
 
-    const selectChat = useCallback(async (chatId) => {
-        try {
-            setIsLoading(true);
-            // If chats array is empty, load chats first
-            let availableChats = chats;
-            if (chats.length === 0) {
-                availableChats = await loadChats();
-            }
+    // Send message mutation
+    const sendMessageMutation = useMutation({
+        mutationFn: async ({ chatId, content }) => {
+            const response = await api.post(`/assistant/chats/${chatId}/send/`, {
+                message: content
+            });
+            return response.data;
+        },
+        onMutate: async ({ content }) => {
+            if (!currentChatId) return;
 
-            // Find the chat by ID
-            const chat = availableChats.find(c => c.id === chatId);
+            await queryClient.cancelQueries({
+                queryKey: QUERY_KEYS.messages(currentChatId)
+            });
 
-            if (!chat) {
-                console.error('Chat not found with ID:', chatId);
-                return;
-            }
+            const previousMessages = queryClient.getQueryData(
+                QUERY_KEYS.messages(currentChatId)
+            ) || [];
 
-            setCurrentChat(chat);
-
-            // Load messages for this chat
-            const response = await api.get(`/assistant/chats/${chatId}/messages/`);
-            setMessages(response.data || []);
-        } catch (error) {
-            console.error('Failed to load chat:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [chats, loadChats]);
-
-    const sendMessage = useCallback(async (content) => {
-        if (!currentChat) {
-            console.error('No current chat selected');
-            return;
-        }
-
-        try {
-            setIsLoading(true);
-
-            // Add user message immediately to the UI
-            const userMessage = {
-                id: Date.now(), // temporary ID
+            const optimisticMessage = {
+                id: `temp-${Date.now()}`,
                 role: 'user',
                 content: content,
                 timestamp: new Date().toISOString()
             };
 
-            setMessages(prev => [...prev, userMessage]);
+            queryClient.setQueryData(
+                QUERY_KEYS.messages(currentChatId),
+                [...previousMessages, optimisticMessage]
+            );
 
-            const response = await api.post(`/assistant/chats/${currentChat.id}/send/`, {
-                message: content
-            });
-
-            // Update with the complete messages from the server
-            if (response.data.messages) {
-                setMessages(response.data.messages);
+            return { previousMessages, optimisticMessage };
+        },
+        onSuccess: (data) => {
+            if (data.messages && currentChatId) {
+                queryClient.setQueryData(
+                    QUERY_KEYS.messages(currentChatId),
+                    data.messages
+                );
             }
-        } catch (error) {
+        },
+        onError: (error, variables, context) => {
             console.error('Failed to send message:', error);
-            // Remove the optimistically added message on error
-            setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
-        } finally {
-            setIsLoading(false);
+
+            if (context?.previousMessages && currentChatId) {
+                queryClient.setQueryData(
+                    QUERY_KEYS.messages(currentChatId),
+                    context.previousMessages
+                );
+            }
         }
-    }, [currentChat]);
+    });
+
+    // Helper functions 
+    const createChat = useCallback(async (title) => {
+        return new Promise((resolve, reject) => {
+            createChatMutation.mutate(title, {
+                onSuccess: (newChat) => {
+                    resolve(newChat); // Return the created chat
+                },
+                onError: (error) => {
+                    reject(error);
+                }
+            });
+        });
+    }, [createChatMutation]);
+
+    const selectChat = useCallback((chatId) => {
+        setCurrentChatId(chatId);
+    }, []);
+
+    const sendMessage = useCallback((content) => {
+        if (!currentChatId) {
+            console.error('No current chat selected');
+            return;
+        }
+        return sendMessageMutation.mutate({ chatId: currentChatId, content });
+    }, [currentChatId, sendMessageMutation]);
+
+    const refreshChats = useCallback(() => {
+        return queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chats });
+    }, [queryClient]);
 
     return {
+        // Data
         chats,
         currentChat,
         messages,
-        isLoading,
-        loadChats,
+
+        // Loading states
+        isLoading: isLoadingChats || isLoadingMessages,
+        isLoadingChats,
+        isLoadingMessages,
+        isCreatingChat: createChatMutation.isPending,
+        isSendingMessage: sendMessageMutation.isPending,
+
+        // Error states
+        chatsError,
+        messagesError,
+        createChatError: createChatMutation.error,
+        sendMessageError: sendMessageMutation.error,
+
+        // Actions
         createChat,
         selectChat,
-        sendMessage
+        sendMessage,
+        refreshChats,
+
+        // Query utilities
+        queryClient,
     };
 };

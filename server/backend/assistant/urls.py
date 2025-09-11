@@ -4,15 +4,15 @@ from . import views
 app_name = "assistant"
 
 urlpatterns = [
-    # Conversation management
-    path("conversations/", views.conversations, name="conversations"),
+    # Chat management
+    path("chats/", views.chats, name="chats"),
     path(
-        "conversations/<int:conversation_id>/messages/",
-        views.conversation_messages,
-        name="conversation_messages",
+        "chats/<int:chat_id>/messages/",
+        views.chat_messages,
+        name="chat_messages",
     ),
     path(
-        "conversations/<int:conversation_id>/send/",
+        "chats/<int:chat_id>/send/",
         views.send_message,
         name="send_message",
     ),

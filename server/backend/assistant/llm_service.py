@@ -1,9 +1,10 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from .models import Conversation, Message
-import json
-from django.conf import settings
+from .models import Chat, Message
+
+# import json
+# from django.conf import settings
 
 
 class FitnessAssistant:
@@ -40,18 +41,18 @@ class FitnessAssistant:
 
         return base_prompt
 
-    def generate_response(self, conversation_id, user_message, user_profile=None):
-        """Generate AI response with conversation context (sync version)"""
+    def generate_response(self, chat_id, user_message, user_profile=None):
+        """Generate AI response with chat context (sync version)"""
         try:
-            conversation = Conversation.objects.get(id=conversation_id)
+            chat = Chat.objects.get(id=chat_id)
 
             # Build message history
             messages = [
                 {"role": "system", "content": self.get_system_prompt(user_profile)}
             ]
 
-            # Add conversation history (last 10 messages for context)
-            recent_messages = conversation.messages.order_by("-timestamp")[:10]
+            # Add chat history (last 10 messages for context)
+            recent_messages = chat.messages.order_by("-timestamp")[:10]
             for msg in reversed(recent_messages):
                 messages.append({"role": msg.role, "content": msg.content})
 
@@ -59,9 +60,7 @@ class FitnessAssistant:
             messages.append({"role": "user", "content": user_message})
 
             # Save user message
-            Message.objects.create(
-                conversation=conversation, role="user", content=user_message
-            )
+            Message.objects.create(chat=chat, role="user", content=user_message)
 
             # Call OpenAI API with new syntax
             response = self.client.chat.completions.create(
@@ -76,7 +75,7 @@ class FitnessAssistant:
 
             # Save assistant response
             Message.objects.create(
-                conversation=conversation,
+                chat=chat,
                 role="assistant",
                 content=assistant_message,
                 tokens_used=tokens_used,
@@ -88,8 +87,8 @@ class FitnessAssistant:
                 "tokens_used": tokens_used,
             }
 
-        except Conversation.DoesNotExist:
-            return {"success": False, "error": "Conversation not found"}
+        except Chat.DoesNotExist:
+            return {"success": False, "error": "Chat not found"}
         except Exception as e:
             print(f"Error in generate_response: {e}")
             return {"success": False, "error": str(e)}

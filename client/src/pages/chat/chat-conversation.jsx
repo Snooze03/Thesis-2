@@ -3,7 +3,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { SubLayout } from '@/layouts/sub-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/ui/section-title';
@@ -14,152 +14,168 @@ import { useChatAssistant } from '@/hooks/useChatAssistant';
 
 const ChatConversation = () => {
     const [inputMessage, setInputMessage] = useState('');
-    const [chatLoaded, setChatLoaded] = useState(false);
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
 
-    // chat id from navigation state
-    const chatId = location.state?.newChatId;
-    console.log(`Chat ID from state: ${chatId}`);
+    // Get chat ID from navigation state or URL params
+    const chatId = location.state?.chatId || location.state?.newChatId;
+    // console.log(`Chat ID from state: ${chatId}`);
 
     const {
         currentChat,
         messages,
-        isLoading,
+        isLoadingMessages,
+        isSendingMessage,
         selectChat,
         sendMessage,
+        messagesError,
+        sendMessageError,
     } = useChatAssistant();
-
-    // Debug logs
-    // console.log('Current Chat:', currentChat);
-    // console.log('Messages:', messages);
-    // console.log('Is Loading:', isLoading);
-    // console.log('Chat Loaded:', chatLoaded);
 
     // Load the specific chat upon component mount
     useEffect(() => {
-        const loadChat = async () => {
-            if (chatId) {
-                try {
-                    await selectChat(chatId);
-                    setChatLoaded(true);
-                } catch (error) {
-                    console.error('Error selecting chat:', error);
-                    setChatLoaded(true); // Set to true even on error to show the input
-                }
-            } else {
-                console.log('No chatId provided');
-                setChatLoaded(true);
-            }
-        };
+        if (chatId) {
+            selectChat(chatId);
+        } else {
+            // If no chatId is provided, check if there's a current chat from the hook
+            console.log('No chatId provided, currentChat:', currentChat);
+        }
+    }, [chatId, selectChat, currentChat]);
 
-        loadChat();
-    }, [chatId, selectChat]);
-
+    // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!inputMessage.trim() || isLoading) return;
+        if (!inputMessage.trim() || isSendingMessage || !currentChat) return;
 
-        await sendMessage(inputMessage);
-        setInputMessage('');
+        try {
+            await sendMessage(inputMessage);
+            setInputMessage('');
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
     };
 
-    // Show loading only if we haven't attempted to load the chat yet
-    const showLoading = !chatLoaded && !currentChat;
+    const handleBackClick = () => {
+        navigate('/chat');
+    };
+
+    // Show error state
+    if (messagesError) {
+        return (
+            <SubLayout>
+                <div className="flex gap-2 items-center mb-4">
+                    <Button variant="ghost" onClick={handleBackClick}>
+                        <ArrowLeft className="size-5" />
+                    </Button>
+                    <SectionTitle>Fitness Assistant</SectionTitle>
+                </div>
+                <Card className="flex-1 flex items-center justify-center">
+                    <CardContent className="text-center">
+                        <p className="text-red-500 mb-4">Error loading messages: {messagesError.message}</p>
+                        <Button onClick={() => window.location.reload()}>Retry</Button>
+                    </CardContent>
+                </Card>
+            </SubLayout>
+        );
+    }
 
     return (
         <SubLayout>
-            <div className="flex gap-2 items-center">
-                <Button variant="ghost" onClick={() => navigate(-1)}>
+            <div className="flex gap-2 items-center mb-4">
+                <Button variant="ghost" onClick={handleBackClick}>
                     <ArrowLeft className="size-5" />
                 </Button>
-                <SectionTitle>Fitness Assistant</SectionTitle>
+                <SectionTitle>
+                    {currentChat ? currentChat.title : 'Fitness Assistant'}
+                </SectionTitle>
             </div>
-            {/* Main Chat Area - Full Width */}
-            <Card className="flex-1 flex flex-col pb-4">
-                {/* <CardHeader className="pb-3">
-                    <CardTitle>
-                        {currentChat ? `${currentChat.title} - PrimeFit Assistant` : chatLoaded ? 'PrimeFit Assistant' : 'Loading chat...'}
-                    </CardTitle>
-                </CardHeader> */}
 
-                {/* Always show the chat interface once chat is loaded, even if currentChat is null */}
-                {chatLoaded || currentChat ? (
-                    <>
-                        {/* Messages */}
-                        <CardContent className="flex-1 p-0">
-                            <ScrollArea className="h-full p-4">
-                                <div className="space-y-4">
-                                    {messages.length === 0 && !isLoading ? (
-                                        <div className="text-center text-muted-foreground py-8">
-                                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                            <p>Start your conversation with PrimeFit Assistant</p>
-                                        </div>
-                                    ) : (
-                                        messages.map((message, index) => (
-                                            <div
-                                                key={index}
-                                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                            >
-                                                <div
-                                                    className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'bg-muted'
-                                                        }`}
-                                                >
-                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                                    <span className="text-xs opacity-70 block mt-1">
-                                                        {new Date(message.timestamp).toLocaleTimeString()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                    {isLoading && (
-                                        <div className="flex justify-start">
-                                            <div className="bg-muted p-3 rounded-lg">
-                                                <LoadingSpinner className="h-4 w-4" />
-                                                <span className="ml-2 text-sm">Assistant is typing...</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} />
+            {/* Main Chat Area */}
+            <Card className="flex-1 flex flex-col">
+                {/* Messages */}
+                <CardContent className="flex-1 p-0">
+                    <ScrollArea className="h-full p-4">
+                        <div className="space-y-4">
+                            {isLoadingMessages ? (
+                                <div className="flex justify-center py-8">
+                                    <LoadingSpinner className="h-8 w-8" />
                                 </div>
-                            </ScrollArea>
-                        </CardContent>
+                            ) : messages.length === 0 ? (
+                                <div className="text-center text-muted-foreground py-8">
+                                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>Start your conversation with PrimeFit Assistant</p>
+                                    <p className="text-sm mt-2">Ask about workouts, nutrition, or fitness advice!</p>
+                                </div>
+                            ) : (
+                                messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div
+                                            className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted'
+                                                }`}
+                                        >
+                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            <span className="text-xs opacity-70 block mt-1">
+                                                {new Date(message.timestamp).toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
 
-                        {/* Message Input - Always show once chat is loaded */}
-                        <div className="p-4 border-t pb-0">
-                            <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <Input
-                                    value={inputMessage}
-                                    onChange={(e) => setInputMessage(e.target.value)}
-                                    placeholder="Ask about workouts, nutrition, or fitness advice..."
-                                    disabled={isLoading}
-                                    className="flex-1"
-                                />
-                                <Button type="submit" disabled={isLoading || !inputMessage.trim()}>
-                                    <Send className="h-4 w-4" />
-                                </Button>
-                            </form>
+                            {/* Typing indicator */}
+                            {isSendingMessage && (
+                                <div className="flex justify-start">
+                                    <div className="bg-muted p-3 rounded-lg flex items-center">
+                                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div ref={messagesEndRef} />
                         </div>
-                    </>
-                ) : (
-                    <CardContent className="flex-1 flex items-center justify-center">
-                        <div className="text-center text-muted-foreground">
-                            <LoadingSpinner className="h-8 w-8 mx-auto mb-4" />
-                            <p>Loading your chat...</p>
+                    </ScrollArea>
+                </CardContent>
+
+                {/* Message Input */}
+                <div className="p-4 border-t">
+                    {sendMessageError && (
+                        <div className="text-red-500 text-sm mb-2">
+                            Error sending message: {sendMessageError.message}
                         </div>
-                    </CardContent>
-                )}
+                    )}
+                    <form onSubmit={handleSendMessage} className="flex gap-2">
+                        <Input
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            placeholder="Ask about workouts, nutrition, or fitness advice..."
+                            disabled={isSendingMessage || !currentChat}
+                            className="flex-1"
+                        />
+                        <Button
+                            type="submit"
+                            disabled={isSendingMessage || !inputMessage.trim() || !currentChat}
+                        >
+                            {isSendingMessage ? (
+                                <LoadingSpinner className="h-4 w-4" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                        </Button>
+                    </form>
+                </div>
             </Card>
         </SubLayout>
     );
 };
 
-export { ChatConversation }
+export { ChatConversation };

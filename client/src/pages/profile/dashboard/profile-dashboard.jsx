@@ -60,9 +60,19 @@ const ProfileCard = ({ acc_data, acc_profile }) => {
         return s.charAt(0).toUpperCase() + s.slice(1);
     };
 
+    // Get the latest weight from weight history, fallback to current_weight from profile
+    const getLatestWeight = () => {
+        if (acc_data.weight_history && acc_data.weight_history.length > 0) {
+            // Weight history is ordered by most recent first
+            return Number(acc_data.weight_history[0].weight).toFixed(2);
+        }
+        // Fallback to profile current_weight if no weight history
+        return Number(acc_profile.current_weight).toFixed(2);
+    };
+
     const first_name = acc_data.first_name;
     const userName = `${capitalize(acc_data.first_name)} ${capitalize(acc_data.last_name)}`
-    const weight = Number(acc_profile.current_weight).toFixed(2);
+    const weight = getLatestWeight();
 
     const menuItems = [
         { type: "title", label: "My Account" },

@@ -1,79 +1,94 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
 from .models import Chat, Message
-from .llm_service import FitnessAssistant
 from .serializers import ChatSerializer, MessageSerializer
+from .llm_service import LLMService
 
 
-@api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
-def chats(request):
-    if request.method == "GET":
-        user_chats = Chat.objects.filter(user=request.user)
-        serializer = ChatSerializer(user_chats, many=True)
+class ChatViewSet(viewsets.ModelViewSet):
+    serializer_class = ChatSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Chat.objects.filter(user=self.request.user).order_by("-updated_at")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        """Handle PATCH requests for renaming chats"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
         return Response(serializer.data)
 
-    elif request.method == "POST":
-        chat = Chat.objects.create(
-            user=request.user, title=request.data.get("title", "New Chat")
-        )
-        serializer = ChatSerializer(chat)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests for renaming chats"""
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        """Handle DELETE requests for deleting chats"""
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def send_message(request, chat_id):
-    try:
-        chat = Chat.objects.get(id=chat_id, user=request.user)
-        user_message = request.data.get("message")
+    @action(detail=True, methods=["get"])
+    def messages(self, request, pk=None):
+        """Get messages for a specific chat"""
+        chat = self.get_object()
+        messages = Message.objects.filter(chat=chat).order_by("created_at")
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
 
-        if not user_message:
+    @action(detail=True, methods=["post"])
+    def send(self, request, pk=None):
+        """Send a message to the chat"""
+        chat = self.get_object()
+        user_message_content = request.data.get("message")
+
+        if not user_message_content:
             return Response(
-                {"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Message content is required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Get user profile for context
-        user_profile = getattr(request.user, "profile", None)
+        try:
+            # Create user message
+            user_message = Message.objects.create(
+                chat=chat, role="user", content=user_message_content
+            )
 
-        # Generate AI response (now sync)
-        assistant = FitnessAssistant()
-        result = assistant.generate_response(chat_id, user_message, user_profile)
+            # Get AI response
+            llm_service = LLMService()
+            ai_response = llm_service.get_response(user_message_content, chat.id)
 
-        if result["success"]:
-            # Return updated chat with messages
-            messages = chat.messages.all()
+            # Create AI message
+            ai_message = Message.objects.create(
+                chat=chat, role="assistant", content=ai_response
+            )
+
+            # Update chat's updated_at timestamp
+            chat.save()
+
+            # Return all messages for the chat
+            messages = Message.objects.filter(chat=chat).order_by("created_at")
             serializer = MessageSerializer(messages, many=True)
+
             return Response(
                 {
                     "messages": serializer.data,
-                    "tokens_used": result.get("tokens_used", 0),
+                    "user_message": MessageSerializer(user_message).data,
+                    "ai_message": MessageSerializer(ai_message).data,
                 }
             )
-        else:
+
+        except Exception as e:
             return Response(
-                {"error": result["error"]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    except Chat.DoesNotExist:
-        return Response({"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND)
-    except Exception as e:
-        print(f"Error in send_message: {e}")
-        return Response(
-            {"error": "Internal server error"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def chat_messages(request, chat_id):
-    try:
-        chat = Chat.objects.get(id=chat_id, user=request.user)
-        messages = chat.messages.all()
-        serializer = MessageSerializer(messages, many=True)
-        return Response(serializer.data)
-    except Chat.DoesNotExist:
-        return Response({"error": "Chat not found"}, status=status.HTTP_404_NOT_FOUND)

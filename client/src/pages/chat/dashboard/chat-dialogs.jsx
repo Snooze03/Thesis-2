@@ -72,11 +72,11 @@ export const ChatDialogs = ({
                 open={renameDialog.open}
                 onOpenChange={handleDialogOpen}
             >
-                <DialogContent aria-describedby="rename-dialog-description">
+                <DialogContent aria-describedby="rename-dialog-description" className="gap-0">
                     <DialogHeader>
                         <DialogTitle>Rename Chat</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-3">
                         <p id="rename-dialog-description" className="text-sm text-muted-foreground mb-3">
                             Enter a new title for your chat conversation.
                         </p>
@@ -91,7 +91,7 @@ export const ChatDialogs = ({
                             }}
                         />
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="mt-2">
                         <Button variant="outline" onClick={() => handleRenameDialogChange(false)}>
                             Cancel
                         </Button>

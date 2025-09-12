@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/ui/section-title';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { MarkdownRenderer } from '@/components/markdown-renderer';
 import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
 import { useChatAssistant } from '@/hooks/useChatAssistant';
 import { Dumbbell } from 'lucide-react';
@@ -138,7 +139,16 @@ const ChatConversation = () => {
                                                     : 'bg-muted'
                                                     }`}
                                             >
-                                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                {/* Render markdown for assistant messages, plain text for user messages */}
+                                                {message.role === 'assistant' ? (
+                                                    <MarkdownRenderer
+                                                        content={message.content}
+                                                        className="text-sm"
+                                                    />
+                                                ) : (
+                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                )}
+
                                                 <span className="text-xs opacity-70 block mt-1">
                                                     {new Date(message.timestamp).toLocaleTimeString()}
                                                 </span>

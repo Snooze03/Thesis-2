@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react";
 import { useChatAssistant } from "@/hooks/useChatAssistant";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/layouts/main-layout";
@@ -8,25 +9,38 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { EmptyItems } from "@/components/empty-items";
 import { Button } from "@/components/ui/button";
 import { KebabMenu } from "@/components/ui/kebab-menu";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Clock, Pencil, Trash2, Loader2 } from "lucide-react";
 
 const ChatDashboard = () => {
     const navigate = useNavigate();
 
+    // State for modals
+    const [renameDialog, setRenameDialog] = useState({ open: false, chatId: null, currentTitle: '' });
+    const [deleteDialog, setDeleteDialog] = useState({ open: false, chatId: null, chatTitle: '' });
+    const [newTitle, setNewTitle] = useState('');
+
     const {
         chats,
         createChat,
+        renameChat,
+        deleteChat,
         isLoadingChats,
         isCreatingChat,
+        isRenamingChat,
+        isDeletingChat,
         chatsError,
         createChatError,
+        renameChatError,
+        deleteChatError,
     } = useChatAssistant();
 
     const handleNewChat = async () => {
         try {
             const newChat = await createChat("New Chat");
             console.log(`New Chat created:`, newChat);
-            // Navigate to new-chat route with the chat ID
             navigate('/chat/new-chat', { state: { newChatId: newChat.id } });
         } catch (error) {
             console.error('Error creating chat:', error);
@@ -35,6 +49,57 @@ const ChatDashboard = () => {
 
     const handleChatClick = (chatId) => {
         navigate('/chat/new-chat', { state: { chatId } });
+    };
+
+    // Rename chat handlers
+    const handleRenameClick = (chat) => {
+        setRenameDialog({
+            open: true,
+            chatId: chat.id,
+            currentTitle: chat.title
+        });
+        setNewTitle(chat.title);
+    };
+
+    const handleRenameSubmit = async () => {
+        if (!newTitle.trim() || !renameDialog.chatId) return;
+
+        try {
+            await renameChat(renameDialog.chatId, newTitle.trim());
+            setRenameDialog({ open: false, chatId: null, currentTitle: '' });
+            setNewTitle('');
+        } catch (error) {
+            console.error('Error renaming chat:', error);
+        }
+    };
+
+    const handleRenameCancel = () => {
+        setRenameDialog({ open: false, chatId: null, currentTitle: '' });
+        setNewTitle('');
+    };
+
+    // Delete chat handlers
+    const handleDeleteClick = (chat) => {
+        setDeleteDialog({
+            open: true,
+            chatId: chat.id,
+            chatTitle: chat.title
+        });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteDialog.chatId) return;
+
+        try {
+            await deleteChat(deleteDialog.chatId);
+            setDeleteDialog({ open: false, chatId: null, chatTitle: '' });
+        } catch (error) {
+            console.error('Error deleting chat:', error);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialog({ open: false, chatId: null, chatTitle: '' });
     };
 
     if (chatsError) {
@@ -68,9 +133,20 @@ const ChatDashboard = () => {
                 New Chat
             </Button>
 
+            {/* Error messages */}
             {createChatError && (
                 <div className="text-red-500 text-sm mt-2">
                     Error creating chat: {createChatError.message}
+                </div>
+            )}
+            {renameChatError && (
+                <div className="text-red-500 text-sm mt-2">
+                    Error renaming chat: {renameChatError.message}
+                </div>
+            )}
+            {deleteChatError && (
+                <div className="text-red-500 text-sm mt-2">
+                    Error deleting chat: {deleteChatError.message}
                 </div>
             )}
 
@@ -101,10 +177,78 @@ const ChatDashboard = () => {
                             key={chat.id}
                             chat={chat}
                             onClick={() => handleChatClick(chat.id)}
+                            onRename={() => handleRenameClick(chat)}
+                            onDelete={() => handleDeleteClick(chat)}
+                            isDeleting={isDeletingChat}
                         />
                     ))}
                 </div>
             )}
+
+            {/* Rename Dialog */}
+            <Dialog open={renameDialog.open} onOpenChange={(open) => !open && handleRenameCancel()}>
+                <DialogContent aria-describedby="rename-dialog-description">
+                    <DialogHeader>
+                        <DialogTitle>Rename Chat</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p id="rename-dialog-description" className="text-sm text-muted-foreground mb-3">
+                            Enter a new title for your chat conversation.
+                        </p>
+                        <Input
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            placeholder="Enter new chat title"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleRenameSubmit();
+                                }
+                            }}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={handleRenameCancel}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleRenameSubmit}
+                            disabled={isRenamingChat || !newTitle.trim()}
+                        >
+                            {isRenamingChat ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Rename
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && handleDeleteCancel()}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Chat</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete "{deleteDialog.chatTitle}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleDeleteCancel}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={isDeletingChat}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeletingChat ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </MainLayout>
     );
 };
@@ -125,19 +269,30 @@ const getTimeAgo = (dateString) => {
     return updatedAt.toLocaleDateString();
 };
 
-const ChatCard = ({ chat, onClick }) => {
+const ChatCard = ({ chat, onClick, onRename, onDelete, isDeleting }) => {
     const menuItems = [
         {
             icon: Pencil,
             label: "Rename",
-            action: () => console.log("Rename chat:", chat.id)
+            action: (e) => {
+                e?.stopPropagation?.(); // Stop event propagation
+                onRename();
+            }
         },
         {
             icon: Trash2,
             label: "Delete",
-            action: () => console.log("Delete chat:", chat.id)
+            action: (e) => {
+                e?.stopPropagation?.(); // Stop event propagation
+                onDelete();
+            },
+            disabled: isDeleting
         },
     ];
+
+    const handleMenuClick = (e) => {
+        e.stopPropagation(); // Prevent card click when menu is opened
+    };
 
     return (
         <Card
@@ -146,10 +301,12 @@ const ChatCard = ({ chat, onClick }) => {
         >
             <CardHeader className="px-6 -mb-5 flex items-center justify-between">
                 <CardTitle>{chat.title}</CardTitle>
-                <KebabMenu
-                    items={menuItems}
-                    onClick={(e) => e.stopPropagation()}
-                />
+                <div onClick={handleMenuClick}>
+                    <KebabMenu
+                        items={menuItems}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
             </CardHeader>
             <CardContent className="-mb-4">
                 <p className="text-gray-700">

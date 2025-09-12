@@ -12,6 +12,7 @@ export const useChatAssistant = () => {
     const [currentChatId, setCurrentChatId] = useState(null);
     const queryClient = useQueryClient();
 
+    // ===== CHAT MUTATIONS =====
     const {
         data: chats = [],
         isLoading: isLoadingChats,
@@ -66,6 +67,52 @@ export const useChatAssistant = () => {
         }
     });
 
+    // Rename chat mutation
+    const renameChatMutation = useMutation({
+        mutationFn: async ({ chatId, newTitle }) => {
+            const response = await api.patch(`/assistant/chats/${chatId}/`, { title: newTitle });
+            return response.data;
+        },
+        onSuccess: (updatedChat) => {
+            // Update chats cache
+            queryClient.setQueryData(QUERY_KEYS.chats, (oldChats = []) =>
+                oldChats.map(chat =>
+                    chat.id === updatedChat.id ? updatedChat : chat
+                )
+            );
+        },
+        onError: (error) => {
+            console.error('Failed to rename chat:', error);
+        }
+    });
+
+    // Delete chat mutation
+    const deleteChatMutation = useMutation({
+        mutationFn: async (chatId) => {
+            await api.delete(`/assistant/chats/${chatId}/`);
+            return chatId;
+        },
+        onSuccess: (deletedChatId) => {
+            // Remove from chats cache
+            queryClient.setQueryData(QUERY_KEYS.chats, (oldChats = []) =>
+                oldChats.filter(chat => chat.id !== deletedChatId)
+            );
+
+            // Clear messages cache for deleted chat
+            queryClient.removeQueries({
+                queryKey: QUERY_KEYS.messages(deletedChatId)
+            });
+
+            // If the deleted chat was current, clear current chat
+            if (currentChatId === deletedChatId) {
+                setCurrentChatId(null);
+            }
+        },
+        onError: (error) => {
+            console.error('Failed to delete chat:', error);
+        }
+    });
+
     // Send message mutation
     const sendMessageMutation = useMutation({
         mutationFn: async ({ chatId, content }) => {
@@ -106,6 +153,8 @@ export const useChatAssistant = () => {
                     data.messages
                 );
             }
+            // Also refresh chats to update last_message
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.chats });
         },
         onError: (error, variables, context) => {
             console.error('Failed to send message:', error);
@@ -118,13 +167,14 @@ export const useChatAssistant = () => {
             }
         }
     });
+    // ===== END Chat Mutations =====
 
     // Helper functions 
     const createChat = useCallback(async (title) => {
         return new Promise((resolve, reject) => {
             createChatMutation.mutate(title, {
                 onSuccess: (newChat) => {
-                    resolve(newChat); // Return the created chat
+                    resolve(newChat);
                 },
                 onError: (error) => {
                     reject(error);
@@ -132,6 +182,32 @@ export const useChatAssistant = () => {
             });
         });
     }, [createChatMutation]);
+
+    const renameChat = useCallback(async (chatId, newTitle) => {
+        return new Promise((resolve, reject) => {
+            renameChatMutation.mutate({ chatId, newTitle }, {
+                onSuccess: (updatedChat) => {
+                    resolve(updatedChat);
+                },
+                onError: (error) => {
+                    reject(error);
+                }
+            });
+        });
+    }, [renameChatMutation]);
+
+    const deleteChat = useCallback(async (chatId) => {
+        return new Promise((resolve, reject) => {
+            deleteChatMutation.mutate(chatId, {
+                onSuccess: (deletedChatId) => {
+                    resolve(deletedChatId);
+                },
+                onError: (error) => {
+                    reject(error);
+                }
+            });
+        });
+    }, [deleteChatMutation]);
 
     const selectChat = useCallback((chatId) => {
         setCurrentChatId(chatId);
@@ -160,16 +236,22 @@ export const useChatAssistant = () => {
         isLoadingChats,
         isLoadingMessages,
         isCreatingChat: createChatMutation.isPending,
+        isRenamingChat: renameChatMutation.isPending,
+        isDeletingChat: deleteChatMutation.isPending,
         isSendingMessage: sendMessageMutation.isPending,
 
         // Error states
         chatsError,
         messagesError,
         createChatError: createChatMutation.error,
+        renameChatError: renameChatMutation.error,
+        deleteChatError: deleteChatMutation.error,
         sendMessageError: sendMessageMutation.error,
 
         // Actions
         createChat,
+        renameChat,
+        deleteChat,
         selectChat,
         sendMessage,
         refreshChats,

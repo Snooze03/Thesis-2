@@ -20,7 +20,6 @@ const ChatConversation = () => {
 
     // Get chat ID from navigation state or URL params
     const chatId = location.state?.chatId || location.state?.newChatId;
-    // console.log(`Chat ID from state: ${chatId}`);
 
     const {
         currentChat,
@@ -31,6 +30,7 @@ const ChatConversation = () => {
         sendMessage,
         messagesError,
         sendMessageError,
+        refreshChats,
     } = useChatAssistant();
 
     // Load the specific chat upon component mount
@@ -38,7 +38,6 @@ const ChatConversation = () => {
         if (chatId) {
             selectChat(chatId);
         } else {
-            // If no chatId is provided, check if there's a current chat from the hook
             console.log('No chatId provided, currentChat:', currentChat);
         }
     }, [chatId, selectChat, currentChat]);
@@ -60,7 +59,9 @@ const ChatConversation = () => {
         }
     };
 
-    const handleBackClick = () => {
+    const handleBackClick = async () => {
+        // Refresh chats to update last_message before navigating back
+        await refreshChats();
         navigate('/chat');
     };
 
@@ -137,6 +138,7 @@ const ChatConversation = () => {
                                 <div className="flex justify-start">
                                     <div className="bg-muted p-3 rounded-lg flex items-center">
                                         <LoadingSpinner className="h-4 w-4 mr-2" />
+                                        <span className="text-sm">Assistant is typing...</span>
                                     </div>
                                 </div>
                             )}

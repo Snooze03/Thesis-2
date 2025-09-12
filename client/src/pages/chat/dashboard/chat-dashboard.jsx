@@ -173,9 +173,7 @@ const ChatDashboard = () => {
     );
 };
 
-/**
- * Utility function to format time ago
- */
+// Utility function to format time ago
 const getTimeAgo = (dateString) => {
     const now = new Date();
     const updatedAt = new Date(dateString);
@@ -192,9 +190,7 @@ const getTimeAgo = (dateString) => {
     return updatedAt.toLocaleDateString();
 };
 
-/**
- * Individual chat card component
- */
+// Individual chat card component
 const ChatCard = ({ chat, onClick, onRename, onDelete, isDeleting }) => {
     const menuItems = [
         {
@@ -212,7 +208,8 @@ const ChatCard = ({ chat, onClick, onRename, onDelete, isDeleting }) => {
                 e?.stopPropagation?.();
                 onDelete();
             },
-            disabled: isDeleting
+            disabled: isDeleting,
+            variant: "destructive"
         },
     ];
 

@@ -23,6 +23,7 @@ class CombinedSignupView(generics.CreateAPIView):
     This endpoint handles complete user registration including:
     - Account creation with authentication details
     - Profile creation with fitness/health data
+    - Weight history entry creation for starting weight
     - Atomic transaction to ensure data consistency
 
     POST /accounts/signup/
@@ -33,7 +34,7 @@ class CombinedSignupView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         """
-        Create account and profile in a single atomic transaction.
+        Create account, profile, and initial weight history in a single atomic transaction.
         """
 
         # First validate the combined data using custom serializer
@@ -91,7 +92,7 @@ class CombinedSignupView(generics.CreateAPIView):
         profile_data.setdefault("food_allergies", "")
 
         try:
-            # Use atomic transaction to ensure both account and profile are created together
+            # Use atomic transaction to ensure account, profile, and weight history are created together
             with transaction.atomic():
                 # Step 1: Create account using the existing serializer
                 account_serializer = AccountCreateSerializer(data=account_data)
@@ -132,12 +133,69 @@ class CombinedSignupView(generics.CreateAPIView):
                 # Save the profile
                 profile = profile_serializer.save()
 
-                # Step 3: Return complete user data
+                # Step 3: Create initial weight history entry
+                # Use the starting weight and start weight date from profile
+                weight_history_data = {
+                    "weight": profile_data["starting_weight"],
+                    "recorded_date": profile_data.get(
+                        "start_weight_date", validated_data.get("start_weight_date")
+                    ),
+                }
+
+                weight_history_serializer = WeightHistoryCreateSerializer(
+                    data=weight_history_data, context={"request": mock_request}
+                )
+
+                if not weight_history_serializer.is_valid():
+                    # This will automatically rollback account and profile creation due to transaction.atomic()
+                    return Response(
+                        {
+                            "success": False,
+                            "message": "Weight history validation failed",
+                            "errors": {
+                                "weight_history": weight_history_serializer.errors
+                            },
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Save the weight history entry
+                weight_history_entry = weight_history_serializer.save()
+
+                # Step 4: If current weight is different from starting weight, create another entry
+                starting_weight = profile_data["starting_weight"]
+                current_weight = profile_data["current_weight"]
+                start_date = profile_data.get(
+                    "start_weight_date", validated_data.get("start_weight_date")
+                )
+
+                # Only create a second entry if weights are different and we have a valid date
+                if (
+                    starting_weight != current_weight
+                    and start_date
+                    and start_date < validated_data.get("start_weight_date", start_date)
+                ):
+
+                    current_weight_data = {
+                        "weight": current_weight,
+                        "recorded_date": validated_data.get(
+                            "start_weight_date", start_date
+                        ),
+                    }
+
+                    current_weight_serializer = WeightHistoryCreateSerializer(
+                        data=current_weight_data, context={"request": mock_request}
+                    )
+
+                    if current_weight_serializer.is_valid():
+                        current_weight_serializer.save()
+
+                # Step 5: Return complete user data
                 response_serializer = AccountDetailSerializer(account)
                 return Response(
                     {
                         "success": True,
-                        "message": "Account and profile created successfully",
+                        "message": "Account, profile, and weight history created successfully",
                         "data": response_serializer.data,
                     },
                     status=status.HTTP_201_CREATED,

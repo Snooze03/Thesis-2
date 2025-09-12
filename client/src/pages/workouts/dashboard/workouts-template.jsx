@@ -69,7 +69,6 @@ function WorkoutTemplate({
     const handleStartWorkout = () => {
         // Navigate to workout session or implement workout logic
         navigate(`/workouts/templates/${id}/start`);
-        // Or you could show a toast if not implemented yet:
         // toast.info("Workout feature coming soon!");
     };
     // ===== END EVENT HANDLERS =====

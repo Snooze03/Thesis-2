@@ -1,19 +1,10 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
-app_name = "assistant"
+router = DefaultRouter()
+router.register(r"chats", views.ChatViewSet, basename="chat")
 
 urlpatterns = [
-    # Chat management
-    path("chats/", views.chats, name="chats"),
-    path(
-        "chats/<int:chat_id>/messages/",
-        views.chat_messages,
-        name="chat_messages",
-    ),
-    path(
-        "chats/<int:chat_id>/send/",
-        views.send_message,
-        name="send_message",
-    ),
+    path("", include(router.urls)),
 ]

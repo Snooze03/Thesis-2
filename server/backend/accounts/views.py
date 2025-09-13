@@ -23,9 +23,10 @@ class CombinedSignupView(generics.CreateAPIView):
     This endpoint handles complete user registration including:
     - Account creation with authentication details
     - Profile creation with fitness/health data
+    - Weight history entry creation for starting weight
     - Atomic transaction to ensure data consistency
 
-    POST /api/signup/
+    POST /accounts/signup/
     """
 
     permission_classes = [AllowAny]
@@ -33,7 +34,7 @@ class CombinedSignupView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         """
-        Create account and profile in a single atomic transaction.
+        Create account, profile, and initial weight history in a single atomic transaction.
         """
 
         # First validate the combined data using custom serializer
@@ -91,7 +92,7 @@ class CombinedSignupView(generics.CreateAPIView):
         profile_data.setdefault("food_allergies", "")
 
         try:
-            # Use atomic transaction to ensure both account and profile are created together
+            # Use atomic transaction to ensure account, profile, and weight history are created together
             with transaction.atomic():
                 # Step 1: Create account using the existing serializer
                 account_serializer = AccountCreateSerializer(data=account_data)
@@ -132,12 +133,69 @@ class CombinedSignupView(generics.CreateAPIView):
                 # Save the profile
                 profile = profile_serializer.save()
 
-                # Step 3: Return complete user data
+                # Step 3: Create initial weight history entry
+                # Use the starting weight and start weight date from profile
+                weight_history_data = {
+                    "weight": profile_data["starting_weight"],
+                    "recorded_date": profile_data.get(
+                        "start_weight_date", validated_data.get("start_weight_date")
+                    ),
+                }
+
+                weight_history_serializer = WeightHistoryCreateSerializer(
+                    data=weight_history_data, context={"request": mock_request}
+                )
+
+                if not weight_history_serializer.is_valid():
+                    # This will automatically rollback account and profile creation due to transaction.atomic()
+                    return Response(
+                        {
+                            "success": False,
+                            "message": "Weight history validation failed",
+                            "errors": {
+                                "weight_history": weight_history_serializer.errors
+                            },
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Save the weight history entry
+                weight_history_entry = weight_history_serializer.save()
+
+                # Step 4: If current weight is different from starting weight, create another entry
+                starting_weight = profile_data["starting_weight"]
+                current_weight = profile_data["current_weight"]
+                start_date = profile_data.get(
+                    "start_weight_date", validated_data.get("start_weight_date")
+                )
+
+                # Only create a second entry if weights are different and we have a valid date
+                if (
+                    starting_weight != current_weight
+                    and start_date
+                    and start_date < validated_data.get("start_weight_date", start_date)
+                ):
+
+                    current_weight_data = {
+                        "weight": current_weight,
+                        "recorded_date": validated_data.get(
+                            "start_weight_date", start_date
+                        ),
+                    }
+
+                    current_weight_serializer = WeightHistoryCreateSerializer(
+                        data=current_weight_data, context={"request": mock_request}
+                    )
+
+                    if current_weight_serializer.is_valid():
+                        current_weight_serializer.save()
+
+                # Step 5: Return complete user data
                 response_serializer = AccountDetailSerializer(account)
                 return Response(
                     {
                         "success": True,
-                        "message": "Account and profile created successfully",
+                        "message": "Account, profile, and weight history created successfully",
                         "data": response_serializer.data,
                     },
                     status=status.HTTP_201_CREATED,
@@ -169,12 +227,12 @@ class AccountProfileViewSet(viewsets.ReadOnlyModelViewSet):
         return Account.objects.filter(id=self.request.user.id).select_related("profile")
 
     def list(self, request):
-        """Return current user's complete profile - GET /api/profile/"""
+        """Return current user's complete profile - GET /accounts/profile/"""
         serializer = AccountDetailSerializer(request.user)
         return Response({"success": True, "data": serializer.data})
 
     def retrieve(self, request, pk=None):
-        """Return current user's profile by ID - GET /api/profile/{id}/"""
+        """Return current user's profile by ID - GET /accounts/profile/{id}/"""
         if int(pk) != request.user.id:
             return Response(
                 {"success": False, "message": "You can only access your own profile"},
@@ -199,7 +257,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return ProfileSerializer
 
     def create(self, request):
-        """Create profile for authenticated user - POST /api/profiles/"""
+        """Create profile for authenticated user - POST /accounts/profiles/"""
         # Check if profile already exists
         if hasattr(request.user, "profile"):
             return Response(
@@ -230,28 +288,27 @@ class ProfileViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def update(self, request, pk=None):
-        """Update user's profile - PUT /api/profiles/{id}/"""
+    def update(self, request, pk=None, partial=False):  # Add partial=False parameter
+        """Update user's profile - PUT /accounts/profiles/{id}/"""
         try:
-            profile = self.get_queryset().get(pk=pk)
+            profile = Profile.objects.get(account=request.user, pk=pk)
         except Profile.DoesNotExist:
             return Response(
-                {"success": False, "message": "Profile not found"},
+                {"success": False, "error": "Profile not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         serializer = ProfileCreateUpdateSerializer(
-            profile, data=request.data, context={"request": request}
+            profile,
+            data=request.data,
+            partial=partial,
+            context={"request": request},  # Pass partial to serializer
         )
         if serializer.is_valid():
-            profile = serializer.save()
-            response_serializer = ProfileSerializer(profile)
+            serializer.save()
             return Response(
-                {
-                    "success": True,
-                    "message": "Profile updated successfully",
-                    "data": response_serializer.data,
-                }
+                {"success": True, "data": serializer.data},
+                status=status.HTTP_200_OK,
             )
 
         return Response(
@@ -276,7 +333,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
         return WeightHistorySerializer
 
     def create(self, request):
-        """Add new weight entry - POST /api/weight-history/"""
+        """Add new weight entry - POST /accounts/weight-history/"""
         serializer = WeightHistoryCreateSerializer(
             data=request.data, context={"request": request}
         )
@@ -298,7 +355,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
         )
 
     def list(self, request):
-        """Get all weight history for user - GET /api/weight-history/"""
+        """Get all weight history for user - GET /accounts/weight-history/"""
         queryset = self.get_queryset()
         serializer = WeightHistorySerializer(queryset, many=True)
         return Response(
@@ -307,7 +364,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def recent(self, request):
-        """Get recent weight entries - GET /api/weight-history/recent/"""
+        """Get recent weight entries - GET /accounts/weight-history/recent/"""
         recent_entries = self.get_queryset()[:10]  # Last 10 entries
         serializer = WeightHistorySerializer(recent_entries, many=True)
         return Response(
@@ -316,7 +373,7 @@ class WeightHistoryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def stats(self, request):
-        """Get weight statistics - GET /api/weight-history/stats/"""
+        """Get weight statistics - GET /accounts/weight-history/stats/"""
         queryset = self.get_queryset()
 
         if not queryset.exists():

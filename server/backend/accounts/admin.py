@@ -339,6 +339,6 @@ class WeightHistoryAdmin(admin.ModelAdmin):
 
 
 # Admin site customization
-admin.site.site_header = "Fitness Tracker Admin"
-admin.site.site_title = "Fitness Tracker"
-admin.site.index_title = "Welcome to Fitness Tracker Administration"
+admin.site.site_header = "PrimeDFit Admin"
+admin.site.site_title = "PrimeDFit"
+admin.site.index_title = "Welcome to PrimeDFit Administration"

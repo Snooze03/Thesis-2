@@ -1,8 +1,5 @@
 "use client";
 
-import api from "@/api";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -11,28 +8,15 @@ import { WorkoutTemplate } from "./workouts-template";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
+import { useTemplates } from "@/hooks/workouts/useTemplates";
 
 const WorkoutsDashboard = () => {
-    const navigate = useNavigate();
-
-    // ===== GET ALL TEMPLATES =====
-    const getTemplates = async () => {
-        const response = await api.get("workouts/templates/");
-        return response.data;
-    };
-
     const {
-        data: templates = [],
-        isPending,
-    } = useQuery({
-        queryKey: ["templates"],
-        queryFn: getTemplates,
-    });
-    // ===== END GET =====
-
-    // Separate into alternatives vs routines
-    const routines = templates.filter((t) => !t.isAlternative);
-    const alternatives = templates.filter((t) => t.isAlternative);
+        routines,
+        alternatives,
+        isLoading,
+        navigateToCreate
+    } = useTemplates();
 
     return (
         <MainLayout>
@@ -42,17 +26,15 @@ const WorkoutsDashboard = () => {
             <TemplatesList
                 title="My Routines"
                 templates={routines}
-                isPending={isPending}
-                navigate={navigate}
-                isAlternative={false}
+                isPending={isLoading}
+                onCreateClick={() => navigateToCreate(false)}
             />
 
             <TemplatesList
                 title="Alternative Routines"
                 templates={alternatives}
-                isPending={isPending}
-                navigate={navigate}
-                isAlternative={true}
+                isPending={isLoading}
+                onCreateClick={() => navigateToCreate(true)}
             />
 
             <WorkoutsHistory />
@@ -60,19 +42,14 @@ const WorkoutsDashboard = () => {
     );
 };
 
-function TemplatesList({ title, templates, isPending, navigate, isAlternative }) {
+function TemplatesList({ title, templates, isPending, onCreateClick }) {
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
                 <SectionSubTitle>{title}</SectionSubTitle>
                 <Button
                     className="h-min"
-                    onClick={() =>
-                        navigate(
-                            `${location.pathname}/templates/create?is_alternative=${isAlternative}`,
-                            { replace: true }
-                        )
-                    }
+                    onClick={onCreateClick}
                 >
                     <Plus />
                     Create

@@ -8,7 +8,7 @@ __pycache__/
 server/db.sqlite3
 server/staticfiles/
 server/media/
-server/.env
+server/backend/.env
 *.pyc
 *.pyo
 *.pyd
@@ -34,3 +34,4 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+.github

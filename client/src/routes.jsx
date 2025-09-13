@@ -6,7 +6,7 @@ import api from './api';
 import { Login } from './pages/login/login-form';
 import { MultiStepForm } from './pages/sign-up/multi-step-form';
 import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
-import { ChatDashboard } from './pages/chat/chat-dashboard';
+import { ChatRoutes } from './pages/chat/chat-routes';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
 import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
 import { LoadingSpinner } from './components/ui/loading-spinner';
@@ -102,7 +102,7 @@ const Router = () => {
                 <Route element={<ProtectedRoutes />}>
                     <Route path="/profile/*" element={<ProfileRoutes />} />
                     <Route path="/nutrition" element={<NutritionDashboard />} />
-                    <Route path="/chat" element={<ChatDashboard />} />
+                    <Route path="/chat/*" element={<ChatRoutes />} />
                     <Route path="/workouts/*" element={<WorkoutsRoutes />} />
                     <Route path="/resources" element={<ResourcesDashboard />} />
 

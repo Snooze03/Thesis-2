@@ -1,153 +1,31 @@
 "use client"
 
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
-import api from "@/api";
-import apiNinjas from "@/apiNinjas";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "react-hot-toast";
+import { useNavigate, useParams } from "react-router-dom";
+import { useExerciseSearch } from "@/hooks/workouts/useExerciseSearch";
 
 function SearchExercise() {
     const navigate = useNavigate();
-    const [searchTerm, setSearchTerm] = useState("");
-    const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-    const [selectedItems, setSelectedItems] = useState(new Set());
-    let { template_id } = useParams();
-
-    // ===== GET EXERCISES VIA NINJA API =====
-    const getExercises = async ({ queryKey }) => {
-        const [_, searchName] = queryKey;
-        if (searchName) {
-            // if a search term is provided, use it
-            const response = await apiNinjas.get(`exercises?name=${searchName}`);
-            return response.data;
-        } else {
-            // if not default to beginner parameter
-            const response = await apiNinjas.get(`exercises?difficulty=beginner`);
-            return response.data;
-        }
-    };
+    const { template_id } = useParams();
 
     const {
-        data,
-        isPending,
+        searchTerm,
+        setSearchTerm,
+        selectedItems,
+        hasSelectedItems,
+        exercises,
+        isLoading,
         isError,
-    } = useQuery({
-        queryKey: ["search_exercises", submittedSearchTerm],
-        queryFn: getExercises,
-        staleTime: Infinity,
-        cacheTime: Infinity,
-    });
-    // ===== END GET EXERCISES =====
-
-    // ===== ADD EXERCISES TO TEMPLATE =====
-    const addExercisesToTemplate = async ({ templateId, exercises }) => {
-        const response = await api.post(
-            `workouts/templates/${templateId}/add_exercises/`,
-            { exercises: exercises }
-        );
-        return response.data;
-    };
-
-    const {
-        mutate: addExercises,
-        isLoading: isAdding
-    } = useMutation({
-        mutationFn: addExercisesToTemplate,
-        onSuccess: (data) => {
-            const successCount = data.created?.length || 0;
-            const errorCount = data.errors?.length || 0;
-
-            if (errorCount > 0) {
-                // Show specific errors in console for debugging
-                if (data.errors) {
-                    console.log('Exercise addition issues:', data.errors);
-                    data.errors.forEach(error => {
-                        if (error.error !== 'Exercise already exists in this template') {
-                            console.error(`Issue with ${error.exercise}:`, error.error);
-                            console.log("test");
-                        }
-                        if (error.error === 'Exercise already exists in this template') {
-                            toast.error(`Exercise already exists!`);
-                        }
-                    });
-                }
-            }
-            // else {
-            //     toast.success(`Successfully added ${successCount} exercise(s) to your template!`);
-            // }
-
-            // Clear selections and navigate back to template editing
-            setSelectedItems(new Set());
-            navigate(`/workouts/templates/${template_id}/edit`);
-        },
-        onError: (error) => {
-            console.error('Error adding exercises:', error);
-            toast.error(`Error adding exercises: ${error.response?.data?.error || error.message}`);
-        }
-    });
-    // ===== END ADD EXERCISE =====
-
-    // ===== SELECT STATE =====
-    const toggleItemSelection = (itemId) => {
-        setSelectedItems(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
-            } else {
-                newSet.add(itemId);
-            }
-            return newSet;
-        });
-    };
-
-    const hasSelectedItems = selectedItems.size > 0;
-
-    // ===== EVENT HANDLERS =====
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setSubmittedSearchTerm(searchTerm);
-    };
-
-    const handleAddSelectedExercises = () => {
-        if (!hasSelectedItems) return;
-
-        const exercises = data || [];
-
-        // Get selected exercise objects and map their indices
-        const selectedExercises = exercises
-            .map((exercise, index) => ({ exercise, originalIndex: index }))
-            .filter(({ originalIndex }) =>
-                selectedItems.has(exercises[originalIndex].name + originalIndex)
-            )
-            .map(({ exercise }) => exercise);
-
-        // Transform exercises to match Django model fields
-        const exercisesToAdd = selectedExercises.map(exercise => ({
-            name: exercise.name || '',
-            type: exercise.type || '',
-            muscle: exercise.muscle || '',
-            equipment: exercise.equipment || '',
-            difficulty: exercise.difficulty || '',
-            instructions: exercise.instructions || ''
-        }));
-
-        // console.log('Adding exercises:', exercisesToAdd); // Debug log
-
-        addExercises({
-            templateId: template_id,
-            exercises: exercisesToAdd
-        });
-    };
-
-    const exercises = data || [];
+        isAdding,
+        toggleItemSelection,
+        handleSearch,
+        addSelectedExercises,
+    } = useExerciseSearch();
 
     return (
         <SubLayout>
@@ -169,7 +47,7 @@ function SearchExercise() {
                 </Button>
 
                 {/* Row 2 */}
-                <form onSubmit={handleSubmit} className="relative w-full block col-span-4">
+                <form onSubmit={handleSearch} className="relative w-full block col-span-4">
                     <Input
                         id="search_input"
                         value={searchTerm}
@@ -193,7 +71,7 @@ function SearchExercise() {
 
                 {/* List out exercises upon success */}
                 <div className="flex flex-col gap-2">
-                    {isPending ? (
+                    {isLoading ? (
                         <div className="flex justify-center items-center h-64">
                             <p>Loading exercises...</p>
                         </div>
@@ -221,7 +99,7 @@ function SearchExercise() {
                 <Button
                     variant="default"
                     className="h-12 fixed bottom-6 right-6 rounded-full shadow-lg px-6"
-                    onClick={handleAddSelectedExercises}
+                    onClick={addSelectedExercises}
                     disabled={isAdding}
                 >
                     {isAdding ? (
@@ -278,13 +156,14 @@ function ListItem({ id, exercise, isSelected, onToggle }) {
             {exercise.equipment && (
                 <p className="text-gray-600 text-sm">
                     {exercise.equipment}
+                    { }
                 </p>
             )}
-            {exercise.difficulty && (
+            {/* {exercise.difficulty && (
                 <p className="text-xs text-gray-500 capitalize">
                     {exercise.difficulty}
                 </p>
-            )}
+            )} */}
         </div>
     );
 }

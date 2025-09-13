@@ -1,75 +1,41 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import api from "@/api"; // Make sure this import path is correct
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-
+import { useTemplates } from "@/hooks/workouts/useTemplates";
+import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
 function WorkoutTemplate({
     id,
     title
 }) {
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
-
-    // ===== GET EXERCISES =====
-    const getTemplateExercises = async () => {
-        // Get exercises that belong to this specific template
-        const response = await api.get(`workouts/templates/${id}/exercises/`);
-        return response.data;
-    }
+    const {
+        deleteTemplate,
+        isDeleting,
+        navigateToEdit,
+        navigateToStart
+    } = useTemplates();
 
     const {
-        data: exercises = [],
-        isPending: isPendingExercise,
-        isError: isErrorExercise,
-    } = useQuery({
-        queryKey: ["template_exercises_list", id],   // Include template id in query key
-        queryFn: getTemplateExercises,
-        enabled: Boolean(id),                   // Only run if we have a template id
-    });
-    // ===== END GET =====
-
-    // ===== DELETE TEMPLATE =====
-    const deleteTemplate = async (templateId) => {
-        await api.delete(`workouts/templates/${templateId}/`);
-    }
-
-    const {
-        mutate: deleteTemplateMutation,
-        isLoading: isDeleting
-    } = useMutation({
-        mutationFn: deleteTemplate,
-        onSuccess: () => {
-            // Invalidate the templates query to refetch data
-            queryClient.invalidateQueries({ queryKey: ["templates"] });
-            toast.success("Template deleted successfully!");
-        },
-        onError: (error) => {
-            toast.error(`Error deleting template: ${error.response?.data?.message || error.message}`);
-        }
-    });
-    // ===== END DELETE =====
+        exercises,
+        isLoading: isPendingExercise,
+        isError: isErrorExercise
+    } = useTemplateExercises(id);
 
     // ===== EVENT HANDLERS =====
     const handleDelete = () => {
-        deleteTemplateMutation(id);
+        deleteTemplate(id);
     };
 
     const handleEdit = () => {
-        navigate(`/workouts/templates/${id}/edit`);
+        navigateToEdit(id);
     };
 
     const handleStartWorkout = () => {
-        // Navigate to workout session or implement workout logic
-        navigate(`/workouts/templates/${id}/start`);
-        // toast.info("Workout feature coming soon!");
+        navigateToStart(id);
     };
     // ===== END EVENT HANDLERS =====
 
@@ -156,7 +122,13 @@ function WorkoutTemplate({
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>{isDeleting ? "Deleting..." : "Delete"}</AlertDialogAction>
+                                <AlertDialogAction
+                                    onClick={handleDelete}
+                                    className={buttonVariants({ variant: "destructive" })}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
@@ -166,6 +138,7 @@ function WorkoutTemplate({
                         size="sm"
                         onClick={handleEdit}
                         className="w-full"
+                        disabled={isDeleting}
                     >
                         <Pencil className="size-3 mr-2" />
                         Edit
@@ -174,7 +147,7 @@ function WorkoutTemplate({
                     <Button
                         size="sm"
                         onClick={handleStartWorkout}
-                        disabled={exercises.length === 0}
+                        disabled={exercises.length === 0 || isDeleting}
                         className="w-full"
                     >
                         <Play className="size-3 mr-2" />

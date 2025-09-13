@@ -1,6 +1,5 @@
 "use client"
 
-import { useNavigate } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
@@ -8,6 +7,7 @@ import { Plus, Trash2, AlarmClock, Replace, Minus, Lock } from "lucide-react";
 import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
 function ExerciseCard({
@@ -63,19 +63,24 @@ function ExerciseCard({
     };
 
     const handleReplace = () => {
-        // Remove current exercise and navigate to search
-        removeExercise({
-            templateId: template_id,
-            exerciseId: template_exercise_id,
+        // Get the template object from location state or construct it
+        const templateData = {
+            id: template_id,
+        };
+
+        // Navigate to search with template state
+        navigate("/workouts/templates/search", {
+            state: {
+                template: templateData,
+                mode: "search"
+            }
         });
-        navigate(`/workouts/templates/${template_id}/search`, { replace: true });
     };
 
     const handleRestTimer = () => {
         // Placeholder for rest timer functionality
         console.log("Rest timer functionality coming soon");
     };
-    // ===== END EVENT HANDLERS =====
 
     const menuItems = [
         {

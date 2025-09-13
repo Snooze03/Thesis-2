@@ -6,13 +6,9 @@ import { SubLayout } from "@/layouts/sub-layout";
 import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate, useParams } from "react-router-dom";
 import { useExerciseSearch } from "@/hooks/workouts/useExerciseSearch";
 
 function SearchExercise() {
-    const navigate = useNavigate();
-    const { template_id } = useParams();
-
     const {
         searchTerm,
         setSearchTerm,
@@ -25,6 +21,7 @@ function SearchExercise() {
         toggleItemSelection,
         handleSearch,
         addSelectedExercises,
+        handleBackToEdit,
     } = useExerciseSearch();
 
     return (
@@ -33,7 +30,7 @@ function SearchExercise() {
                 {/* Row 1 */}
                 <Button
                     variant="ghost"
-                    onClick={() => navigate(`/workouts/templates/${template_id}/edit`, { replace: true })}
+                    onClick={handleBackToEdit}
                     disabled={isAdding}
                 >
                     <ArrowLeft />
@@ -156,7 +153,6 @@ function ListItem({ id, exercise, isSelected, onToggle }) {
             {exercise.equipment && (
                 <p className="text-gray-600 text-sm">
                     {exercise.equipment}
-                    { }
                 </p>
             )}
             {/* {exercise.difficulty && (

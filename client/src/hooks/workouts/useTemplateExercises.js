@@ -1,9 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import api from "@/api";
 import { toast } from "react-hot-toast";
 
-export function useTemplateExercises(templateId) {
+export function useTemplateExercises(providedTemplateId = null) {
+    const location = useLocation();
     const queryClient = useQueryClient();
+
+    // Get template ID from either parameter or navigation state
+    const { template } = location.state || {};
+    const templateId = providedTemplateId || template?.id;
 
     // Get template exercises
     const getTemplateExercises = async () => {
@@ -31,7 +37,7 @@ export function useTemplateExercises(templateId) {
     const removeExerciseMutation = useMutation({
         mutationFn: removeExerciseFromTemplate,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["template_exercises"] });
+            queryClient.invalidateQueries({ queryKey: ["template_exercises", templateId] });
         },
         onError: (error) => {
             toast.error(`Error removing exercise: ${error.response?.data?.error || error.message}`);
@@ -51,7 +57,7 @@ export function useTemplateExercises(templateId) {
     const updateSetMutation = useMutation({
         mutationFn: updateExerciseSet,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["template_exercises"] });
+            queryClient.invalidateQueries({ queryKey: ["template_exercises", templateId] });
         },
         onError: (error) => {
             toast.error(`Error updating set: ${error.response?.data?.error || error.message}`);
@@ -61,6 +67,7 @@ export function useTemplateExercises(templateId) {
     return {
         // Data
         exercises: exercisesQuery.data || [],
+        templateId,
 
         // Loading states
         isLoading: exercisesQuery.isLoading,

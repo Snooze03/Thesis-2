@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/api";
 import apiNinjas from "@/apiNinjas";
 import { toast } from "react-hot-toast";
 
 export function useExerciseSearch() {
     const navigate = useNavigate();
-    const { template_id } = useParams();
+    const location = useLocation();
     const [searchTerm, setSearchTerm] = useState("");
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
     const [selectedItems, setSelectedItems] = useState(new Set());
+
+    // Get template from navigation state
+    const { template } = location.state || {};
+    const templateId = template?.id;
+
+    // Redirect if no template state is provided
+    useEffect(() => {
+        if (!template) {
+            navigate("/workouts", { replace: true });
+        }
+    }, [template, navigate]);
 
     // Get exercises from Ninja API
     const getExercises = async ({ queryKey }) => {
@@ -61,7 +72,12 @@ export function useExerciseSearch() {
             }
 
             setSelectedItems(new Set());
-            navigate(`/workouts/templates/${template_id}/edit`);
+            navigate("/workouts/templates/edit", {
+                state: {
+                    template,
+                    mode: "edit"
+                }
+            });
         },
         onError: (error) => {
             console.error('Error adding exercises:', error);
@@ -108,8 +124,17 @@ export function useExerciseSearch() {
         }));
 
         addExercisesMutation.mutate({
-            templateId: template_id,
+            templateId: templateId,
             exercises: exercisesToAdd
+        });
+    };
+
+    const handleBackToEdit = () => {
+        navigate("/workouts/templates/edit", {
+            state: {
+                template,
+                mode: "edit"
+            }
         });
     };
 
@@ -119,6 +144,8 @@ export function useExerciseSearch() {
         setSearchTerm,
         selectedItems,
         hasSelectedItems: selectedItems.size > 0,
+        template,
+        templateId,
 
         // Query data
         exercises: exerciseQuery.data || [],
@@ -132,5 +159,6 @@ export function useExerciseSearch() {
         toggleItemSelection,
         handleSearch,
         addSelectedExercises,
+        handleBackToEdit,
     };
 }

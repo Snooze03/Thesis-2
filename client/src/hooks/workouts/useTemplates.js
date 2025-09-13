@@ -36,18 +36,39 @@ export function useTemplates() {
 
     // Helper functions
     const navigateToCreate = (isAlternative = false) => {
-        navigate(
-            `/workouts/templates/create?is_alternative=${isAlternative}`,
-            { replace: true }
-        );
+        navigate("/workouts/templates/create", {
+            state: {
+                isAlternative,
+                mode: "create"
+            }
+        });
     };
 
-    const navigateToEdit = (templateId) => {
-        navigate(`/workouts/templates/${templateId}/edit`);
+    const navigateToEdit = (template) => {
+        navigate("/workouts/templates/edit", {
+            state: {
+                template,
+                mode: "edit"
+            }
+        });
     };
 
-    const navigateToStart = (templateId) => {
-        navigate(`/workouts/templates/${templateId}/start`);
+    const navigateToStart = (template) => {
+        navigate("/workouts/templates/start", {
+            state: {
+                template,
+                mode: "start"
+            }
+        });
+    };
+
+    const navigateToSearch = (template) => {
+        navigate("/workouts/templates/search", {
+            state: {
+                template,
+                mode: "search"
+            }
+        });
     };
 
     return {
@@ -65,5 +86,6 @@ export function useTemplates() {
         navigateToCreate,
         navigateToEdit,
         navigateToStart,
+        navigateToSearch,
     };
 }

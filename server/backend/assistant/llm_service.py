@@ -26,7 +26,7 @@ class LLMService:
         if user_profile:
             try:
                 context = f"""
-                User Context:
+                User Data:
                 - Age: {getattr(user_profile, 'age', 'Not specified')}
                 - Fitness Goal: {getattr(user_profile, 'body_goal', 'Not specified')}
                 - Workout Frequency: {getattr(user_profile, 'workout_frequency', 'Not specified')}

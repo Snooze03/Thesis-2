@@ -1,9 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react";
-import api from "@/api";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -11,155 +7,28 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { toast } from "react-hot-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyItems } from "@/components/empty-items";
+import { useTemplateActions } from "@/hooks/workouts/useTemplateActions";
+import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
 function CreateTemplate() {
-    const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-
-    const { template_id } = useParams();                // Get template_id from URL if editing existing
-    const isAlternative = searchParams.get("is_alternative") === "true";        // get alternative url param
-
-    const [title, setTitle] = useState("");
-    const [localTitle, setLocalTitle] = useState("");   // For local input changes
-
-    // Check if we're editing an existing template or creating new
-    const isEditing = Boolean(template_id);
-
-    // ===== GET EXISTING TEMPLATE (if editing) =====
-    const getTemplate = async () => {
-        if (!template_id) return null;
-        const response = await api.get(`workouts/templates/${template_id}/`);
-        return response.data;
-    };
+    const {
+        localTitle,
+        setLocalTitle,
+        isEditing,
+        existingTemplate,
+        isLoadingTemplate,
+        isSaving,
+        handleSubmit,
+        handleAddExercise,
+        handleCancel,
+    } = useTemplateActions();
 
     const {
-        data: existingTemplate,
-        isLoading: isLoadingTemplate
-    } = useQuery({
-        queryKey: ["template_exercises_edit", template_id],
-        queryFn: getTemplate,
-        enabled: isEditing,
-        onSuccess: (data) => {
-            if (data) {
-                setTitle(data.title);
-                setLocalTitle(data.title);
-            }
-        }
-    });
-    // ===== END GET EXISTING =====
-
-    // ===== GET TEMPLATE EXERCISES =====
-    const getTemplateExercises = async () => {
-        if (!template_id) return [];
-        const response = await api.get(`workouts/templates/${template_id}/exercises/`);
-        return response.data;
-    };
-
-    const {
-        data: exercises = [],
+        exercises,
         isLoading: isLoadingExercises,
-        refetch: refetchExercises
-    } = useQuery({
-        queryKey: ["template_exercises", template_id],
-        queryFn: getTemplateExercises,
-        enabled: isEditing,
-        // Refetch when the component becomes visible again (user navigates back)
-        refetchOnWindowFocus: true,
-        // Keep data fresh
-        staleTime: 0
-    });
-    // ===== END GET EXERCISES =====
-
-    // ===== POST/UPDATE TEMPLATE =====
-    const createTemplate = async (template_title) => {
-        // If were not editing
-        const response = await api.post("workouts/templates/",
-            (isAlternative ? { title: template_title, isAlternative: true } : { title: template_title, isAlternative: false })
-        );
-        return response.data;
-    }
-
-    const updateTemplate = async ({ id, title }) => {
-        // If were editing
-        const response = await api.patch(`workouts/templates/${id}/`, { title });
-        return response.data;
-    };
-
-    const {
-        data: template,
-        mutate: saveTemplate,
-        isLoading: isSaving
-    } = useMutation({
-        mutationFn: isEditing ? updateTemplate : createTemplate,
-        onSuccess: (templateData) => {
-            if (isEditing) {
-                setTitle(templateData.title);
-                navigate("/workouts", { replace: true });
-                toast.success("Template updated successfully!");
-            } else {
-                // Navigate to the search section with the new template ID
-                navigate(`/workouts/templates/${templateData.id}/search`);
-            }
-        },
-        onError: (error) => {
-            toast.error(`Error: ${error.response?.data?.message || error.message}`);
-        }
-    });
-    // ===== END POST/UPDATE =====
-
-
-    // ===== SYNC LOCAL TITLE WITH FETCHED TEMPLATE =====
-    useEffect(() => {
-        if (existingTemplate && !localTitle) {
-            setLocalTitle(existingTemplate.title);
-            setTitle(existingTemplate.title);
-        }
-    }, [existingTemplate, localTitle]);
-    // ===== END SYNC LOCAL =====
-
-    // ===== EVENT HANDLERS =====
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (isEditing) {
-            saveTemplate({ id: template_id, title: localTitle });
-        } else {
-            saveTemplate(localTitle);
-        }
-    }
-
-    const handleAddExercise = () => {
-        // If we're creating a new template and don't have a template_id yet
-        if (!isEditing && !localTitle.trim()) {
-            return toast.error("Enter a template title first");
-        }
-
-        if (!isEditing) {
-            // Create template first, then navigate
-            saveTemplate(localTitle);
-        } else {
-            // Navigate to search with existing template_id
-            navigate(`/workouts/templates/${template_id}/search`);
-        }
-    }
-
-    const handleCancel = async () => {
-        try {
-            if ((exercises.length === 0) && (isEditing)) {
-                await new Promise((resolve) => setTimeout(resolve, 350));
-                await api.delete(`workouts/templates/${template_id}/`);
-            }
-        }
-        catch (err) {
-            console.log(err);
-        }
-        finally {
-            navigate("/workouts", { replace: true });
-        }
-    }
-    // ===== END EVENT HANDLERS =====
+    } = useTemplateExercises(isEditing ? existingTemplate?.id : null);
 
     // Show loading state for existing template
     if (isEditing && isLoadingTemplate) {

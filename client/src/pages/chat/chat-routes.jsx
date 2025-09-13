@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router-dom";
-import { ChatDashboard } from "./chat-dashboard";
+import { ChatDashboard } from "./dashboard/chat-dashboard";
 import { ChatConversation } from "./chat-conversation";
 import { NotFound } from "@/routes";
 

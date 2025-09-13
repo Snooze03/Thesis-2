@@ -23,7 +23,9 @@ export const useChatAssistant = () => {
             const response = await api.get('/assistant/chats/');
             return response.data;
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 1 * 60 * 1000,
+        refetchOnMount: 'always',       // Always refetch when component mounts
+        refetchOnWindowFocus: false,    // Prevent unnecessary refetches
     });
 
     // Get current chat from chats array

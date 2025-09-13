@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
-import { WorkoutsDashboard } from "./workouts-dashboard";
-import { CreateTemplate } from "./workouts-create";
-import { SearchExercise } from "./workouts-search";
+import { WorkoutsDashboard } from "./dashboard/workouts-dashboard";
+import { CreateTemplate } from "./create/workouts-create";
+import { SearchExercise } from "./create/workouts-search";
 import { NotFound } from "@/routes";
 
 export function WorkoutsRoutes() {

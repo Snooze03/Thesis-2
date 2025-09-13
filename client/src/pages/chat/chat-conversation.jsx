@@ -3,14 +3,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { SubLayout } from '@/layouts/sub-layout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SectionTitle } from '@/components/ui/section-title';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { MarkdownRenderer } from '@/components/markdown-renderer';
 import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
 import { useChatAssistant } from '@/hooks/useChatAssistant';
+import { Dumbbell } from 'lucide-react';
 
 const ChatConversation = () => {
     const [inputMessage, setInputMessage] = useState('');
@@ -87,6 +89,7 @@ const ChatConversation = () => {
 
     return (
         <SubLayout>
+            {/* Fixed header outside the main container */}
             <div className="flex gap-2 items-center mb-4">
                 <Button variant="ghost" onClick={handleBackClick}>
                     <ArrowLeft className="size-5" />
@@ -96,86 +99,107 @@ const ChatConversation = () => {
                 </SectionTitle>
             </div>
 
-            {/* Main Chat Area */}
-            <Card className="flex-1 flex flex-col">
-                {/* Messages */}
-                <CardContent className="flex-1 p-0">
-                    <ScrollArea className="h-full p-4">
-                        <div className="space-y-4">
-                            {isLoadingMessages ? (
-                                <div className="flex justify-center py-8">
-                                    <LoadingSpinner className="h-8 w-8" />
-                                </div>
-                            ) : messages.length === 0 ? (
-                                <div className="text-center text-muted-foreground py-8">
-                                    <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                    <p>Start your conversation with PrimeFit Assistant</p>
-                                    <p className="text-sm mt-2">Ask about workouts, nutrition, or fitness advice!</p>
-                                </div>
-                            ) : (
-                                messages.map((message) => (
-                                    <div
-                                        key={message.id}
-                                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                    >
+            {/* Main container with fixed height calculation */}
+            <div className="h-auto flex flex-col">
+                <Card className="h-[85vh] flex flex-col pt-0 pb-1 gap-0">
+                    {/* Fixed header */}
+                    <CardHeader className="grid grid-cols-[min-content_auto] items-center gap-3 pt-4 pb-1 border-b-2">
+                        <div className="bg-primary rounded-full self-center">
+                            <Dumbbell className="size-5 m-2 stroke-white self-center justify-self-center" />
+                        </div>
+                        <div>
+                            <p>Jim Bro</p>
+                            <p className="text-sm text-gray-700">Your personal fitness assistant</p>
+                        </div>
+                    </CardHeader>
+
+                    {/* Scrollable messages area */}
+                    <CardContent className="flex-1 p-0 overflow-hidden">
+                        <ScrollArea className="h-full pt-0">
+                            <div className="p-4 space-y-4">
+                                {isLoadingMessages ? (
+                                    <div className="flex justify-center py-8">
+                                        <LoadingSpinner className="h-8 w-8" />
+                                    </div>
+                                ) : messages.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-[50vh]  text-muted-foreground py-8">
+                                        <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                        <p>Start your conversation with PrimeFit Assistant</p>
+                                        <p className="text-sm mt-2">Ask about workouts, nutrition, or fitness advice!</p>
+                                    </div>
+                                ) : (
+                                    messages.map((message) => (
                                         <div
-                                            className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'bg-muted'
-                                                }`}
+                                            key={message.id}
+                                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
-                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                                            <span className="text-xs opacity-70 block mt-1">
-                                                {new Date(message.timestamp).toLocaleTimeString()}
-                                            </span>
+                                            <div
+                                                className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'bg-muted'
+                                                    }`}
+                                            >
+                                                {/* Render markdown for assistant messages, plain text for user messages */}
+                                                {message.role === 'assistant' ? (
+                                                    <MarkdownRenderer
+                                                        content={message.content}
+                                                        className="text-sm"
+                                                    />
+                                                ) : (
+                                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                                )}
+
+                                                <span className="text-xs opacity-70 block mt-1">
+                                                    {new Date(message.timestamp).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+
+                                {/* Typing indicator */}
+                                {isSendingMessage && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-muted p-3 rounded-lg flex items-center">
+                                            <LoadingSpinner className="h-4 w-4 mr-2" />
                                         </div>
                                     </div>
-                                ))
-                            )}
+                                )}
 
-                            {/* Typing indicator */}
-                            {isSendingMessage && (
-                                <div className="flex justify-start">
-                                    <div className="bg-muted p-3 rounded-lg flex items-center">
-                                        <LoadingSpinner className="h-4 w-4 mr-2" />
-                                        <span className="text-sm">Assistant is typing...</span>
-                                    </div>
-                                </div>
-                            )}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </ScrollArea>
+                    </CardContent>
 
-                            <div ref={messagesEndRef} />
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-
-                {/* Message Input */}
-                <div className="p-4 border-t">
-                    {sendMessageError && (
-                        <div className="text-red-500 text-sm mb-2">
-                            Error sending message: {sendMessageError.message}
-                        </div>
-                    )}
-                    <form onSubmit={handleSendMessage} className="flex gap-2">
-                        <Input
-                            value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
-                            placeholder="Ask about workouts, nutrition, or fitness advice..."
-                            disabled={isSendingMessage || !currentChat}
-                            className="flex-1"
-                        />
-                        <Button
-                            type="submit"
-                            disabled={isSendingMessage || !inputMessage.trim() || !currentChat}
-                        >
-                            {isSendingMessage ? (
-                                <LoadingSpinner className="h-4 w-4" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
-                    </form>
-                </div>
-            </Card>
+                    {/* Fixed input area */}
+                    <div className="p-4 border-t flex-shrink-0">
+                        {sendMessageError && (
+                            <div className="text-red-500 text-sm mb-2">
+                                Error sending message: {sendMessageError.message}
+                            </div>
+                        )}
+                        <form onSubmit={handleSendMessage} className="flex gap-2">
+                            <Input
+                                value={inputMessage}
+                                onChange={(e) => setInputMessage(e.target.value)}
+                                placeholder="Ask about workouts, nutrition, or fitness advice..."
+                                disabled={isSendingMessage || !currentChat}
+                                className="flex-1"
+                            />
+                            <Button
+                                type="submit"
+                                disabled={isSendingMessage || !inputMessage.trim() || !currentChat}
+                            >
+                                {isSendingMessage ? (
+                                    <LoadingSpinner className="h-4 w-4" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </form>
+                    </div>
+                </Card>
+            </div>
         </SubLayout>
     );
 };

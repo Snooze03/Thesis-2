@@ -26,11 +26,16 @@ class LLMService:
         if user_profile:
             try:
                 context = f"""
-                User Context:
+                User Data:
                 - Age: {getattr(user_profile, 'age', 'Not specified')}
                 - Fitness Goal: {getattr(user_profile, 'body_goal', 'Not specified')}
                 - Workout Frequency: {getattr(user_profile, 'workout_frequency', 'Not specified')}
                 - Workout Location: {getattr(user_profile, 'workout_location', 'Not specified')}
+                - Activity Level: {getattr(user_profile, 'activity_level', 'Not specified')}
+                - Current Weight: {getattr(user_profile, 'current_weight', 'Not specified')}kg
+                - Goal Weight: {getattr(user_profile, 'goal_weight', 'Not specified')}kg
+                - Injuries/Limitations: {getattr(user_profile, 'injuries', 'None specified')}
+                - Food Allergies/Restrictions: {getattr(user_profile, 'food_allergies', 'None specified')}
                 """
                 return base_prompt + context
             except Exception as e:
@@ -42,6 +47,13 @@ class LLMService:
         """Generate AI response with chat context"""
         try:
             chat = Chat.objects.get(id=chat_id)
+
+            # Get user profile if not provided
+            if user_profile is None:
+                try:
+                    user_profile = getattr(chat.user, "profile", None)
+                except:
+                    user_profile = None
 
             # Build message history
             messages = [

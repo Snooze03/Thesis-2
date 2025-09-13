@@ -10,7 +10,8 @@ export function useExerciseSearch() {
     const location = useLocation();
     const [searchTerm, setSearchTerm] = useState("");
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-    const [selectedItems, setSelectedItems] = useState(new Set());
+    // Change: Store actual exercise objects instead of just IDs
+    const [selectedExercises, setSelectedExercises] = useState(new Map());
 
     // Get template from navigation state
     const { template } = location.state || {};
@@ -71,7 +72,8 @@ export function useExerciseSearch() {
                 }
             }
 
-            setSelectedItems(new Set());
+            // Clear selections after successful addition
+            setSelectedExercises(new Map());
             navigate("/workouts/templates/edit", {
                 state: {
                     template,
@@ -86,35 +88,37 @@ export function useExerciseSearch() {
     });
 
     // Helper functions
-    const toggleItemSelection = (itemId) => {
-        setSelectedItems(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
+    const toggleItemSelection = (exercise, index) => {
+        // Use exercise name as unique key (or a combination if names might not be unique)
+        const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+
+        setSelectedExercises(prev => {
+            const newMap = new Map(prev);
+            if (newMap.has(exerciseKey)) {
+                newMap.delete(exerciseKey);
             } else {
-                newSet.add(itemId);
+                newMap.set(exerciseKey, exercise);
             }
-            return newSet;
+            return newMap;
         });
+    };
+
+    const isSelected = (exercise, index) => {
+        const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+        return selectedExercises.has(exerciseKey);
     };
 
     const handleSearch = (e) => {
         e.preventDefault();
         setSubmittedSearchTerm(searchTerm);
+        // Note: We don't clear selections on search - they persist across searches
     };
 
     const addSelectedExercises = () => {
-        if (selectedItems.size === 0) return;
+        if (selectedExercises.size === 0) return;
 
-        const exercises = exerciseQuery.data || [];
-        const selectedExercises = exercises
-            .map((exercise, index) => ({ exercise, originalIndex: index }))
-            .filter(({ originalIndex }) =>
-                selectedItems.has(exercises[originalIndex].name + originalIndex)
-            )
-            .map(({ exercise }) => exercise);
-
-        const exercisesToAdd = selectedExercises.map(exercise => ({
+        // Convert Map values to array
+        const exercisesToAdd = Array.from(selectedExercises.values()).map(exercise => ({
             name: exercise.name || '',
             type: exercise.type || '',
             muscle: exercise.muscle || '',
@@ -142,8 +146,8 @@ export function useExerciseSearch() {
         // State
         searchTerm,
         setSearchTerm,
-        selectedItems,
-        hasSelectedItems: selectedItems.size > 0,
+        selectedExercises,
+        hasSelectedItems: selectedExercises.size > 0,
         template,
         templateId,
 
@@ -157,6 +161,7 @@ export function useExerciseSearch() {
 
         // Actions
         toggleItemSelection,
+        isSelected,
         handleSearch,
         addSelectedExercises,
         handleBackToEdit,

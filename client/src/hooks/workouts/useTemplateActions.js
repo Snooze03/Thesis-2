@@ -1,32 +1,36 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/api";
 import { toast } from "react-hot-toast";
 
 export function useTemplateActions() {
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
-    const [searchParams] = useSearchParams();
-    const { template_id } = useParams();
 
     const [title, setTitle] = useState("");
     const [localTitle, setLocalTitle] = useState("");
+    const [isInitialized, setIsInitialized] = useState(false); // Add this flag
 
-    const isAlternative = searchParams.get("is_alternative") === "true";
-    const isEditing = Boolean(template_id);
+    // Get state from navigation
+    const { template, isAlternative = false, mode } = location.state || {};
+
+    // Fix: Ensure isEditing is always a boolean
+    const isEditing = Boolean(mode === "edit" && template?.id);
+    const templateId = template?.id;
 
     // Get existing template (if editing)
     const getTemplate = async () => {
-        if (!template_id) return null;
-        const response = await api.get(`workouts/templates/${template_id}/`);
+        if (!templateId) return null;
+        const response = await api.get(`workouts/templates/${templateId}/`);
         return response.data;
     };
 
     const existingTemplateQuery = useQuery({
-        queryKey: ["template_exercises_edit", template_id],
+        queryKey: ["template_edit", templateId],
         queryFn: getTemplate,
-        enabled: isEditing,
+        enabled: Boolean(isEditing && templateId),
     });
 
     // Create template
@@ -51,12 +55,17 @@ export function useTemplateActions() {
                 // Update template title and navigate back to workouts
                 setTitle(templateData.title);
                 queryClient.invalidateQueries({ queryKey: ["templates"] });
-                queryClient.invalidateQueries({ queryKey: ["template_exercises_edit", template_id] });
+                queryClient.invalidateQueries({ queryKey: ["template_edit", templateId] });
                 navigate("/workouts", { replace: true });
                 toast.success("Template updated successfully!");
             } else {
                 // Navigate to search with the newly created template
-                navigate(`/workouts/templates/${templateData.id}/search`);
+                navigate("/workouts/templates/search", {
+                    state: {
+                        template: templateData,
+                        mode: "search"
+                    }
+                });
             }
         },
         onError: (error) => {
@@ -80,14 +89,28 @@ export function useTemplateActions() {
         }
     });
 
-    // Sync local title with fetched template
+    // Sync local title with template data - ONLY ONCE on initial load
     useEffect(() => {
-        if (existingTemplateQuery.data && !localTitle) {
-            const fetchedTitle = existingTemplateQuery.data.title;
-            setTitle(fetchedTitle);
-            setLocalTitle(fetchedTitle);
+        if (!isInitialized) {
+            if (isEditing && template) {
+                setTitle(template.title);
+                setLocalTitle(template.title);
+                setIsInitialized(true);
+            } else if (existingTemplateQuery.data) {
+                const fetchedTitle = existingTemplateQuery.data.title;
+                setTitle(fetchedTitle);
+                setLocalTitle(fetchedTitle);
+                setIsInitialized(true);
+            }
         }
-    }, [existingTemplateQuery.data, localTitle]);
+    }, [template, existingTemplateQuery.data, isEditing, isInitialized]);
+
+    // Redirect if no state is provided
+    useEffect(() => {
+        if (!location.state) {
+            navigate("/workouts", { replace: true });
+        }
+    }, [location.state, navigate]);
 
     // Event handlers
     const handleSubmit = (e) => {
@@ -98,7 +121,7 @@ export function useTemplateActions() {
         }
 
         if (isEditing) {
-            templateMutation.mutate({ id: template_id, title: localTitle });
+            templateMutation.mutate({ id: templateId, title: localTitle });
         } else {
             templateMutation.mutate(localTitle);
         }
@@ -114,18 +137,23 @@ export function useTemplateActions() {
             // Create template first, then navigate (handled in onSuccess)
             templateMutation.mutate(localTitle);
         } else {
-            // Navigate to search with existing template_id
-            navigate(`/workouts/templates/${template_id}/search`);
+            // Navigate to search with template state
+            navigate("/workouts/templates/search", {
+                state: {
+                    template,
+                    mode: "search"
+                }
+            });
         }
     };
 
     const handleCancel = async () => {
         try {
             // Check if we need to delete empty template
-            const exercises = queryClient.getQueryData(["template_exercises", template_id]);
+            const exercises = queryClient.getQueryData(["template_exercises", templateId]);
             if (isEditing && exercises && exercises.length === 0) {
                 await new Promise((resolve) => setTimeout(resolve, 350));
-                deleteTemplateMutation.mutate(template_id);
+                deleteTemplateMutation.mutate(templateId);
             }
         } catch (err) {
             console.log(err);
@@ -136,7 +164,7 @@ export function useTemplateActions() {
 
     const handleDeleteTemplate = () => {
         if (window.confirm("Are you sure you want to delete this template?")) {
-            deleteTemplateMutation.mutate(template_id);
+            deleteTemplateMutation.mutate(templateId);
             navigate("/workouts", { replace: true });
         }
     };
@@ -149,6 +177,7 @@ export function useTemplateActions() {
         setLocalTitle,
         isEditing,
         isAlternative,
+        template,
 
         // Template data
         existingTemplate: existingTemplateQuery.data,

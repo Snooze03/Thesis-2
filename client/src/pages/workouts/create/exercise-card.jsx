@@ -1,6 +1,5 @@
 "use client"
 
-import { useNavigate } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
@@ -8,6 +7,7 @@ import { Plus, Trash2, AlarmClock, Replace, Minus, Lock } from "lucide-react";
 import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
 function ExerciseCard({
@@ -22,6 +22,7 @@ function ExerciseCard({
     const exercise = template_exercise.exercise;
     const sets = [...Array(template_exercise.sets).keys()];
 
+    // Use the custom hook for template exercises operations
     const {
         removeExercise,
         updateSets,
@@ -63,19 +64,25 @@ function ExerciseCard({
     };
 
     const handleReplace = () => {
-        // Remove current exercise and navigate to search
-        removeExercise({
-            templateId: template_id,
-            exerciseId: template_exercise_id,
+        // Get the template object from location state or construct it
+        const templateData = {
+            id: template_id,
+            // You might need to get more template data here
+        };
+
+        // Navigate to search with template state
+        navigate("/workouts/templates/search", {
+            state: {
+                template: templateData,
+                mode: "search"
+            }
         });
-        navigate(`/workouts/templates/${template_id}/search`, { replace: true });
     };
 
     const handleRestTimer = () => {
         // Placeholder for rest timer functionality
         console.log("Rest timer functionality coming soon");
     };
-    // ===== END EVENT HANDLERS =====
 
     const menuItems = [
         {
@@ -114,19 +121,22 @@ function ExerciseCard({
         <Card className="px-5 py-3 gap-2">
             {/* Header */}
             <div>
-                <div className="flex justify-between items-center gap-3">
-                    <p className="font-semibold">
-                        {exercise.name}
-                        <span className="font-normal text-gray-600 ml-2 capitalize">
-                            ({exercise.muscle})
-                        </span>
-                    </p>
+                <div className="flex justify-between items-start gap-3 mb-1">
+                    <div className="flex-1">
+                        <p className="font-semibold leading-tight">
+                            {exercise.name}
+                            <span className="font-normal text-gray-600 ml-2 capitalize">
+                                ({exercise.muscle})
+                            </span>
+                        </p>
+                        <p className="text-gray-600 text-sm mt-0.5">{exercise.equipment}</p>
+                    </div>
                     <KebabMenu
                         items={menuItems}
                         disabled={isRemoving || isUpdating}
+                        className="flex-shrink-0"
                     />
                 </div>
-                <p className="-mt-2 text-gray-600">{exercise.equipment}</p>
             </div>
 
             {/* Properties */}

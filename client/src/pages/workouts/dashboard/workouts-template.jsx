@@ -31,11 +31,20 @@ function WorkoutTemplate({
     };
 
     const handleEdit = () => {
-        navigateToEdit(id);
+        // Pass the complete template object instead of just the ID
+        const templateObj = {
+            id,
+            title,
+        };
+        navigateToEdit(templateObj);
     };
 
     const handleStartWorkout = () => {
-        navigateToStart(id);
+        const templateObj = {
+            id,
+            title,
+        };
+        navigateToStart(templateObj);
     };
     // ===== END EVENT HANDLERS =====
 

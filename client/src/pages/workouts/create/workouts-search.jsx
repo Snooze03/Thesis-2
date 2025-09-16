@@ -6,25 +6,23 @@ import { SubLayout } from "@/layouts/sub-layout";
 import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate, useParams } from "react-router-dom";
 import { useExerciseSearch } from "@/hooks/workouts/useExerciseSearch";
 
 function SearchExercise() {
-    const navigate = useNavigate();
-    const { template_id } = useParams();
-
     const {
         searchTerm,
         setSearchTerm,
-        selectedItems,
+        selectedExercises,
         hasSelectedItems,
         exercises,
         isLoading,
         isError,
         isAdding,
         toggleItemSelection,
+        isSelected,
         handleSearch,
         addSelectedExercises,
+        handleBackToEdit,
     } = useExerciseSearch();
 
     return (
@@ -33,7 +31,7 @@ function SearchExercise() {
                 {/* Row 1 */}
                 <Button
                     variant="ghost"
-                    onClick={() => navigate(`/workouts/templates/${template_id}/edit`, { replace: true })}
+                    onClick={handleBackToEdit}
                     disabled={isAdding}
                 >
                     <ArrowLeft />
@@ -79,11 +77,11 @@ function SearchExercise() {
                         // Render lists items
                         exercises.map((exercise, index) => (
                             <ListItem
-                                key={exercise.name + index}
-                                id={exercise.name + index}
+                                key={`${exercise.name}_${index}`}
                                 exercise={exercise}
-                                isSelected={selectedItems.has(exercise.name + index)}
-                                onToggle={() => toggleItemSelection(exercise.name + index)}
+                                index={index}
+                                isSelected={isSelected(exercise, index)}
+                                onToggle={() => toggleItemSelection(exercise, index)}
                             />
                         ))
                     ) : (
@@ -110,7 +108,7 @@ function SearchExercise() {
                     ) : (
                         <>
                             <Check className="size-5 stroke-3" />
-                            Add {selectedItems.size} Exercise{selectedItems.size !== 1 ? 's' : ''}
+                            Add {selectedExercises.size} Exercise{selectedExercises.size !== 1 ? 's' : ''}
                         </>
                     )}
                 </Button>
@@ -119,7 +117,7 @@ function SearchExercise() {
     );
 }
 
-function ListItem({ id, exercise, isSelected, onToggle }) {
+function ListItem({ exercise, index, isSelected, onToggle }) {
     // Function to format muscle group
     const formatString = (str) => {
         if (!str) return "";
@@ -156,14 +154,13 @@ function ListItem({ id, exercise, isSelected, onToggle }) {
             {exercise.equipment && (
                 <p className="text-gray-600 text-sm">
                     {exercise.equipment}
-                    { }
                 </p>
             )}
-            {/* {exercise.difficulty && (
+            {exercise.difficulty && (
                 <p className="text-xs text-gray-500 capitalize">
                     {exercise.difficulty}
                 </p>
-            )} */}
+            )}
         </div>
     );
 }

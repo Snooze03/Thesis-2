@@ -1,16 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/api";
 import apiNinjas from "@/apiNinjas";
 import { toast } from "react-hot-toast";
 
 export function useExerciseSearch() {
     const navigate = useNavigate();
-    const { template_id } = useParams();
+    const location = useLocation();
     const [searchTerm, setSearchTerm] = useState("");
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-    const [selectedItems, setSelectedItems] = useState(new Set());
+    //  Store actual exercise objects instead of just IDs
+    const [selectedExercises, setSelectedExercises] = useState(new Map());
+
+    // Get template from navigation state
+    const { template } = location.state || {};
+    const templateId = template?.id;
+
+    // Redirect if no template state is provided
+    useEffect(() => {
+        if (!template) {
+            navigate("/workouts", { replace: true });
+        }
+    }, [template, navigate]);
 
     // Get exercises from Ninja API
     const getExercises = async ({ queryKey }) => {
@@ -60,8 +72,14 @@ export function useExerciseSearch() {
                 }
             }
 
-            setSelectedItems(new Set());
-            navigate(`/workouts/templates/${template_id}/edit`);
+            // Clear selections after successful addition
+            setSelectedExercises(new Map());
+            navigate("/workouts/templates/edit", {
+                state: {
+                    template,
+                    mode: "edit"
+                }
+            });
         },
         onError: (error) => {
             console.error('Error adding exercises:', error);
@@ -70,35 +88,37 @@ export function useExerciseSearch() {
     });
 
     // Helper functions
-    const toggleItemSelection = (itemId) => {
-        setSelectedItems(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(itemId)) {
-                newSet.delete(itemId);
+    const toggleItemSelection = (exercise, index) => {
+        // Use exercise name as unique key (or a combination if names might not be unique)
+        const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+
+        setSelectedExercises(prev => {
+            const newMap = new Map(prev);
+            if (newMap.has(exerciseKey)) {
+                newMap.delete(exerciseKey);
             } else {
-                newSet.add(itemId);
+                newMap.set(exerciseKey, exercise);
             }
-            return newSet;
+            return newMap;
         });
+    };
+
+    const isSelected = (exercise, index) => {
+        const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+        return selectedExercises.has(exerciseKey);
     };
 
     const handleSearch = (e) => {
         e.preventDefault();
         setSubmittedSearchTerm(searchTerm);
+        // Note: We don't clear selections on search - they persist across searches
     };
 
     const addSelectedExercises = () => {
-        if (selectedItems.size === 0) return;
+        if (selectedExercises.size === 0) return;
 
-        const exercises = exerciseQuery.data || [];
-        const selectedExercises = exercises
-            .map((exercise, index) => ({ exercise, originalIndex: index }))
-            .filter(({ originalIndex }) =>
-                selectedItems.has(exercises[originalIndex].name + originalIndex)
-            )
-            .map(({ exercise }) => exercise);
-
-        const exercisesToAdd = selectedExercises.map(exercise => ({
+        // Convert Map values to array
+        const exercisesToAdd = Array.from(selectedExercises.values()).map(exercise => ({
             name: exercise.name || '',
             type: exercise.type || '',
             muscle: exercise.muscle || '',
@@ -108,8 +128,17 @@ export function useExerciseSearch() {
         }));
 
         addExercisesMutation.mutate({
-            templateId: template_id,
+            templateId: templateId,
             exercises: exercisesToAdd
+        });
+    };
+
+    const handleBackToEdit = () => {
+        navigate("/workouts/templates/edit", {
+            state: {
+                template,
+                mode: "edit"
+            }
         });
     };
 
@@ -117,8 +146,10 @@ export function useExerciseSearch() {
         // State
         searchTerm,
         setSearchTerm,
-        selectedItems,
-        hasSelectedItems: selectedItems.size > 0,
+        selectedExercises,
+        hasSelectedItems: selectedExercises.size > 0,
+        template,
+        templateId,
 
         // Query data
         exercises: exerciseQuery.data || [],
@@ -130,7 +161,9 @@ export function useExerciseSearch() {
 
         // Actions
         toggleItemSelection,
+        isSelected,
         handleSearch,
         addSelectedExercises,
+        handleBackToEdit,
     };
 }

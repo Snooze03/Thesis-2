@@ -10,7 +10,7 @@ export function useExerciseSearch() {
     const location = useLocation();
     const [searchTerm, setSearchTerm] = useState("");
     const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-    // Change: Store actual exercise objects instead of just IDs
+    //  Store actual exercise objects instead of just IDs
     const [selectedExercises, setSelectedExercises] = useState(new Map());
 
     // Get template from navigation state

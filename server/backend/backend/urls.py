@@ -23,6 +23,7 @@ urlpatterns = [
     path("accounts/", include("accounts.urls")),
     path("workouts/", include("workouts.urls")),
     path("assistant/", include("assistant.urls")),
+    path("nutrition/", include("nutrition.urls")),
     # includes login & logout view
     path("api-auth/", include("rest_framework.urls")),
 ]

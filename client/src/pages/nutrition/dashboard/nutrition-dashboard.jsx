@@ -1,4 +1,5 @@
 import { MainLayout } from "@/layouts/main-layout";
+import { useNavigate } from "react-router-dom";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
@@ -98,6 +99,12 @@ const Macros = () => {
 }
 
 const AddFood = () => {
+    const navigate = useNavigate();
+
+    const handleAddFood = () => {
+        navigate("add");
+    }
+
     return (
         <Card>
             <CardContent>
@@ -145,7 +152,10 @@ const AddFood = () => {
                 </div>
 
                 <CardAction className="w-full mt-5">
-                    <Button className="w-full">
+                    <Button
+                        className="w-full"
+                        onClick={handleAddFood}
+                    >
                         <Search className="inline" />
                         Add Food
                     </Button>

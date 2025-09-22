@@ -16,7 +16,7 @@ class FatSecretService:
         self.consumer_secret = os.getenv("FATSECRET_CLIENT_SECRET")
         self.token_url = "https://oauth.fatsecret.com/connect/token"
         self.search_url = "https://platform.fatsecret.com/rest/foods/search/v1"
-        self.food_url = "https://platform.fatsecret.com/rest/food/v1"
+        self.food_url = "https://platform.fatsecret.com/rest/food/v4"
 
         # Cache keys for storing token data
         self.token_cache_key = "fatsecret_access_token"
@@ -120,7 +120,7 @@ class FatSecretService:
         cache.delete(self.token_expiry_cache_key)
         print("Cleared cached token data")
 
-    def search_foods(self, search_expression, page_number=0, max_results=20):
+    def search_foods(self, search_expression, page_number=0, max_results=10):
         """Search for foods using FatSecret API v1"""
         access_token = self._get_access_token()
 
@@ -167,7 +167,7 @@ class FatSecretService:
             raise Exception(f"FatSecret search API error: {str(e)}")
 
     def get_food_details(self, food_id):
-        """Get detailed nutrition information for a specific food using v1 API"""
+        """Get detailed nutrition information for a specific food using v4 API"""
         access_token = self._get_access_token()
 
         if not access_token:
@@ -178,12 +178,23 @@ class FatSecretService:
             "Content-Type": "application/json",
         }
 
-        food_detail_url = f"{self.food_url}/{food_id}"
+        # Don't append food_id to URL - use it as a query parameter instead
+        params = {"food_id": str(food_id), "format": "json"}  # Ensure it's a string
+
+        print(f"Food API request URL: {self.food_url}")
+        print(f"Food API request params: {params}")
+        print(f"Food API request headers: {headers}")
 
         try:
             response = requests.get(
-                food_detail_url, headers=headers, params={"format": "json"}, timeout=30
+                self.food_url,  # Use base URL without appending food_id
+                headers=headers,
+                params=params,  # Pass food_id as parameter
+                timeout=30,
             )
+
+            print(f"Food API Response Status: {response.status_code}")
+            print(f"Food API Response Text: {response.text}")
 
             if response.status_code == 401:
                 # Token might be invalid, clear cache and try once more
@@ -195,16 +206,21 @@ class FatSecretService:
                 headers["Authorization"] = f"Bearer {access_token}"
 
                 response = requests.get(
-                    food_detail_url,
+                    self.food_url,
                     headers=headers,
-                    params={"format": "json"},
+                    params=params,
                     timeout=30,
                 )
+
+                print(f"Food API Retry Response Status: {response.status_code}")
+                print(f"Food API Retry Response Text: {response.text}")
 
             if response.status_code == 200:
                 return response.json()
             else:
-                raise Exception(f"Food details request failed: {response.text}")
+                raise Exception(
+                    f"Food details request failed with status {response.status_code}: {response.text}"
+                )
 
         except requests.exceptions.RequestException as e:
             print(f"Food API Request exception: {str(e)}")

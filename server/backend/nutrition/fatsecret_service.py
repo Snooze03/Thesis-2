@@ -178,8 +178,7 @@ class FatSecretService:
             "Content-Type": "application/json",
         }
 
-        # Don't append food_id to URL - use it as a query parameter instead
-        params = {"food_id": str(food_id), "format": "json"}  # Ensure it's a string
+        params = {"food_id": str(food_id), "format": "json"}
 
         print(f"Food API request URL: {self.food_url}")
         print(f"Food API request params: {params}")
@@ -187,9 +186,9 @@ class FatSecretService:
 
         try:
             response = requests.get(
-                self.food_url,  # Use base URL without appending food_id
+                self.food_url,
                 headers=headers,
-                params=params,  # Pass food_id as parameter
+                params=params,
                 timeout=30,
             )
 

@@ -182,7 +182,7 @@ class FatSecretService:
 
         print(f"Food API request URL: {self.food_url}")
         print(f"Food API request params: {params}")
-        print(f"Food API request headers: {headers}")
+        # print(f"Food API request headers: {headers}")
 
         try:
             response = requests.get(
@@ -193,7 +193,7 @@ class FatSecretService:
             )
 
             print(f"Food API Response Status: {response.status_code}")
-            print(f"Food API Response Text: {response.text}")
+            # print(f"Food API Response Text: {response.text}")
 
             if response.status_code == 401:
                 # Token might be invalid, clear cache and try once more

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
 import { Input } from "@/components/ui/input";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clsx } from "clsx";
@@ -9,13 +9,10 @@ import { useDebounce } from "@/hooks/nutrition/useDebounce";
 
 const SearchFood = () => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedFoodId, setSelectedFoodId] = useState(null);
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const navigate = useNavigate();
 
-    const {
-        useFoodSearch,
-        useFoodDetails
-    } = useNutritionSearch();
+    const { useFoodSearch } = useNutritionSearch();
 
     // Search foods query
     const {
@@ -24,34 +21,18 @@ const SearchFood = () => {
         error
     } = useFoodSearch(debouncedSearchTerm);
 
-    // Food details query - only triggers when selectedFoodId is set
-    const {
-        data: foodDetails,
-        isLoading: isLoadingDetails,
-        error: detailsError
-    } = useFoodDetails(selectedFoodId);
-
     // Single useEffect for logging
     useEffect(() => {
         if (data?.foods?.food) {
-            console.log("FatSecret Search Results:", data);
             console.log("Foods array:", data.foods.food);
         }
         if (error) {
             console.error("Search Error:", error);
         }
-        if (foodDetails) {
-            console.log("Food Details:", foodDetails);
-        }
-        if (detailsError) {
-            console.error("Details Error:", detailsError);
-        }
-    }, [data, error, foodDetails, detailsError]);
+    }, [data, error]);
 
     const handleAddFood = useCallback((food) => {
-        console.log("Fetching details for food:", food.food_id);
-        // Set the selected food ID to trigger the food details query
-        setSelectedFoodId(food.food_id);
+        navigate("food", { state: { foodId: food.food_id } });
     }, []);
 
     const foods = data?.foods?.food || [];
@@ -95,12 +76,6 @@ const SearchFood = () => {
                 </div>
             )}
 
-            {detailsError && (
-                <div className="space-y-2">
-                    <p className="text-sm text-red-500">Error loading details: {detailsError.message}</p>
-                </div>
-            )}
-
             {/* Search Results */}
             {hasResults && (
                 <div className="mt-4 space-y-4">
@@ -112,8 +87,6 @@ const SearchFood = () => {
                             <FoodItem
                                 key={food.food_id || index}
                                 food={food}
-                                isSelected={selectedFoodId === food.food_id}
-                                isLoadingDetails={isLoadingDetails && selectedFoodId === food.food_id}
                                 onAdd={() => handleAddFood(food)}
                             />
                         ))}
@@ -150,9 +123,6 @@ const FoodItem = ({ food, isSelected, isLoadingDetails, onAdd }) => (
             {food.brand_name && (
                 <p className="text-gray-600">({food.brand_name})</p>
             )}
-            {/* {isLoadingDetails && (
-                <LoadingSpinner className="w-4 h-4" />
-            )} */}
         </div>
         {food.food_description && (
             <p className="text-gray-600 text-sm mt-1">{food.food_description}</p>

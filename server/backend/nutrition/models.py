@@ -191,12 +191,6 @@ class Food(models.Model):
     food_name = models.CharField(max_length=255, help_text="Food name from FatSecret")
     food_type = models.CharField(max_length=50, blank=True, help_text="Type of food")
 
-    # Basic nutritional information per 100g (for reference)
-    calories = models.FloatField(default=0.0)
-    protein = models.FloatField(default=0.0)
-    carbs = models.FloatField(default=0.0)
-    fat = models.FloatField(default=0.0)
-
     # Additional metadata
     brand_name = models.CharField(
         max_length=255, blank=True, help_text="Brand name if applicable"
@@ -232,6 +226,17 @@ class Food(models.Model):
             else self.food_name
         )
 
+    def get_serving_by_id(self, serving_id):
+        """Get a specific serving by its ID"""
+        for serving in self.fatsecret_servings:
+            if serving.get("serving_id") == str(serving_id):
+                return serving
+        return None
+
+    def get_default_serving(self):
+        """Get the first serving as default"""
+        return self.fatsecret_servings[0] if self.fatsecret_servings else None
+
 
 class DailyEntry(models.Model):
     """Daily nutrition tracking entries"""
@@ -241,7 +246,7 @@ class DailyEntry(models.Model):
     )
     date = models.DateField()
 
-    # Calculated totals for the day (sum of all meals)
+    # Calculated totals for the day (sum of all food entries)
     total_calories = models.FloatField(default=0.0)
     total_protein = models.FloatField(default=0.0)
     total_carbs = models.FloatField(default=0.0)
@@ -259,8 +264,8 @@ class DailyEntry(models.Model):
         return f"{self.nutrition_profile.account.email} - {self.date}"
 
     def calculate_totals(self):
-        """Calculate total nutrition from all meals for this day"""
-        meals = self.meals.all()
+        """Calculate total nutrition from all food entries for this day"""
+        food_entries = self.food_entries.all()
         totals = {
             "total_calories": 0.0,
             "total_protein": 0.0,
@@ -268,10 +273,10 @@ class DailyEntry(models.Model):
             "total_fat": 0.0,
         }
 
-        for meal in meals:
-            meal_nutrition = meal.get_nutrition_totals()
+        for entry in food_entries:
+            entry_nutrition = entry.get_nutrition_totals()
             for key in totals:
-                totals[key] += meal_nutrition.get(key.replace("total_", ""), 0.0)
+                totals[key] += entry_nutrition.get(key.replace("total_", ""), 0.0)
 
         for key, value in totals.items():
             setattr(self, key, round(value, 2))
@@ -279,9 +284,35 @@ class DailyEntry(models.Model):
 
         return totals
 
+    def get_meals_breakdown(self):
+        """Get nutrition breakdown by meal type"""
+        meal_breakdown = {}
 
-class Meal(models.Model):
-    """Individual meals within a daily entry"""
+        for meal_type, meal_name in FoodEntry.MEAL_TYPE_CHOICES:
+            entries = self.food_entries.filter(meal_type=meal_type)
+            totals = {
+                "calories": 0.0,
+                "protein": 0.0,
+                "carbs": 0.0,
+                "fat": 0.0,
+            }
+
+            for entry in entries:
+                entry_nutrition = entry.get_nutrition_totals()
+                for key in totals:
+                    totals[key] += entry_nutrition[key]
+
+            meal_breakdown[meal_type] = {
+                "name": meal_name,
+                "totals": {k: round(v, 2) for k, v in totals.items()},
+                "entries": entries,
+            }
+
+        return meal_breakdown
+
+
+class FoodEntry(models.Model):
+    """Individual food entries within a daily entry - replaces both Meal and MealFoodEntry"""
 
     MEAL_TYPE_CHOICES = [
         ("breakfast", "Breakfast"),
@@ -290,72 +321,31 @@ class Meal(models.Model):
         ("snack", "Snack"),
     ]
 
-    daily_entry = models.ForeignKey(
-        DailyEntry, on_delete=models.CASCADE, related_name="meals"
-    )
-    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES)
-    meal_name = models.CharField(
-        max_length=255, blank=True, help_text="Optional custom meal name"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "nutrition_meals"
-        verbose_name = "Meal"
-        verbose_name_plural = "Meals"
-        ordering = ["daily_entry__date", "meal_type"]
-
-    def __str__(self):
-        meal_name = self.meal_name or self.get_meal_type_display()
-        return f"{self.daily_entry.nutrition_profile.account.email} - {meal_name} ({self.daily_entry.date})"
-
-    def get_nutrition_totals(self):
-        """Calculate total nutrition for this meal"""
-        food_entries = self.food_entries.all()
-        totals = {
-            "calories": 0.0,
-            "protein": 0.0,
-            "carbs": 0.0,
-            "fat": 0.0,
-        }
-
-        for entry in food_entries:
-            entry_nutrition = entry.get_nutrition_totals()
-            for key in totals:
-                totals[key] += entry_nutrition[key]
-
-        return {k: round(v, 2) for k, v in totals.items()}
-
-
-class MealFoodEntry(models.Model):
-    """
-    Individual food items within a meal
-    This is where user-specific serving data is stored
-    """
-
     SERVING_TYPE_CHOICES = [
         ("fatsecret", "FatSecret Predefined Serving"),
         ("custom", "Custom Serving"),
     ]
 
-    meal = models.ForeignKey(
-        Meal, on_delete=models.CASCADE, related_name="food_entries"
+    # Direct relationship to daily entry
+    daily_entry = models.ForeignKey(
+        DailyEntry, on_delete=models.CASCADE, related_name="food_entries"
     )
     food = models.ForeignKey(Food, on_delete=models.CASCADE)
 
-    # Serving information - flexible approach
+    # Meal categorization
+    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES)
+
+    # Serving information
     serving_type = models.CharField(
         max_length=20, choices=SERVING_TYPE_CHOICES, default="fatsecret"
     )
 
-    # For FatSecret predefined servings
+    # For FatSecret predefined servings - store the serving_id from the JSON array
     fatsecret_serving_id = models.CharField(
-        max_length=50,
+        max_length=10,
         blank=True,
         null=True,
-        help_text="ID of the FatSecret serving from food.fatsecret_servings",
+        help_text="Index/ID of the serving in food.fatsecret_servings array (0, 1, 2, etc.)",
     )
 
     # For custom servings
@@ -377,17 +367,20 @@ class MealFoodEntry(models.Model):
     fat = models.FloatField(default=0.0)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "meal_food_entries"
-        verbose_name = "Meal Food Entry"
-        verbose_name_plural = "Meal Food Entries"
+        db_table = "nutrition_food_entries"
+        verbose_name = "Food Entry"
+        verbose_name_plural = "Food Entries"
+        ordering = ["daily_entry__date", "meal_type", "created_at"]
 
     def __str__(self):
+        meal_display = self.get_meal_type_display()
         if self.serving_type == "fatsecret":
-            return f"{self.quantity}x FatSecret serving of {self.food.food_name}"
+            return f"{meal_display}: {self.quantity}x FatSecret serving of {self.food.food_name}"
         else:
-            return f"{self.quantity}x {self.custom_serving_amount}{self.custom_serving_unit} of {self.food.food_name}"
+            return f"{meal_display}: {self.quantity}x {self.custom_serving_amount}{self.custom_serving_unit} of {self.food.food_name}"
 
     def save(self, *args, **kwargs):
         """Override save to calculate nutrition values before saving"""
@@ -404,60 +397,77 @@ class MealFoodEntry(models.Model):
     def _calculate_from_fatsecret_serving(self):
         """Calculate nutrition from FatSecret predefined serving"""
         if not self.fatsecret_serving_id:
+            self._set_default_nutrition()
             return
 
-        # Find the serving in food's fatsecret_servings JSON
-        for serving in self.food.fatsecret_servings:
-            if serving.get("serving_id") == self.fatsecret_serving_id:
-                self.calories = serving.get("calories", 0) * self.quantity
-                self.protein = serving.get("protein", 0) * self.quantity
-                self.carbs = serving.get("carbs", 0) * self.quantity
-                self.fat = serving.get("fat", 0) * self.quantity
-                break
+        # Get the specific serving from the food's servings array
+        serving = self.food.get_serving_by_id(self.fatsecret_serving_id)
+
+        if not serving:
+            self._set_default_nutrition()
+            return
+
+        try:
+            # Extract nutrition values from the serving
+            serving_calories = float(serving.get("calories", 0))
+            serving_protein = float(serving.get("protein", 0))
+            serving_carbs = float(
+                serving.get("carbohydrate", 0)
+            )  # Note: FatSecret uses 'carbohydrate'
+            serving_fat = float(serving.get("fat", 0))
+
+            # Calculate totals based on quantity
+            self.calories = round(serving_calories * self.quantity, 2)
+            self.protein = round(serving_protein * self.quantity, 2)
+            self.carbs = round(serving_carbs * self.quantity, 2)
+            self.fat = round(serving_fat * self.quantity, 2)
+
+        except (ValueError, TypeError):
+            self._set_default_nutrition()
 
     def _calculate_from_custom_serving(self):
         """Calculate nutrition from custom serving based on per-100g values"""
         if not self.custom_serving_amount:
+            self._set_default_nutrition()
             return
 
-        # Convert custom serving to grams
-        grams = self._convert_to_grams()
+        try:
+            # Convert custom serving to grams (you'll need to implement this conversion logic)
+            grams = self._convert_to_grams()
 
-        if grams:
-            # Calculate based on per-100g values - fix field names
+            # Calculate based on per-100g values stored in Food model
             multiplier = (grams / 100.0) * self.quantity
-            self.calories = self.food.calories * multiplier
-            self.protein = self.food.protein * multiplier
-            self.carbs = self.food.carbs * multiplier
-            self.fat = self.food.fat * multiplier
 
-    def _convert_to_grams(self):
-        """Convert custom serving to grams - extend this for more units"""
-        unit_conversions = {
-            "g": 1.0,
-            "gram": 1.0,
-            "grams": 1.0,
-            "kg": 1000.0,
-            "oz": 28.35,
-            "lb": 453.59,
-            # Add more conversions as needed
-        }
+            self.calories = round(self.food.calories * multiplier, 2)
+            self.protein = round(self.food.protein * multiplier, 2)
+            self.carbs = round(self.food.carbs * multiplier, 2)
+            self.fat = round(self.food.fat * multiplier, 2)
 
-        unit = self.custom_serving_unit.lower()
-        if unit in unit_conversions:
-            return self.custom_serving_amount * unit_conversions[unit]
+        except (ValueError, TypeError):
+            self._set_default_nutrition()
 
-        # Default: assume it's already in grams
-        return self.custom_serving_amount
+    def _set_default_nutrition(self):
+        """Set default nutrition values when calculation fails"""
+        self.calories = 0.0
+        self.protein = 0.0
+        self.carbs = 0.0
+        self.fat = 0.0
 
-    def get_nutrition_totals(self):
-        """Get calculated nutrition totals"""
-        return {
-            "calories": self.calories,
-            "protein": self.protein,
-            "carbs": self.carbs,
-            "fat": self.fat,
-        }
+    def get_serving_description(self):
+        """Get human-readable serving description"""
+        if self.serving_type == "fatsecret":
+            serving = self.food.get_serving_by_id(self.fatsecret_serving_id)
+            if serving:
+                serving_desc = serving.get("serving_description", "Unknown serving")
+                return f"{self.quantity}x {serving_desc}"
+            return f"{self.quantity}x Unknown serving"
+        else:
+            return f"{self.quantity}x {self.custom_serving_amount} {self.custom_serving_unit}"
+
+    def __str__(self):
+        meal_display = self.get_meal_type_display()
+        serving_desc = self.get_serving_description()
+        return f"{meal_display}: {serving_desc} of {self.food.food_name}"
 
 
 # Signals for auto-creating and updating nutrition profile
@@ -477,9 +487,9 @@ def update_nutrition_profile(sender, instance, **kwargs):
 
 
 # Signal to recalculate daily totals when meals change
-@receiver(post_save, sender=MealFoodEntry)
-@receiver(models.signals.post_delete, sender=MealFoodEntry)
+@receiver(post_save, sender=FoodEntry)
+@receiver(models.signals.post_delete, sender=FoodEntry)
 def update_daily_totals(sender, instance, **kwargs):
-    """Recalculate daily totals when meal food entries are added/updated/deleted"""
-    daily_entry = instance.meal.daily_entry
+    """Recalculate daily totals when food entries are added/updated/deleted"""
+    daily_entry = instance.daily_entry
     daily_entry.calculate_totals()

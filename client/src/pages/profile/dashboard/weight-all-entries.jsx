@@ -8,7 +8,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "react-hot-toast";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 function WeightAllEntries() {
     const navigate = useNavigate();
@@ -85,6 +86,8 @@ function WeightAllEntries() {
         return `${sign}${change} kg`;
     };
 
+    useScrollLock(isPending);
+
     return (
         <SubLayout>
             <div className="flex gap-2 items-center">
@@ -94,7 +97,15 @@ function WeightAllEntries() {
                 <SectionTitle>All Entries</SectionTitle>
             </div>
 
-            {isPending && <LoadingSpinner message="Loading entries..." />}
+            {isPending && (
+                <>
+                    <Skeleton className="h-7 w-35 rounded-lg" />
+                    {[...Array(3)].map((_, index) => (
+                        <Skeleton key={index} className="h-15 w-full rounded-lg" />
+                    ))}
+                </>
+            )}
+
             {isError && (
                 <div className="text-center py-8 text-red-500">
                     <p className="text-lg font-medium">Error loading weight entries</p>

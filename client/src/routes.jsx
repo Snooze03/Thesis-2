@@ -84,7 +84,7 @@ function ProtectedRoutes() {
         staleTime: 5 * 60 * 1000,
     });
 
-    if (isPending) return <LoadingSpinner message="Authenticating..." />
+    // if (isPending) return <LoadingSpinner message="Authenticating..." />
     return isError ? <Navigate to="/login" replace /> : <Outlet />;
 }
 // ===== END AUTHENTICATOR =====

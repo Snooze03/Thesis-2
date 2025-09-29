@@ -7,16 +7,15 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from datetime import date, timedelta
 from .fatsecret_service import FatSecretService
-from .models import NutritionProfile, Food, DailyEntry, Meal, MealFoodEntry
+from .models import NutritionProfile, Food, DailyEntry, FoodEntry
 from .serializers import (
     NutritionProfileSerializer,
     FoodSerializer,
     FoodWithServingsSerializer,
     DailyEntrySerializer,
-    MealSerializer,
-    MealFoodEntrySerializer,
-    MealCreateSerializer,
-    MealFoodEntryCreateSerializer,
+    DailyEntryDetailSerializer,
+    FoodEntrySerializer,
+    FoodEntryCreateSerializer,
     QuickAddFoodEntrySerializer,
 )
 import logging
@@ -34,7 +33,7 @@ def test_fatsecret_token(request):
         return Response(
             {
                 "success": True,
-                "token_preview": token[:20] + "..." if token else None,
+                "token_preview": token[:10] + "..." if token else None,
                 "token_length": len(token) if token else 0,
             },
             status=status.HTTP_200_OK,
@@ -92,24 +91,6 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return nutrition profile for the authenticated user only"""
         return NutritionProfile.objects.filter(account=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        """
-        Create nutrition profile - usually auto-created via signals,
-        but allow manual creation if needed
-        """
-        # Check if user already has a nutrition profile
-        if hasattr(request.user, "nutrition_profile"):
-            return Response(
-                {"error": "User already has a nutrition profile"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(account=request.user)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def recalculate_macros(self, request, pk=None):
@@ -190,37 +171,6 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
         }
 
         return Response(summary_data)
-
-    @action(detail=False, methods=["post"])
-    def create_for_current_user(self, request):
-        """
-        Create nutrition profile for the current user if they don't have one.
-
-        This handles existing accounts that don't have nutrition profiles.
-        """
-        # Check if user already has a nutrition profile
-        if hasattr(request.user, "nutrition_profile"):
-            return Response(
-                {
-                    "error": "User already has a nutrition profile",
-                    "profile": NutritionProfileSerializer(
-                        request.user.nutrition_profile
-                    ).data,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Create nutrition profile
-        nutrition_profile = NutritionProfile.objects.create(account=request.user)
-
-        serializer = self.get_serializer(nutrition_profile)
-        return Response(
-            {
-                "message": "Nutrition profile created successfully",
-                "data": serializer.data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class FoodViewSet(viewsets.ModelViewSet):
@@ -362,19 +312,44 @@ class FoodViewSet(viewsets.ModelViewSet):
             fatsecret_service = FatSecretService()
             food_details = fatsecret_service.get_food_details(food_id)
 
+            # Extract food info from the nested structure
+            food_info = food_details.get("food", {})
+
+            # Handle servings - ensure it's always a list with serving_id added
+            servings_data = food_info.get("servings", {})
+            if isinstance(servings_data, dict):
+                serving = servings_data.get("serving", [])
+                if not isinstance(serving, list):
+                    serving = [serving] if serving else []
+            else:
+                serving = servings_data if isinstance(servings_data, list) else []
+
+            # Add serving_id to each serving for reference
+            for i, serv in enumerate(serving):
+                serv["serving_id"] = str(i)
+
             # Create Food object from FatSecret data
             food_data = {
                 "food_id": food_id,
-                "food_name": food_details.get("food_name", ""),
-                "brand_name": food_details.get("brand_name", ""),
-                "food_type": food_details.get("food_type", ""),
-                "food_description": food_details.get("food_description", ""),
-                "calories": food_details.get("calories", 0.0),
-                "protein": food_details.get("protein", 0.0),
-                "carbs": food_details.get("carbs", 0.0),
-                "fat": food_details.get("fat", 0.0),
-                "fatsecret_servings": food_details.get("servings", []),
+                "food_name": food_info.get(
+                    "food_name", request.data.get("food_name", "Unknown Food")
+                ),
+                "brand_name": food_info.get(
+                    "brand_name", request.data.get("brand_name", "")
+                ),
+                "food_type": food_info.get(
+                    "food_type", request.data.get("food_type", "Generic")
+                ),
+                "food_description": food_info.get(
+                    "food_description", request.data.get("food_description", "")
+                ),
+                "fatsecret_servings": serving,
             }
+
+            # Debug logging
+            logger.info(f"Processing food import for ID: {food_id}")
+            logger.info(f"FatSecret response structure: {food_details}")
+            logger.info(f"Extracted food data: {food_data}")
 
             serializer = self.get_serializer(data=food_data)
             serializer.is_valid(raise_exception=True)
@@ -391,6 +366,10 @@ class FoodViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             logger.error(f"Food import error: {str(e)}")
+            # Log the full response for debugging
+            logger.error(
+                f"FatSecret response: {food_details if 'food_details' in locals() else 'Not available'}"
+            )
             return Response(
                 {"error": f"Failed to import food: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -416,7 +395,13 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
         """Return daily entries for the authenticated user's nutrition profile"""
         return DailyEntry.objects.filter(
             nutrition_profile__account=self.request.user
-        ).prefetch_related("meals__food_entries__food")
+        ).prefetch_related("food_entries__food")
+
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.action in ["retrieve", "with_meals_detail"]:
+            return DailyEntryDetailSerializer
+        return DailyEntrySerializer
 
     def create(self, request, *args, **kwargs):
         """
@@ -502,49 +487,79 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
             }
         )
 
+    @action(detail=True, methods=["get"])
+    def with_meals_detail(self, request, pk=None):
+        """
+        Get daily entry with detailed meal breakdown.
 
-class MealViewSet(viewsets.ModelViewSet):
+        Returns expanded meal information with individual entries.
+        """
+        daily_entry = self.get_object()
+        serializer = DailyEntryDetailSerializer(daily_entry)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"])
+    def add_food_entry(self, request, pk=None):
+        """
+        Add a food entry directly to this daily entry.
+
+        Requires: food_id, meal_type, serving info, quantity
+        """
+        daily_entry = self.get_object()
+
+        # Add daily_entry to request data
+        data = request.data.copy()
+        data["daily_entry"] = daily_entry.id
+
+        serializer = FoodEntryCreateSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        food_entry = serializer.save()
+
+        # Return the created entry with full details
+        response_serializer = FoodEntrySerializer(food_entry)
+        return Response(
+            {
+                "message": "Food entry added successfully",
+                "food_entry": response_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class FoodEntryViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing meals within daily entries.
+    ViewSet for managing individual food entries.
 
-    Provides CRUD operations for meals and handles automatic
-    daily total recalculation when meals are modified.
+    Handles adding, updating, and removing foods from daily entries
+    with automatic daily total recalculation.
     """
 
-    serializer_class = MealSerializer
+    serializer_class = FoodEntrySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["meal_type", "daily_entry__date"]
-    ordering_fields = ["created_at"]
+    filterset_fields = ["daily_entry", "food", "meal_type", "serving_type"]
+    ordering_fields = ["created_at", "meal_type"]
+    ordering = ["meal_type", "created_at"]
 
     def get_queryset(self):
-        """Return meals for the authenticated user's daily entries"""
-        return Meal.objects.filter(
+        """Return food entries for the authenticated user's daily entries"""
+        return FoodEntry.objects.filter(
             daily_entry__nutrition_profile__account=self.request.user
-        ).prefetch_related("food_entries__food")
+        ).select_related("food", "daily_entry")
 
     def get_serializer_class(self):
-        """
-        Return appropriate serializer based on the action.
-
-        Use MealCreateSerializer for create actions to handle nested food entries.
-        """
-        if self.action == "create":
-            return MealCreateSerializer
-        return MealSerializer
+        """Return appropriate serializer based on action"""
+        if self.action in ["create", "update", "partial_update"]:
+            return FoodEntryCreateSerializer
+        return FoodEntrySerializer
 
     def create(self, request, *args, **kwargs):
         """
-        Create a new meal within a daily entry.
+        Add a food item to a daily entry.
 
-        Requires daily_entry_id in the request data.
+        Automatically triggers daily total recalculation.
         """
         daily_entry_id = request.data.get("daily_entry")
-
-        if not daily_entry_id:
-            return Response(
-                {"error": "daily_entry is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
 
         # Verify the daily entry belongs to the authenticated user
         try:
@@ -559,59 +574,162 @@ class MealViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        meal = serializer.save(daily_entry=daily_entry)
+        food_entry = serializer.save()
 
-        # Return the created meal with full details
-        response_serializer = MealSerializer(meal)
+        # Return full serialized data
+        response_serializer = FoodEntrySerializer(food_entry)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["get"])
-    def by_date(self, request):
+    def update(self, request, *args, **kwargs):
         """
-        Get all meals for a specific date.
+        Update a food entry (usually quantity or serving changes).
 
-        Query parameter: date (YYYY-MM-DD format)
+        Triggers automatic recalculation of daily totals.
         """
+        response = super().update(request, *args, **kwargs)
+
+        # Return full serialized data
+        if response.status_code == 200:
+            instance = self.get_object()
+            full_serializer = FoodEntrySerializer(instance)
+            response.data = full_serializer.data
+
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Remove a food entry from a daily entry.
+
+        Triggers automatic recalculation of daily totals.
+        """
+        response = super().destroy(request, *args, **kwargs)
+
+        # The signal will automatically recalculate totals
+        return response
+
+    @action(detail=False, methods=["get"])
+    def by_meal_type(self, request):
+        """
+        Get all food entries for a specific meal type and date.
+
+        Query parameters: meal_type, date (optional)
+        """
+        meal_type = request.query_params.get("meal_type")
         date_param = request.query_params.get("date")
 
-        if not date_param:
+        if not meal_type:
             return Response(
-                {"error": "date parameter is required"},
+                {"error": "meal_type parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        meals = self.get_queryset().filter(daily_entry__date=date_param)
-        serializer = self.get_serializer(meals, many=True)
+        food_entries = self.get_queryset().filter(meal_type=meal_type)
 
-        # Group meals by type for better organization
-        grouped_meals = {}
-        for meal_data in serializer.data:
-            meal_type = meal_data["meal_type"]
-            if meal_type not in grouped_meals:
-                grouped_meals[meal_type] = []
-            grouped_meals[meal_type].append(meal_data)
+        if date_param:
+            food_entries = food_entries.filter(daily_entry__date=date_param)
+
+        serializer = self.get_serializer(food_entries, many=True)
 
         return Response(
             {
+                "meal_type": meal_type,
                 "date": date_param,
-                "meals_by_type": grouped_meals,
-                "total_meals": len(serializer.data),
+                "food_entries": serializer.data,
+                "total_entries": len(serializer.data),
+            }
+        )
+
+    @action(detail=False, methods=["get"])
+    def by_daily_entry(self, request):
+        """
+        Get all food entries for a specific daily entry, grouped by meal type.
+
+        Query parameter: daily_entry_id
+        """
+        daily_entry_id = request.query_params.get("daily_entry_id")
+
+        if not daily_entry_id:
+            return Response(
+                {"error": "daily_entry_id parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        food_entries = self.get_queryset().filter(daily_entry_id=daily_entry_id)
+        serializer = self.get_serializer(food_entries, many=True)
+
+        # Group by meal type
+        grouped_entries = {}
+        for entry_data in serializer.data:
+            meal_type = entry_data["meal_type"]
+            if meal_type not in grouped_entries:
+                grouped_entries[meal_type] = []
+            grouped_entries[meal_type].append(entry_data)
+
+        return Response(
+            {
+                "daily_entry_id": daily_entry_id,
+                "entries_by_meal": grouped_entries,
+                "total_entries": len(serializer.data),
             }
         )
 
     @action(detail=True, methods=["post"])
-    def quick_add_food(self, request, pk=None):
+    def duplicate(self, request, pk=None):
         """
-        Quickly add a food item to this meal.
-
-        Uses QuickAddFoodEntrySerializer for simplified food addition.
+        Duplicate this food entry (useful for adding same food with different quantity).
         """
-        meal = self.get_object()
+        original_entry = self.get_object()
 
+        # Get new quantity from request, default to original quantity
+        new_quantity = request.data.get("quantity", original_entry.quantity)
+        new_meal_type = request.data.get("meal_type", original_entry.meal_type)
+
+        # Create duplicate with new parameters
+        duplicate_data = {
+            "daily_entry": original_entry.daily_entry,
+            "food": original_entry.food,
+            "meal_type": new_meal_type,
+            "serving_type": original_entry.serving_type,
+            "fatsecret_serving_id": original_entry.fatsecret_serving_id,
+            "custom_serving_unit": original_entry.custom_serving_unit,
+            "custom_serving_amount": original_entry.custom_serving_amount,
+            "quantity": new_quantity,
+        }
+
+        duplicate_entry = FoodEntry.objects.create(**duplicate_data)
+
+        serializer = self.get_serializer(duplicate_entry)
+        return Response(
+            {
+                "message": "Food entry duplicated successfully",
+                "original_entry_id": original_entry.id,
+                "duplicate_entry": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"])
+    def quick_add(self, request):
+        """
+        Quickly add a food entry using simplified data.
+
+        Uses QuickAddFoodEntrySerializer for streamlined food addition.
+        """
         serializer = QuickAddFoodEntrySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get the food
+        # Get the daily entry and food
+        try:
+            daily_entry = DailyEntry.objects.get(
+                id=serializer.validated_data["daily_entry_id"],
+                nutrition_profile__account=request.user,
+            )
+        except DailyEntry.DoesNotExist:
+            return Response(
+                {"error": "Daily entry not found or access denied"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         try:
             food = Food.objects.get(id=serializer.validated_data["food_id"])
         except Food.DoesNotExist:
@@ -619,10 +737,11 @@ class MealViewSet(viewsets.ModelViewSet):
                 {"error": "Food not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Create the meal food entry
+        # Create the food entry
         entry_data = {
-            "meal": meal,
+            "daily_entry": daily_entry,
             "food": food,
+            "meal_type": serializer.validated_data["meal_type"],
             "serving_type": serializer.validated_data["serving_type"],
             "quantity": serializer.validated_data["quantity"],
         }
@@ -639,159 +758,14 @@ class MealViewSet(viewsets.ModelViewSet):
                 "custom_serving_amount"
             ]
 
-        food_entry = MealFoodEntry.objects.create(**entry_data)
+        food_entry = FoodEntry.objects.create(**entry_data)
 
         # Return the created entry
-        entry_serializer = MealFoodEntrySerializer(food_entry)
+        entry_serializer = FoodEntrySerializer(food_entry)
         return Response(
             {
-                "message": "Food added to meal successfully",
+                "message": "Food entry added successfully",
                 "food_entry": entry_serializer.data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class MealFoodEntryViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing individual food entries within meals.
-
-    Handles adding, updating, and removing foods from meals
-    with automatic meal and daily total recalculation.
-    """
-
-    serializer_class = MealFoodEntrySerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["meal", "food"]
-
-    def get_queryset(self):
-        """Return meal food entries for the authenticated user's meals"""
-        return MealFoodEntry.objects.filter(
-            meal__daily_entry__nutrition_profile__account=self.request.user
-        ).select_related("food", "meal")
-
-    def get_serializer_class(self):
-        """Return appropriate serializer based on action"""
-        if self.action == "create":
-            return MealFoodEntryCreateSerializer
-        return MealFoodEntrySerializer
-
-    def create(self, request, *args, **kwargs):
-        """
-        Add a food item to a meal.
-
-        Automatically triggers meal and daily total recalculation.
-        """
-        meal_id = request.data.get("meal")
-
-        # Verify the meal belongs to the authenticated user
-        try:
-            meal = Meal.objects.get(
-                id=meal_id, daily_entry__nutrition_profile__account=request.user
-            )
-        except Meal.DoesNotExist:
-            return Response(
-                {"error": "Meal not found or access denied"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        food_entry = serializer.save(meal=meal)
-
-        # Return full serialized data
-        response_serializer = MealFoodEntrySerializer(food_entry)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        """
-        Update a food entry (usually quantity changes).
-
-        Triggers automatic recalculation of meal and daily totals.
-        """
-        # Use create serializer for updates to allow serving type changes
-        if self.action == "update":
-            self.serializer_class = MealFoodEntryCreateSerializer
-        elif self.action == "partial_update":
-            self.serializer_class = MealFoodEntryCreateSerializer
-
-        response = super().update(request, *args, **kwargs)
-
-        # Return full serialized data
-        if response.status_code == 200:
-            instance = self.get_object()
-            full_serializer = MealFoodEntrySerializer(instance)
-            response.data = full_serializer.data
-
-        return response
-
-    def destroy(self, request, *args, **kwargs):
-        """
-        Remove a food entry from a meal.
-
-        Triggers automatic recalculation of meal and daily totals.
-        """
-        response = super().destroy(request, *args, **kwargs)
-
-        # The signal will automatically recalculate totals
-        return response
-
-    @action(detail=False, methods=["get"])
-    def by_meal(self, request):
-        """
-        Get all food entries for a specific meal.
-
-        Query parameter: meal_id
-        """
-        meal_id = request.query_params.get("meal_id")
-
-        if not meal_id:
-            return Response(
-                {"error": "meal_id parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        food_entries = self.get_queryset().filter(meal_id=meal_id)
-        serializer = self.get_serializer(food_entries, many=True)
-
-        return Response(
-            {
-                "meal_id": meal_id,
-                "food_entries": serializer.data,
-                "total_entries": len(serializer.data),
-            }
-        )
-
-    @action(detail=True, methods=["post"])
-    def duplicate(self, request, pk=None):
-        """
-        Duplicate this food entry (useful for adding same food with different quantity).
-        """
-        original_entry = self.get_object()
-
-        # Get new quantity from request, default to original quantity
-        new_quantity = request.data.get("quantity", original_entry.quantity)
-
-        # Create duplicate with new quantity
-        duplicate_data = {
-            "meal": original_entry.meal,
-            "food": original_entry.food,
-            "serving_type": original_entry.serving_type,
-            "fatsecret_serving_id": original_entry.fatsecret_serving_id,
-            "custom_serving_unit": original_entry.custom_serving_unit,
-            "custom_serving_amount": original_entry.custom_serving_amount,
-            "quantity": new_quantity,
-        }
-
-        duplicate_entry = MealFoodEntry.objects.create(**duplicate_data)
-
-        serializer = self.get_serializer(duplicate_entry)
-        return Response(
-            {
-                "message": "Food entry duplicated successfully",
-                "original_entry_id": original_entry.id,
-                "duplicate_entry": serializer.data,
             },
             status=status.HTTP_201_CREATED,
         )

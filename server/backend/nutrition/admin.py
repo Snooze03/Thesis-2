@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.admin import actions
 from django.contrib import messages
 from accounts.models import Account
-from .models import NutritionProfile, Food, DailyEntry, Meal, MealFoodEntry
+from .models import NutritionProfile, Food, DailyEntry, FoodEntry
 
 
 @admin.action(description="Create nutrition profiles for selected accounts")
@@ -63,7 +63,6 @@ def create_nutrition_profiles_for_accounts(modeladmin, request, queryset):
         messages.warning(request, "No nutrition profiles were created.")
 
 
-# Register models with admin
 @admin.register(NutritionProfile)
 class NutritionProfileAdmin(admin.ModelAdmin):
     list_display = [
@@ -145,8 +144,6 @@ class FoodAdmin(admin.ModelAdmin):
         "food_name",
         "brand_name",
         "food_type",
-        "calories",
-        "protein",
         "fatsecret_servings_count",
         "created_at",
     ]
@@ -159,7 +156,6 @@ class FoodAdmin(admin.ModelAdmin):
             "Basic Information",
             {"fields": ("food_id", "food_name", "food_type", "brand_name")},
         ),
-        ("Nutrition (per 100g)", {"fields": ("calories", "protein", "carbs", "fat")}),
         ("Description", {"fields": ("food_description",)}),
         (
             "FatSecret Servings",
@@ -194,7 +190,7 @@ class DailyEntryAdmin(admin.ModelAdmin):
         "total_protein",
         "total_carbs",
         "total_fat",
-        "meals_count",
+        "food_entries_count",
     ]
     list_filter = ["date", "created_at"]
     search_fields = ["nutrition_profile__account__email"]
@@ -234,10 +230,11 @@ class DailyEntryAdmin(admin.ModelAdmin):
     nutrition_profile_email.short_description = "Account Email"
     nutrition_profile_email.admin_order_field = "nutrition_profile__account__email"
 
-    def meals_count(self, obj):
-        return obj.meals.count()
+    def food_entries_count(self, obj):
+        """Count of food entries for this daily entry"""
+        return obj.food_entries.count()
 
-    meals_count.short_description = "Meals Count"
+    food_entries_count.short_description = "Food Entries"
 
     actions = ["recalculate_totals_action"]
 
@@ -263,78 +260,31 @@ class DailyEntryAdmin(admin.ModelAdmin):
             )
 
 
-@admin.register(Meal)
-class MealAdmin(admin.ModelAdmin):
+@admin.register(FoodEntry)
+class FoodEntryAdmin(admin.ModelAdmin):
+    """Admin for individual food entries - replaces both Meal and MealFoodEntry admins"""
+
     list_display = [
-        "daily_entry_email",
-        "daily_entry_date",
-        "meal_type",
-        "meal_name",
-        "food_entries_count",
-        "meal_calories",
-        "created_at",
-    ]
-    list_filter = ["meal_type", "created_at", "daily_entry__date"]
-    search_fields = [
-        "daily_entry__nutrition_profile__account__email",
-        "meal_name",
-        "daily_entry__date",
-    ]
-
-    fieldsets = (
-        ("Meal Information", {"fields": ("daily_entry", "meal_type", "meal_name")}),
-        (
-            "Timestamps",
-            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
-        ),
-    )
-
-    readonly_fields = ["created_at", "updated_at"]
-
-    def daily_entry_email(self, obj):
-        return obj.daily_entry.nutrition_profile.account.email
-
-    daily_entry_email.short_description = "Account Email"
-    daily_entry_email.admin_order_field = (
-        "daily_entry__nutrition_profile__account__email"
-    )
-
-    def daily_entry_date(self, obj):
-        return obj.daily_entry.date
-
-    daily_entry_date.short_description = "Date"
-    daily_entry_date.admin_order_field = "daily_entry__date"
-
-    def food_entries_count(self, obj):
-        return obj.food_entries.count()
-
-    food_entries_count.short_description = "Food Items"
-
-    def meal_calories(self, obj):
-        """Display total calories for this meal"""
-        nutrition = obj.get_nutrition_totals()
-        return round(nutrition.get("calories", 0), 1)
-
-    meal_calories.short_description = "Calories"
-
-
-@admin.register(MealFoodEntry)
-class MealFoodEntryAdmin(admin.ModelAdmin):
-    list_display = [
-        "meal_info",
-        "food_name",
-        "serving_type",
+        "daily_entry_info",
+        "meal_type_display",
+        "food_name_with_brand",
         "serving_info",
         "quantity",
         "calories",
         "protein",
         "created_at",
     ]
-    list_filter = ["serving_type", "created_at", "meal__meal_type"]
+    list_filter = [
+        "meal_type",
+        "serving_type",
+        "created_at",
+        "daily_entry__date",
+    ]
     search_fields = [
-        "meal__daily_entry__nutrition_profile__account__email",
+        "daily_entry__nutrition_profile__account__email",
         "food__food_name",
-        "meal__daily_entry__date",
+        "food__brand_name",
+        "daily_entry__date",
     ]
     readonly_fields = [
         "calories",
@@ -342,10 +292,14 @@ class MealFoodEntryAdmin(admin.ModelAdmin):
         "carbs",
         "fat",
         "created_at",
+        "updated_at",
     ]
 
     fieldsets = (
-        ("Entry Information", {"fields": ("meal", "food", "quantity")}),
+        (
+            "Entry Information",
+            {"fields": ("daily_entry", "food", "meal_type", "quantity")},
+        ),
         (
             "Serving Information",
             {
@@ -364,34 +318,46 @@ class MealFoodEntryAdmin(admin.ModelAdmin):
                 "classes": ("collapse",),
             },
         ),
-        ("Timestamps", {"fields": ("created_at",), "classes": ("collapse",)}),
+        (
+            "Timestamps",
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
     )
 
-    def meal_info(self, obj):
-        """Display meal information"""
-        return f"{obj.meal.get_meal_type_display()} ({obj.meal.daily_entry.date})"
+    def daily_entry_info(self, obj):
+        """Display daily entry information"""
+        email = obj.daily_entry.nutrition_profile.account.email
+        date = obj.daily_entry.date
+        return f"{email} - {date}"
 
-    meal_info.short_description = "Meal"
-    meal_info.admin_order_field = "meal__daily_entry__date"
+    daily_entry_info.short_description = "Daily Entry"
+    daily_entry_info.admin_order_field = "daily_entry__date"
 
-    def food_name(self, obj):
+    def meal_type_display(self, obj):
+        """Display meal type with proper formatting"""
+        return obj.get_meal_type_display()
+
+    meal_type_display.short_description = "Meal Type"
+    meal_type_display.admin_order_field = "meal_type"
+
+    def food_name_with_brand(self, obj):
         """Display food name with brand if available"""
         if obj.food.brand_name:
             return f"{obj.food.food_name} ({obj.food.brand_name})"
         return obj.food.food_name
 
-    food_name.short_description = "Food"
-    food_name.admin_order_field = "food__food_name"
+    food_name_with_brand.short_description = "Food"
+    food_name_with_brand.admin_order_field = "food__food_name"
 
     def serving_info(self, obj):
         """Display serving information based on type"""
         if obj.serving_type == "fatsecret":
             # Try to get serving description from food's fatsecret_servings
-            for serving in obj.food.fatsecret_servings:
-                if serving.get("serving_id") == obj.fatsecret_serving_id:
-                    return serving.get(
-                        "serving_description", f"Serving ID: {obj.fatsecret_serving_id}"
-                    )
+            serving = obj.food.get_serving_by_id(obj.fatsecret_serving_id)
+            if serving:
+                return serving.get(
+                    "serving_description", f"Serving ID: {obj.fatsecret_serving_id}"
+                )
             return f"FatSecret Serving: {obj.fatsecret_serving_id}"
         else:
             return f"{obj.custom_serving_amount} {obj.custom_serving_unit}"
@@ -403,14 +369,14 @@ class MealFoodEntryAdmin(admin.ModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related("meal__daily_entry__nutrition_profile__account", "food")
+            .select_related("daily_entry__nutrition_profile__account", "food")
         )
 
     actions = ["recalculate_nutrition_action"]
 
     @admin.action(description="Recalculate nutrition for selected food entries")
     def recalculate_nutrition_action(self, request, queryset):
-        """Recalculate nutrition values for selected meal food entries"""
+        """Recalculate nutrition values for selected food entries"""
         updated_count = 0
 
         for entry in queryset:
@@ -432,14 +398,15 @@ class MealFoodEntryAdmin(admin.ModelAdmin):
 
 
 # Inline admin classes for better UX
-class MealFoodEntryInline(admin.TabularInline):
-    """Inline for food entries within meals"""
+class FoodEntryInline(admin.TabularInline):
+    """Inline for food entries within daily entries"""
 
-    model = MealFoodEntry
+    model = FoodEntry
     extra = 0
     readonly_fields = ["calories", "protein", "carbs", "fat"]
     fields = [
         "food",
+        "meal_type",
         "serving_type",
         "fatsecret_serving_id",
         "custom_serving_unit",
@@ -453,33 +420,95 @@ class MealFoodEntryInline(admin.TabularInline):
         return super().get_queryset(request).select_related("food")
 
 
-class MealInline(admin.TabularInline):
-    """Inline for meals within daily entries"""
-
-    model = Meal
-    extra = 0
-    fields = ["meal_type", "meal_name"]
-    show_change_link = True
-
-
-# Update existing admin classes to include inlines
 # Re-register DailyEntry with inline
 admin.site.unregister(DailyEntry)
 
 
 @admin.register(DailyEntry)
 class DailyEntryAdmin(DailyEntryAdmin):
-    """Updated DailyEntry admin with meal inlines"""
+    """Updated DailyEntry admin with food entry inlines"""
 
-    inlines = [MealInline]
+    inlines = [FoodEntryInline]
+
+    def get_queryset(self, request):
+        """Optimize queryset for better performance"""
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("nutrition_profile__account")
+            .prefetch_related("food_entries__food")
+        )
 
 
-# Re-register Meal with inline
-admin.site.unregister(Meal)
+# Custom admin actions for bulk operations
+@admin.action(description="Recalculate all daily totals for selected entries")
+def bulk_recalculate_daily_totals(modeladmin, request, queryset):
+    """Bulk action to recalculate daily totals"""
+    updated_count = 0
+    error_count = 0
+
+    for daily_entry in queryset:
+        try:
+            daily_entry.calculate_totals()
+            updated_count += 1
+        except Exception as e:
+            error_count += 1
+            messages.error(request, f"Error updating {daily_entry}: {str(e)}")
+
+    if updated_count > 0:
+        messages.success(
+            request,
+            f"Successfully recalculated totals for {updated_count} daily entry(ies).",
+        )
+
+    if error_count > 0:
+        messages.warning(request, f"Failed to update {error_count} daily entry(ies).")
 
 
-@admin.register(Meal)
-class MealAdmin(MealAdmin):
-    """Updated Meal admin with food entry inlines"""
+# Add custom admin actions to relevant models
+DailyEntryAdmin.actions.append(bulk_recalculate_daily_totals)
 
-    inlines = [MealFoodEntryInline]
+
+# Optional: Admin for viewing meal breakdown (read-only)
+class MealBreakdownAdmin(admin.ModelAdmin):
+    """Read-only admin view for analyzing meal patterns"""
+
+    list_display = [
+        "daily_entry",
+        "meal_type",
+        "entries_count",
+        "total_calories",
+        "total_protein",
+    ]
+    list_filter = ["meal_type", "daily_entry__date"]
+    search_fields = ["daily_entry__nutrition_profile__account__email"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_queryset(self, request):
+        """Generate virtual meal breakdown objects"""
+        # This would need custom implementation to show meal breakdowns
+        # For now, return empty queryset
+        return FoodEntry.objects.none()
+
+
+# Register the action with Account admin if it exists
+try:
+    from accounts.admin import AccountAdmin
+
+    # Add the nutrition profile creation action to Account admin
+    if hasattr(AccountAdmin, "actions"):
+        AccountAdmin.actions.append(create_nutrition_profiles_for_accounts)
+    else:
+        AccountAdmin.actions = [create_nutrition_profiles_for_accounts]
+
+except ImportError:
+    # accounts.admin doesn't exist or AccountAdmin not available
+    pass

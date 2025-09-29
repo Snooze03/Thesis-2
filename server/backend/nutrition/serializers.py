@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import NutritionProfile, Food, DailyEntry, Meal, MealFoodEntry
+from .models import NutritionProfile, Food, DailyEntry, FoodEntry
 from accounts.serializers import AccountSerializer
 
 
@@ -63,10 +63,6 @@ class FoodSerializer(serializers.ModelSerializer):
             "food_id",
             "food_name",
             "food_type",
-            "calories",
-            "protein",
-            "carbs",
-            "fat",
             "brand_name",
             "food_description",
             "fatsecret_servings",
@@ -113,8 +109,8 @@ class FoodSerializer(serializers.ModelSerializer):
         return value
 
 
-class MealFoodEntrySerializer(serializers.ModelSerializer):
-    """Serializer for MealFoodEntry model"""
+class FoodEntrySerializer(serializers.ModelSerializer):
+    """Serializer for FoodEntry model - replaces both Meal and MealFoodEntry serializers"""
 
     # Read-only fields for displaying food info
     food_name = serializers.CharField(source="food.food_name", read_only=True)
@@ -123,21 +119,23 @@ class MealFoodEntrySerializer(serializers.ModelSerializer):
     serving_type_display = serializers.CharField(
         source="get_serving_type_display", read_only=True
     )
+    meal_type_display = serializers.CharField(
+        source="get_meal_type_display", read_only=True
+    )
 
     # Calculated nutrition totals (automatically calculated on save)
-    total_calories = serializers.FloatField(source="calories", read_only=True)
-    total_protein = serializers.FloatField(source="protein", read_only=True)
-    total_carbs = serializers.FloatField(source="carbs", read_only=True)
-    total_fat = serializers.FloatField(source="fat", read_only=True)
+    nutrition_totals = serializers.SerializerMethodField()
 
     class Meta:
-        model = MealFoodEntry
+        model = FoodEntry
         fields = [
             "id",
-            "meal",
+            "daily_entry",
             "food",
             "food_name",
             "food_brand",
+            "meal_type",
+            "meal_type_display",
             "serving_type",
             "serving_type_display",
             "fatsecret_serving_id",
@@ -145,43 +143,42 @@ class MealFoodEntrySerializer(serializers.ModelSerializer):
             "custom_serving_amount",
             "serving_description",
             "quantity",
-            "total_calories",
-            "total_protein",
-            "total_carbs",
-            "total_fat",
             "calories",
             "protein",
             "carbs",
             "fat",
+            "nutrition_totals",
             "created_at",
+            "updated_at",
         ]
         read_only_fields = [
             "id",
             "food_name",
             "food_brand",
             "serving_type_display",
+            "meal_type_display",
             "serving_description",
-            "total_calories",
-            "total_protein",
-            "total_carbs",
-            "total_fat",
             "calories",
             "protein",
             "carbs",
             "fat",
+            "nutrition_totals",
             "created_at",
+            "updated_at",
         ]
 
     def get_serving_description(self, obj):
         """Get human-readable serving description"""
-        if obj.serving_type == "fatsecret":
-            # Look up serving description from food's fatsecret_servings
-            for serving in obj.food.fatsecret_servings:
-                if serving.get("serving_id") == obj.fatsecret_serving_id:
-                    return serving.get("serving_description", "Unknown serving")
-            return f"FatSecret serving {obj.fatsecret_serving_id}"
-        else:
-            return f"{obj.custom_serving_amount} {obj.custom_serving_unit}"
+        return obj.get_serving_description()
+
+    def get_nutrition_totals(self, obj):
+        """Get nutrition totals as a dictionary for easier frontend consumption"""
+        return {
+            "calories": obj.calories,
+            "protein": obj.protein,
+            "carbs": obj.carbs,
+            "fat": obj.fat,
+        }
 
     def validate_quantity(self, value):
         """Validate quantity is positive"""
@@ -227,52 +224,15 @@ class MealFoodEntrySerializer(serializers.ModelSerializer):
         return data
 
 
-class MealSerializer(serializers.ModelSerializer):
-    """Serializer for Meal model"""
+class DailyEntrySerializer(serializers.ModelSerializer):
+    """Serializer for DailyEntry model with grouped food entries by meal type"""
 
-    food_entries = MealFoodEntrySerializer(many=True, read_only=True)
+    # Group food entries by meal type
+    meals_breakdown = serializers.SerializerMethodField()
+    food_entries = FoodEntrySerializer(many=True, read_only=True)
     food_entries_count = serializers.IntegerField(
         source="food_entries.count", read_only=True
     )
-    nutrition_totals = serializers.SerializerMethodField()
-    meal_type_display = serializers.CharField(
-        source="get_meal_type_display", read_only=True
-    )
-
-    class Meta:
-        model = Meal
-        fields = [
-            "id",
-            "daily_entry",
-            "meal_type",
-            "meal_type_display",
-            "meal_name",
-            "food_entries",
-            "food_entries_count",
-            "nutrition_totals",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "id",
-            "meal_type_display",
-            "food_entries",
-            "food_entries_count",
-            "nutrition_totals",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_nutrition_totals(self, obj):
-        """Get calculated nutrition totals for this meal"""
-        return obj.get_nutrition_totals()
-
-
-class DailyEntrySerializer(serializers.ModelSerializer):
-    """Serializer for DailyEntry model"""
-
-    meals = MealSerializer(many=True, read_only=True)
-    meals_count = serializers.IntegerField(source="meals.count", read_only=True)
 
     # Nutrition profile goals for comparison
     nutrition_goals = serializers.SerializerMethodField()
@@ -293,8 +253,9 @@ class DailyEntrySerializer(serializers.ModelSerializer):
             "total_protein",
             "total_carbs",
             "total_fat",
-            "meals",
-            "meals_count",
+            "food_entries",
+            "food_entries_count",
+            "meals_breakdown",
             "nutrition_goals",
             "calories_progress",
             "protein_progress",
@@ -309,8 +270,9 @@ class DailyEntrySerializer(serializers.ModelSerializer):
             "total_protein",
             "total_carbs",
             "total_fat",
-            "meals",
-            "meals_count",
+            "food_entries",
+            "food_entries_count",
+            "meals_breakdown",
             "nutrition_goals",
             "calories_progress",
             "protein_progress",
@@ -319,6 +281,10 @@ class DailyEntrySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_meals_breakdown(self, obj):
+        """Get food entries grouped by meal type with totals"""
+        return obj.get_meals_breakdown()
 
     def get_nutrition_goals(self, obj):
         """Get nutrition goals from the profile"""
@@ -386,13 +352,15 @@ class DailyEntrySerializer(serializers.ModelSerializer):
 
 
 # Create/Update serializers
-class MealFoodEntryCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating meal food entries"""
+class FoodEntryCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating food entries"""
 
     class Meta:
-        model = MealFoodEntry
+        model = FoodEntry
         fields = [
+            "daily_entry",
             "food",
+            "meal_type",
             "serving_type",
             "fatsecret_serving_id",
             "custom_serving_unit",
@@ -430,29 +398,10 @@ class MealFoodEntryCreateSerializer(serializers.ModelSerializer):
         return data
 
 
-class MealCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating meals with optional food entries"""
-
-    food_entries = MealFoodEntryCreateSerializer(many=True, required=False)
-
-    class Meta:
-        model = Meal
-        fields = ["meal_type", "meal_name", "food_entries"]
-
-    def create(self, validated_data):
-        """Create meal and associated food entries"""
-        food_entries_data = validated_data.pop("food_entries", [])
-        meal = Meal.objects.create(**validated_data)
-
-        # Create food entries for this meal
-        for entry_data in food_entries_data:
-            MealFoodEntry.objects.create(meal=meal, **entry_data)
-
-        return meal
-
-
 # Summary and utility serializers
 class NutritionSummarySerializer(serializers.Serializer):
+    """Serializer for nutrition summary data"""
+
     date = serializers.DateField()
     total_calories = serializers.FloatField()
     total_protein = serializers.FloatField()
@@ -469,6 +418,8 @@ class NutritionSummarySerializer(serializers.Serializer):
 
 
 class FoodServingOptionSerializer(serializers.Serializer):
+    """Serializer for individual FatSecret serving options"""
+
     serving_id = serializers.CharField()
     serving_description = serializers.CharField()
     metric_serving_amount = serializers.FloatField(required=False)
@@ -496,10 +447,12 @@ class FoodWithServingsSerializer(FoodSerializer):
 
 
 class QuickAddFoodEntrySerializer(serializers.Serializer):
-    """Serializer for quickly adding a food entry to a meal"""
+    """Serializer for quickly adding a food entry to a daily entry"""
 
+    daily_entry_id = serializers.IntegerField()
     food_id = serializers.IntegerField()
-    serving_type = serializers.ChoiceField(choices=MealFoodEntry.SERVING_TYPE_CHOICES)
+    meal_type = serializers.ChoiceField(choices=FoodEntry.MEAL_TYPE_CHOICES)
+    serving_type = serializers.ChoiceField(choices=FoodEntry.SERVING_TYPE_CHOICES)
     fatsecret_serving_id = serializers.CharField(required=False, allow_blank=True)
     custom_serving_unit = serializers.CharField(required=False, allow_blank=True)
     custom_serving_amount = serializers.FloatField(required=False, allow_null=True)
@@ -523,3 +476,50 @@ class QuickAddFoodEntrySerializer(serializers.Serializer):
                 )
 
         return data
+
+    def create(self, validated_data):
+        """Create a new food entry"""
+        return FoodEntry.objects.create(**validated_data)
+
+
+# Meal-specific serializers for easier frontend consumption
+class MealBreakdownSerializer(serializers.Serializer):
+    """Serializer for individual meal breakdown within a daily entry"""
+
+    meal_type = serializers.CharField()
+    name = serializers.CharField()
+    totals = serializers.DictField()
+    entries = FoodEntrySerializer(many=True)
+
+
+class DailyEntryDetailSerializer(DailyEntrySerializer):
+    """Detailed daily entry serializer with expanded meal breakdowns"""
+
+    breakfast_entries = serializers.SerializerMethodField()
+    lunch_entries = serializers.SerializerMethodField()
+    dinner_entries = serializers.SerializerMethodField()
+    snack_entries = serializers.SerializerMethodField()
+
+    class Meta(DailyEntrySerializer.Meta):
+        fields = DailyEntrySerializer.Meta.fields + [
+            "breakfast_entries",
+            "lunch_entries",
+            "dinner_entries",
+            "snack_entries",
+        ]
+
+    def get_breakfast_entries(self, obj):
+        entries = obj.food_entries.filter(meal_type="breakfast")
+        return FoodEntrySerializer(entries, many=True).data
+
+    def get_lunch_entries(self, obj):
+        entries = obj.food_entries.filter(meal_type="lunch")
+        return FoodEntrySerializer(entries, many=True).data
+
+    def get_dinner_entries(self, obj):
+        entries = obj.food_entries.filter(meal_type="dinner")
+        return FoodEntrySerializer(entries, many=True).data
+
+    def get_snack_entries(self, obj):
+        entries = obj.food_entries.filter(meal_type="snack")
+        return FoodEntrySerializer(entries, many=True).data

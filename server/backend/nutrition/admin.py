@@ -352,10 +352,9 @@ class FoodEntryAdmin(admin.ModelAdmin):
     def serving_info(self, obj):
         """Display serving information based on type"""
         if obj.serving_type == "fatsecret":
-            # Try to get serving description from food's fatsecret_servings
-            serving = obj.food.get_serving_by_id(obj.fatsecret_serving_id)
-            if serving:
-                return serving.get(
+            serving_data = obj.food.get_serving_by_id(obj.fatsecret_serving_id)
+            if serving_data:
+                return serving_data.get(
                     "serving_description", f"Serving ID: {obj.fatsecret_serving_id}"
                 )
             return f"FatSecret Serving: {obj.fatsecret_serving_id}"
@@ -363,6 +362,28 @@ class FoodEntryAdmin(admin.ModelAdmin):
             return f"{obj.custom_serving_amount} {obj.custom_serving_unit}"
 
     serving_info.short_description = "Serving"
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize the form to show serving options"""
+        form = super().get_form(request, obj, **kwargs)
+
+        # If we have a food selected, add help text for serving IDs
+        if obj and obj.food and obj.food.fatsecret_servings:
+            serving_options = []
+            for serving in obj.food.fatsecret_servings:
+                serving_id = serving.get("serving_id")
+                description = serving.get("serving_description")
+                serving_options.append(f"{serving_id}: {description}")
+
+            if serving_options:
+                help_text = "Available servings:\n" + "\n".join(
+                    serving_options[:5]
+                )  # Show first 5
+                if len(serving_options) > 5:
+                    help_text += f"\n... and {len(serving_options) - 5} more"
+                form.base_fields["fatsecret_serving_id"].help_text = help_text
+
+        return form
 
     def get_queryset(self, request):
         """Optimize queryset with select_related"""

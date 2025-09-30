@@ -3,6 +3,7 @@ Django
 django-cors-headers
 djangorestframework
 djangorestframework-simplejwt
+django-filter
 PyJWT
 pytz
 sqlparse
@@ -11,3 +12,4 @@ python-dotenv
 openai
 python-decouple
 requests-oauthlib
+celery

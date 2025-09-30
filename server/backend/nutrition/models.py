@@ -227,14 +227,19 @@ class Food(models.Model):
         )
 
     def get_serving_by_id(self, serving_id):
-        """Get a specific serving by its ID"""
+        """Get specific serving data by serving_id"""
+        if not self.fatsecret_servings or not serving_id:
+            return None
+
         for serving in self.fatsecret_servings:
             if serving.get("serving_id") == str(serving_id):
                 return serving
         return None
 
     def get_default_serving(self):
-        """Get the first serving as default"""
+        """Get the first available serving (usually 100g)"""
+        if not self.fatsecret_servings:
+            return None
         return self.fatsecret_servings[0] if self.fatsecret_servings else None
 
 
@@ -283,6 +288,15 @@ class DailyEntry(models.Model):
         self.save()
 
         return totals
+
+    # def get_nutrition_totals(self):
+    #     """Get nutrition totals as a dictionary for easy consumption"""
+    #     return {
+    #         "calories": self.total_calories,
+    #         "protein": self.total_protein,
+    #         "carbs": self.total_carbs,
+    #         "fat": self.total_fat,
+    #     }
 
     def get_meals_breakdown(self):
         """Get nutrition breakdown by meal type"""
@@ -387,42 +401,120 @@ class FoodEntry(models.Model):
         self.calculate_nutrition()
         super().save(*args, **kwargs)
 
-    def calculate_nutrition(self):
-        """Calculate nutrition based on serving type and quantity"""
-        if self.serving_type == "fatsecret":
-            self._calculate_from_fatsecret_serving()
-        else:
-            self._calculate_from_custom_serving()
+    def get_nutrition_totals(self):
+        """Get nutrition totals as a dictionary for easy consumption"""
+        return {
+            "calories": self.calories,
+            "protein": self.protein,
+            "carbs": self.carbs,
+            "fat": self.fat,
+        }
 
-    def _calculate_from_fatsecret_serving(self):
-        """Calculate nutrition from FatSecret predefined serving"""
-        if not self.fatsecret_serving_id:
-            self._set_default_nutrition()
-            return
+    def _convert_to_grams(self):
+        """
+        Convert custom serving to grams for nutrition calculation.
+        This is a placeholder - you'll need to implement proper unit conversions.
+        """
+        if not self.custom_serving_amount or not self.custom_serving_unit:
+            return 0
 
-        # Get the specific serving from the food's servings array
-        serving = self.food.get_serving_by_id(self.fatsecret_serving_id)
+        # Basic unit conversions (extend as needed)
+        unit_conversions = {
+            "grams": 1,
+            "g": 1,
+            "kilograms": 1000,
+            "kg": 1000,
+            "ounces": 28.35,
+            "oz": 28.35,
+            "pounds": 453.59,
+            "lb": 453.59,
+            # Add more conversions as needed
+            "cups": 240,  # Approximate for liquid
+            "tablespoons": 15,
+            "teaspoons": 5,
+        }
 
-        if not serving:
+        multiplier = unit_conversions.get(self.custom_serving_unit.lower(), 1)
+        return self.custom_serving_amount * multiplier
+
+    def _calculate_from_custom_serving(self):
+        """Calculate nutrition from custom serving based on per-100g values"""
+        if not self.custom_serving_amount:
             self._set_default_nutrition()
             return
 
         try:
-            # Extract nutrition values from the serving
-            serving_calories = float(serving.get("calories", 0))
-            serving_protein = float(serving.get("protein", 0))
-            serving_carbs = float(
-                serving.get("carbohydrate", 0)
-            )  # Note: FatSecret uses 'carbohydrate'
-            serving_fat = float(serving.get("fat", 0))
+            # Convert custom serving to grams
+            grams = self._convert_to_grams()
 
-            # Calculate totals based on quantity
-            self.calories = round(serving_calories * self.quantity, 2)
-            self.protein = round(serving_protein * self.quantity, 2)
-            self.carbs = round(serving_carbs * self.quantity, 2)
-            self.fat = round(serving_fat * self.quantity, 2)
+            # For now, since Food model doesn't have per-100g values,
+            # we'll use the first FatSecret serving as reference
+            default_serving = self.food.get_default_serving()
+            if not default_serving:
+                self._set_default_nutrition()
+                return
+
+            # Calculate based on default serving (this is a simplified approach)
+            serving_grams = float(default_serving.get("metric_serving_amount", 100))
+            multiplier = (grams / serving_grams) * self.quantity
+
+            serving_calories = float(default_serving.get("calories", 0))
+            serving_protein = float(default_serving.get("protein", 0))
+            serving_carbs = float(default_serving.get("carbohydrate", 0))
+            serving_fat = float(default_serving.get("fat", 0))
+
+            self.calories = round(serving_calories * multiplier, 2)
+            self.protein = round(serving_protein * multiplier, 2)
+            self.carbs = round(serving_carbs * multiplier, 2)
+            self.fat = round(serving_fat * multiplier, 2)
 
         except (ValueError, TypeError):
+            self._set_default_nutrition()
+
+    def calculate_nutrition(self):
+        """Calculate nutrition values based on serving type and quantity"""
+        if self.serving_type == "fatsecret":
+            self._calculate_from_fatsecret_serving()
+        elif self.serving_type == "custom":
+            self._calculate_from_custom_serving()
+        else:
+            self._set_default_nutrition()
+
+    def _calculate_from_fatsecret_serving(self):
+        """Calculate nutrition from selected FatSecret serving"""
+        if not self.fatsecret_serving_id:
+            self._set_default_nutrition()
+            return
+
+        # Get the specific serving data from the food's fatsecret_servings
+        serving_data = self.food.get_serving_by_id(self.fatsecret_serving_id)
+
+        if not serving_data:
+            # Fallback to default serving if serving_id not found
+            serving_data = self.food.get_default_serving()
+
+        if not serving_data:
+            self._set_default_nutrition()
+            return
+
+        try:
+            # Extract nutrition values from serving data
+            base_calories = float(serving_data.get("calories", 0))
+            base_protein = float(serving_data.get("protein", 0))
+            base_carbs = float(
+                serving_data.get("carbohydrate", 0)
+            )  # Note: FatSecret uses "carbohydrate"
+            base_fat = float(serving_data.get("fat", 0))
+
+            # Calculate based on quantity
+            self.calories = round(base_calories * self.quantity, 2)
+            self.protein = round(base_protein * self.quantity, 2)
+            self.carbs = round(base_carbs * self.quantity, 2)
+            self.fat = round(base_fat * self.quantity, 2)
+
+        except (ValueError, TypeError, KeyError) as e:
+            # Log the error and set defaults
+            print(f"Error calculating nutrition from FatSecret serving: {e}")
             self._set_default_nutrition()
 
     def _calculate_from_custom_serving(self):
@@ -432,18 +524,46 @@ class FoodEntry(models.Model):
             return
 
         try:
-            # Convert custom serving to grams (you'll need to implement this conversion logic)
+            # Convert custom serving to grams
             grams = self._convert_to_grams()
 
-            # Calculate based on per-100g values stored in Food model
-            multiplier = (grams / 100.0) * self.quantity
+            # Use the 100g serving as reference (usually the second serving in FatSecret data)
+            serving_100g = None
 
-            self.calories = round(self.food.calories * multiplier, 2)
-            self.protein = round(self.food.protein * multiplier, 2)
-            self.carbs = round(self.food.carbs * multiplier, 2)
-            self.fat = round(self.food.fat * multiplier, 2)
+            # Look for 100g serving specifically
+            for serving in self.food.fatsecret_servings:
+                if (
+                    serving.get("metric_serving_amount") == "100.000"
+                    and serving.get("metric_serving_unit") == "g"
+                ):
+                    serving_100g = serving
+                    break
 
-        except (ValueError, TypeError):
+            # If no 100g serving found, use the first available serving and calculate
+            if not serving_100g:
+                serving_100g = self.food.get_default_serving()
+
+            if not serving_100g:
+                self._set_default_nutrition()
+                return
+
+            # Calculate nutrition per gram
+            serving_amount = float(serving_100g.get("metric_serving_amount", 100))
+            calories_per_gram = float(serving_100g.get("calories", 0)) / serving_amount
+            protein_per_gram = float(serving_100g.get("protein", 0)) / serving_amount
+            carbs_per_gram = float(serving_100g.get("carbohydrate", 0)) / serving_amount
+            fat_per_gram = float(serving_100g.get("fat", 0)) / serving_amount
+
+            # Calculate totals based on custom serving amount and quantity
+            total_grams = grams * self.quantity
+
+            self.calories = round(calories_per_gram * total_grams, 2)
+            self.protein = round(protein_per_gram * total_grams, 2)
+            self.carbs = round(carbs_per_gram * total_grams, 2)
+            self.fat = round(fat_per_gram * total_grams, 2)
+
+        except (ValueError, TypeError, KeyError) as e:
+            print(f"Error calculating nutrition from custom serving: {e}")
             self._set_default_nutrition()
 
     def _set_default_nutrition(self):
@@ -456,13 +576,15 @@ class FoodEntry(models.Model):
     def get_serving_description(self):
         """Get human-readable serving description"""
         if self.serving_type == "fatsecret":
-            serving = self.food.get_serving_by_id(self.fatsecret_serving_id)
-            if serving:
-                serving_desc = serving.get("serving_description", "Unknown serving")
-                return f"{self.quantity}x {serving_desc}"
-            return f"{self.quantity}x Unknown serving"
-        else:
-            return f"{self.quantity}x {self.custom_serving_amount} {self.custom_serving_unit}"
+            serving_data = self.food.get_serving_by_id(self.fatsecret_serving_id)
+            if serving_data:
+                return serving_data.get(
+                    "serving_description", f"Serving ID: {self.fatsecret_serving_id}"
+                )
+            return f"FatSecret Serving: {self.fatsecret_serving_id}"
+        elif self.serving_type == "custom":
+            return f"{self.custom_serving_amount} {self.custom_serving_unit}"
+        return "Unknown serving"
 
     def __str__(self):
         meal_display = self.get_meal_type_display()

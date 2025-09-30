@@ -173,12 +173,7 @@ class FoodEntrySerializer(serializers.ModelSerializer):
 
     def get_nutrition_totals(self, obj):
         """Get nutrition totals as a dictionary for easier frontend consumption"""
-        return {
-            "calories": obj.calories,
-            "protein": obj.protein,
-            "carbs": obj.carbs,
-            "fat": obj.fat,
-        }
+        return obj.get_nutrition_totals()
 
     def validate_quantity(self, value):
         """Validate quantity is positive"""
@@ -199,9 +194,9 @@ class FoodEntrySerializer(serializers.ModelSerializer):
 
             # Validate that the serving exists in the food's available servings
             food = data.get("food")
-            if food:
+            if food and food.fatsecret_servings:
                 serving_ids = [s.get("serving_id") for s in food.fatsecret_servings]
-                if data.get("fatsecret_serving_id") not in serving_ids:
+                if str(data.get("fatsecret_serving_id")) not in serving_ids:
                     raise serializers.ValidationError(
                         "Selected FatSecret serving is not available for this food."
                     )
@@ -230,9 +225,7 @@ class DailyEntrySerializer(serializers.ModelSerializer):
     # Group food entries by meal type
     meals_breakdown = serializers.SerializerMethodField()
     food_entries = FoodEntrySerializer(many=True, read_only=True)
-    food_entries_count = serializers.IntegerField(
-        source="food_entries.count", read_only=True
-    )
+    food_entries_count = serializers.SerializerMethodField()
 
     # Nutrition profile goals for comparison
     nutrition_goals = serializers.SerializerMethodField()
@@ -282,9 +275,62 @@ class DailyEntrySerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_food_entries_count(self, obj):
+        """Get count of food entries for this daily entry"""
+        return obj.food_entries.count()
+
     def get_meals_breakdown(self, obj):
         """Get food entries grouped by meal type with totals"""
-        return obj.get_meals_breakdown()
+        # Import here to avoid circular imports
+        from .models import FoodEntry
+
+        meal_breakdown = {}
+
+        # Get all meal type choices
+        for meal_type, meal_name in FoodEntry.MEAL_TYPE_CHOICES:
+            entries = obj.food_entries.filter(meal_type=meal_type)
+
+            # Calculate totals for this meal type
+            totals = {
+                "calories": 0.0,
+                "protein": 0.0,
+                "carbs": 0.0,
+                "fat": 0.0,
+            }
+
+            # Serialize the entries for this meal type
+            serialized_entries = []
+            for entry in entries:
+                # Get nutrition totals from each entry
+                entry_nutrition = entry.get_nutrition_totals()
+                for key in totals:
+                    totals[key] += entry_nutrition[key]
+
+                # Serialize the entry (but avoid circular serialization)
+                entry_data = {
+                    "id": entry.id,
+                    "food_name": entry.food.food_name,
+                    "food_brand": entry.food.brand_name or "",
+                    "quantity": entry.quantity,
+                    "serving_description": entry.get_serving_description(),
+                    "calories": entry.calories,
+                    "protein": entry.protein,
+                    "carbs": entry.carbs,
+                    "fat": entry.fat,
+                    "meal_type": entry.meal_type,
+                    "serving_type": entry.serving_type,
+                    "created_at": entry.created_at,
+                }
+                serialized_entries.append(entry_data)
+
+            meal_breakdown[meal_type] = {
+                "name": meal_name,
+                "totals": {k: round(v, 2) for k, v in totals.items()},
+                "entries": serialized_entries,
+                "entries_count": len(serialized_entries),
+            }
+
+        return meal_breakdown
 
     def get_nutrition_goals(self, obj):
         """Get nutrition goals from the profile"""
@@ -383,6 +429,16 @@ class FoodEntryCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "fatsecret_serving_id is required for FatSecret servings."
                 )
+
+            # Validate serving exists
+            food = data.get("food")
+            if food and food.fatsecret_servings:
+                serving_ids = [s.get("serving_id") for s in food.fatsecret_servings]
+                if str(data.get("fatsecret_serving_id")) not in serving_ids:
+                    raise serializers.ValidationError(
+                        "Selected FatSecret serving is not available for this food."
+                    )
+
         elif serving_type == "custom":
             if not data.get("custom_serving_unit") or not data.get(
                 "custom_serving_amount"
@@ -422,12 +478,12 @@ class FoodServingOptionSerializer(serializers.Serializer):
 
     serving_id = serializers.CharField()
     serving_description = serializers.CharField()
-    metric_serving_amount = serializers.FloatField(required=False)
+    metric_serving_amount = serializers.CharField(required=False)
     metric_serving_unit = serializers.CharField(required=False)
-    calories = serializers.FloatField(required=False)
-    protein = serializers.FloatField(required=False)
-    carbs = serializers.FloatField(required=False)
-    fat = serializers.FloatField(required=False)
+    calories = serializers.CharField(required=False)
+    protein = serializers.CharField(required=False)
+    carbohydrate = serializers.CharField(required=False)
+    fat = serializers.CharField(required=False)
 
 
 class FoodWithServingsSerializer(FoodSerializer):
@@ -477,9 +533,30 @@ class QuickAddFoodEntrySerializer(serializers.Serializer):
 
         return data
 
+    def validate_daily_entry_id(self, value):
+        """Validate daily entry exists"""
+        try:
+            DailyEntry.objects.get(id=value)
+        except DailyEntry.DoesNotExist:
+            raise serializers.ValidationError("Daily entry does not exist.")
+        return value
+
+    def validate_food_id(self, value):
+        """Validate food exists"""
+        try:
+            Food.objects.get(id=value)
+        except Food.DoesNotExist:
+            raise serializers.ValidationError("Food does not exist.")
+        return value
+
     def create(self, validated_data):
         """Create a new food entry"""
-        return FoodEntry.objects.create(**validated_data)
+        daily_entry = DailyEntry.objects.get(id=validated_data.pop("daily_entry_id"))
+        food = Food.objects.get(id=validated_data.pop("food_id"))
+
+        return FoodEntry.objects.create(
+            daily_entry=daily_entry, food=food, **validated_data
+        )
 
 
 # Meal-specific serializers for easier frontend consumption

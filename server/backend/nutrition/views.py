@@ -157,16 +157,28 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
                 "fat": nutrition_profile.daily_fat_goal,
             },
             "progress": {
-                "calories": round(
-                    (avg_calories / nutrition_profile.daily_calories_goal) * 100, 1
+                "calories": (
+                    round(
+                        (avg_calories / nutrition_profile.daily_calories_goal) * 100, 1
+                    )
+                    if nutrition_profile.daily_calories_goal > 0
+                    else 0
                 ),
-                "protein": round(
-                    (avg_protein / nutrition_profile.daily_protein_goal) * 100, 1
+                "protein": (
+                    round((avg_protein / nutrition_profile.daily_protein_goal) * 100, 1)
+                    if nutrition_profile.daily_protein_goal > 0
+                    else 0
                 ),
-                "carbs": round(
-                    (avg_carbs / nutrition_profile.daily_carbs_goal) * 100, 1
+                "carbs": (
+                    round((avg_carbs / nutrition_profile.daily_carbs_goal) * 100, 1)
+                    if nutrition_profile.daily_carbs_goal > 0
+                    else 0
                 ),
-                "fat": round((avg_fat / nutrition_profile.daily_fat_goal) * 100, 1),
+                "fat": (
+                    round((avg_fat / nutrition_profile.daily_fat_goal) * 100, 1)
+                    if nutrition_profile.daily_fat_goal > 0
+                    else 0
+                ),
             },
         }
 
@@ -315,7 +327,7 @@ class FoodViewSet(viewsets.ModelViewSet):
             # Extract food info from the nested structure
             food_info = food_details.get("food", {})
 
-            # Handle servings - ensure it's always a list with serving_id added
+            # Handle servings - ensure it's always a list with proper serving_id
             servings_data = food_info.get("servings", {})
             if isinstance(servings_data, dict):
                 serving = servings_data.get("serving", [])
@@ -324,9 +336,14 @@ class FoodViewSet(viewsets.ModelViewSet):
             else:
                 serving = servings_data if isinstance(servings_data, list) else []
 
-            # Add serving_id to each serving for reference
+            # Process servings and ensure each has a serving_id
+            processed_servings = []
             for i, serv in enumerate(serving):
-                serv["serving_id"] = str(i)
+                if isinstance(serv, dict):
+                    # Use the serving_id from FatSecret if available, otherwise use index
+                    if "serving_id" not in serv:
+                        serv["serving_id"] = str(i)
+                    processed_servings.append(serv)
 
             # Create Food object from FatSecret data
             food_data = {
@@ -343,13 +360,14 @@ class FoodViewSet(viewsets.ModelViewSet):
                 "food_description": food_info.get(
                     "food_description", request.data.get("food_description", "")
                 ),
-                "fatsecret_servings": serving,
+                "fatsecret_servings": processed_servings,
             }
 
             # Debug logging
             logger.info(f"Processing food import for ID: {food_id}")
             logger.info(f"FatSecret response structure: {food_details}")
             logger.info(f"Extracted food data: {food_data}")
+            logger.info(f"Processed servings count: {len(processed_servings)}")
 
             serializer = self.get_serializer(data=food_data)
             serializer.is_valid(raise_exception=True)

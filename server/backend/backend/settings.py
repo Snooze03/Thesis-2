@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     # Packages
     "rest_framework",
     "corsheaders",
+    "django_filters",
     # My Apps
     "accounts",
     "workouts",

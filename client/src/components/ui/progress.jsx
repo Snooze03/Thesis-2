@@ -6,8 +6,12 @@ import { cn } from "@/lib/utils"
 function Progress({
   className,
   value,
+  max = 100,
   ...props
 }) {
+  // Calculate percentage based on value and max
+  const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
@@ -19,7 +23,7 @@ function Progress({
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
         className="bg-primary h-full w-full flex-1 transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }} />
+        style={{ transform: `translateX(-${100 - percentage}%)` }} />
     </ProgressPrimitive.Root>
   );
 }

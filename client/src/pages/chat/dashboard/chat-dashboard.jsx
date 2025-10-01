@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ChatDialogs } from "./chat-dialogs";
 import { Plus, Clock, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const ChatDashboard = () => {
     const navigate = useNavigate();
@@ -77,6 +79,8 @@ const ChatDashboard = () => {
         </div>
     );
 
+    useScrollLock(isLoadingChats)
+
     if (chatsError) {
         return (
             <MainLayout>
@@ -127,7 +131,8 @@ const ChatDashboard = () => {
                 <SectionSubTitle>Previous Chats</SectionSubTitle>
                 <div className="text-gray-500">
                     {isLoadingChats ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        // <Loader2 className="h-4 w-4 animate-spin" />
+                        <Skeleton className="h-5 w-13 rounded-lg" />
                     ) : (
                         `${chats.length} chats`
                     )}
@@ -135,8 +140,10 @@ const ChatDashboard = () => {
             </div>
 
             {isLoadingChats ? (
-                <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="space-y-3">
+                    {[...Array(2)].map((_, index) => (
+                        <Skeleton key={index} className="h-30 w-full rounded-lg" />
+                    ))}
                 </div>
             ) : chats.length === 0 ? (
                 <EmptyItems

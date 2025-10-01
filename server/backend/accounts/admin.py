@@ -4,6 +4,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count, Avg
 from .models import Account, Profile, WeightHistory
+from nutrition.admin import create_nutrition_profiles_for_accounts
 
 
 class ProfileInline(admin.StackedInline):
@@ -71,6 +72,9 @@ class AccountAdmin(UserAdmin):
     """Admin configuration for Account model."""
 
     inlines = [ProfileInline, WeightHistoryInline]
+    actions = [create_nutrition_profiles_for_accounts]
+
+    # Register your models here.
 
     list_display = [
         "email",

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api";
 import { useNavigate } from "react-router-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import { MainLayout } from "@/layouts/main-layout";
 import { WeightManager } from "./weight-chart";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { EmptyItems } from "@/components/empty-items";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
     const getProfile = async () => {
@@ -29,8 +31,18 @@ const Profile = () => {
         queryFn: getProfile,
     });
 
+    useScrollLock(isPending);
 
-    if (isPending) return <LoadingSpinner message="Profile" />
+    if (isPending) {
+        return (
+            <MainLayout>
+                <Skeleton className="h-10 w-25 rounded-lg" />
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-10 w-30 rounded-lg" />
+                <Skeleton className="h-56 w-full rounded-lg" />
+            </MainLayout>
+        )
+    }
 
     const account_data = user_data.data;
     const account_profile = user_data.data.profile;
@@ -39,6 +51,7 @@ const Profile = () => {
     return (
         <MainLayout>
             <SectionTitle>Profile</SectionTitle>
+            {/* {isPending ? <Skeleton className="h-48 w-full rounded-lg" /> : <ProfileCard acc_data={account_data} acc_profile={account_profile} />} */}
             <ProfileCard acc_data={account_data} acc_profile={account_profile} />
 
             <SectionSubTitle>Weight Logs</SectionSubTitle>

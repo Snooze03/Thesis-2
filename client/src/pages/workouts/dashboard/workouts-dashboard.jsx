@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
 import { useTemplates } from "@/hooks/workouts/useTemplates";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const WorkoutsDashboard = () => {
     const {
@@ -17,6 +19,8 @@ const WorkoutsDashboard = () => {
         isLoading,
         navigateToCreate
     } = useTemplates();
+
+    useScrollLock(isLoading);
 
     return (
         <MainLayout>
@@ -57,7 +61,12 @@ function TemplatesList({ title, templates, isPending, onCreateClick }) {
             </div>
 
             {isPending ? (
-                <LoadingSpinner message="templates" />
+                // <LoadingSpinner message="templates" />
+                <div className="space-y-3">
+                    {[...Array(3)].map((_, index) => (
+                        <Skeleton key={index} className="h-12 w-full rounded-md" />
+                    ))}
+                </div>
             ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
                     {templates.map((item) => (

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
+// import { useNutritionCRUD } from "@/hooks/nutrition/useNutritionCRUD";
 import { SubLayout } from "@/layouts/sub-layout";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "react-hot-toast";
 
 function FoodDetails() {
     const { useFoodDetails } = useNutritionSearch();
@@ -16,6 +18,9 @@ function FoodDetails() {
     const location = useLocation();
     const foodId = location.state?.foodId;
     const [selectedServingId, setSelectedServingId] = useState("");
+    const [customAmount, setCustomAmount] = useState("");
+    const [customUnit, setCustomUnit] = useState("");
+    const [selectedMeal, setSelectedMeal] = useState("");
     const meal = ["Breakfast", "Lunch", "Dinner", "Snack"];
     const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
 
@@ -47,8 +52,91 @@ function FoodDetails() {
         setSelectedServingId(servingId);
     };
 
+    // Handle custom unit selection
+    const handleCustomUnitChange = (unit) => {
+        setCustomUnit(unit);
+    };
+
+    // Handle meal selection
+    const handleMealChange = (mealType) => {
+        setSelectedMeal(mealType);
+    };
+
+    // // Handle adding food
+    // const handleAddFood = async (e) => {
+    //     e.preventDefault();
+    //     // Validation
+    //     if (!selectedMeal) {
+    //         toast.error('Please select a meal');
+    //         return;
+    //     }
+
+    //     if (!selectedServing && !customAmount) {
+    //         toast.error('Please select a serving or enter custom amount');
+    //         return;
+    //     }
+
+    //     if (customAmount && !customUnit) {
+    //         toast.error('Please select a unit for custom serving');
+    //         return;
+    //     }
+
+    //     try {
+    //         // Debug: Log the food details structure
+    //         console.log('Food Details for Import:', foodDetails);
+
+    //         // Import food data - include fallback values from frontend
+    //         const importData = {
+    //             food_id: foodDetails.food_id,
+    //             food_name: foodDetails?.food_name || "Unknown Food",
+    //             food_type: foodDetails?.food_type || 'Generic',
+    //             brand_name: foodDetails?.brand_name || '',
+    //             food_description: foodDetails?.food_description || '',
+    //         };
+
+    //         console.log('Import Data being sent:', importData);
+
+    //         const importResponse = await importFood.mutateAsync(importData);
+    //         console.log('Import Response:', importResponse);
+
+    //         // Get the local food ID from the import response
+    //         const localFoodId = importResponse.data?.food?.id || importResponse.data?.data?.id;
+    //         console.log('Local Food ID:', localFoodId);
+
+    //         if (!localFoodId) {
+    //             throw new Error('Failed to get local food ID from import response');
+    //         }
+
+    //         // We need to get or create today's daily entry and meal first
+    //         // For now, let's create a basic implementation - you'll need to enhance this
+
+    //         // TODO: Implement proper meal creation logic
+    //         // You need to:
+    //         // 1. Get today's daily entry (or create one)
+    //         // 2. Get the meal for the selected meal type (or create one)
+    //         // 3. Then create the meal food entry
+
+    //         console.log('Selected meal:', selectedMeal);
+    //         console.log('This needs proper meal/daily entry creation logic');
+
+    //         // For now, show success and navigate back
+    //         toast.success('Food imported successfully! Please add it to a meal from the nutrition dashboard.');
+    //         navigate('/nutrition');
+
+    //     } catch (error) {
+    //         console.error('Failed to add food:', error);
+    //         console.error('Error response:', error.response?.data);
+
+    //         // Show more specific error message
+    //         const errorMessage = error.response?.data?.error || 'Failed to add food';
+    //         toast.error(errorMessage);
+    //     }
+    // };
+
+    const isSubmitting = false // importFood.isPending || createMealFoodEntry.isPending;
+
     console.log("Food Details Data:", foodDetails);
-    console.log("Brand name:", foodDetails?.brand_name);
+    // console.log("Brand name:", foodDetails?.food_name);
 
     return (
         <SubLayout>
@@ -120,8 +208,15 @@ function FoodDetails() {
                                     <Separator className="h-px flex-1 bg-border " />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Input placeholder="Amount" />
-                                    <Select onValueChange={handleServingChange} value={selectedServingId}>
+                                    <Input
+                                        placeholder="Amount"
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={customAmount}
+                                        onChange={(e) => setCustomAmount(e.target.value)}
+                                    />
+                                    <Select onValueChange={handleCustomUnitChange} value={customUnit}>
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Serving size" />
                                         </SelectTrigger>
@@ -144,7 +239,7 @@ function FoodDetails() {
                                     <p>Add to Meal</p>
                                     <Separator className="h-px flex-1 bg-border " />
                                 </div>
-                                <Select onValueChange={handleServingChange} value={selectedServingId}>
+                                <Select onValueChange={handleMealChange} value={selectedMeal}>
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select meal" />
                                     </SelectTrigger>
@@ -161,7 +256,13 @@ function FoodDetails() {
                                 </Select>
                             </div>
 
-                            <Button className="w-full mt-2">Add Food</Button>
+                            <Button
+                                className="w-full mt-2"
+                                // onClick={handleAddFood}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? 'Adding Food...' : 'Add Food'}
+                            </Button>
                         </CardContent>
                     </Card>
                 </>

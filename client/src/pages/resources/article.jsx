@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Clock, User, ArrowLeft, ExternalLink } from "lucide-react";
-import { LoadingSpinner } from "../../components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyItems } from "@/components/empty-items";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const UserInfo = ({ author, publishedAt, readTime, size = "default" }) => {
     const avatarSizes = {
@@ -144,7 +145,17 @@ const TableOfContents = ({ sections, onSectionClick, isMobile = false }) => {
 
 // Renders article in a list like view
 const ArticlesList = ({ articles, onSelectArticle, isLoading, error, refetch }) => {
-    if (isLoading) return <LoadingSpinner />
+    useScrollLock(isLoading); 5
+
+    if (isLoading) {
+        return (
+            <div className="space-y-3">
+                {[...Array(2)].map((_, index) => (
+                    <Skeleton key={index} className="h-70 w-full rounded-lg" />
+                ))}
+            </div>
+        )
+    }
     if (error) return <ErrorState message={error.message} onRetry={refetch} />
     if (!articles?.length) return <EmptyItems className="w-full h-full" title="No articles found!" description="currently in progress..." />
 

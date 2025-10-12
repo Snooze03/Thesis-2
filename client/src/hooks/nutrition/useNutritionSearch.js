@@ -12,6 +12,8 @@ export function useNutritionSearch() {
             const response = await api.get('nutrition/foods/search/', {
                 params: { q: searchTerm, page }
             });
+            // Error checking
+            console.log('Food search response:', response.data);
             return response.data;
         } catch (error) {
             console.error('Food search error:', error);

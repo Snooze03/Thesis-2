@@ -1,39 +1,45 @@
-import api from '@/api';
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
 import { useAddFoodToDailyEntry } from "@/hooks/nutrition/add-food/useAddFoodToDailyEntry";
+import { addFoodSchema } from "./add-food-schema";
 import { SubLayout } from "@/layouts/sub-layout";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "react-hot-toast";
-import { quartersToMonths } from "date-fns";
+import clsx from "clsx";
 
-function FoodDetails() {
+function AddFoodEntry() {
     const { useFoodDetails } = useNutritionSearch();
     const navigate = useNavigate();
     const location = useLocation();
     const foodId = location.state?.foodId;
-    const [selectedServingId, setSelectedServingId] = useState("");
-    const [customAmount, setCustomAmount] = useState("");
-    const [customUnit, setCustomUnit] = useState("");
-    const [selectedMeal, setSelectedMeal] = useState("");
+    const [isCustomServing, setIsCustomServing] = useState(false);
     const meal = ["breakfast", "lunch", "dinner", "snack"];
     const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
 
     const {
-        addFood,
-        isLoading: isAddingFood,
-        isSuccess
-    } = useAddFoodToDailyEntry();
-
-    // console.log("FoodDetails received foodId:", foodId);
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors }
+    } = useForm({
+        resolver: valibotResolver(addFoodSchema),
+        defaultValues: {
+            selectedServingId: "",
+            customAmount: "",
+            customUnit: "",
+            selectedMeal: ""
+        }
+    });
 
     const {
         data,
@@ -41,7 +47,7 @@ function FoodDetails() {
         error
     } = useFoodDetails(foodId);
 
-    const foodDetails = data?.food
+    const foodDetails = data?.food;
     const foodServings = foodDetails?.servings;
 
     // Get servings array - handle both single serving and multiple servings
@@ -51,29 +57,39 @@ function FoodDetails() {
             ? [foodServings.serving]
             : [];
 
-    // Find the selected serving or use the first one as default
+    // Watch form values for UI updates
+    const selectedServingId = watch("selectedServingId");
+    const customAmount = watch("customAmount");
+    const customUnit = watch("customUnit");
+    const selectedMeal = watch("selectedMeal");
+
+    // Find the selected serving, and use the first one as default
     const selectedServing = selectedServingId
         ? servings.find(serving => serving.serving_id === selectedServingId)
         : servings[0];
 
-    // ===== EVENT HANDLERS =====
-    // Handle serving selection
-    const handleServingChange = (servingId) => {
-        setSelectedServingId(servingId);
-    };
+    // Set default serving when servings are loaded
+    useEffect(() => {
+        if (servings.length > 0 && !selectedServingId) {
+            setValue("selectedServingId", servings[0].serving_id);
+        }
+    }, [servings, selectedServingId, setValue]);
 
-    // Handle custom unit selection
-    const handleCustomUnitChange = (unit) => {
-        setCustomUnit(unit);
-    };
+    // Show validation errors as toasts
+    useEffect(() => {
+        if (Object.keys(errors).length > 0) {
+            const firstError = Object.values(errors)[0];
+            toast.error(firstError.message);
+        }
+    }, [errors]);
 
-    // Handle meal selection
-    const handleMealChange = (mealType) => {
-        setSelectedMeal(mealType);
-    };
+    const {
+        addFood,
+        isLoading: isAddingFood,
+    } = useAddFoodToDailyEntry();
 
-
-    const handleAddFood = () => {
+    // Handle form submission
+    const onSubmit = (formData) => {
         const foodData = {
             food_id: foodDetails.food_id || foodId,
             food_name: foodDetails.food_name || null,
@@ -81,24 +97,21 @@ function FoodDetails() {
             food_type: foodDetails.food_type || null,
             food_description: foodDetails.food_description || null,
             servings: servings || []
-        }
+        };
+
         const entryData = {
-            daily_entry: 11,
-            meal_type: selectedMeal,
+            daily_entry: 14,
+            meal_type: formData.selectedMeal,
             serving_type: "fatsecret",
-            fatsecret_serving_id: selectedServingId || (servings[0] ? servings[0].serving_id : null),
-            custom_serving_unit: customUnit || null,
-            custom_serving_amount: customAmount || null,
+            fatsecret_serving_id: formData.selectedServingId || (servings[0] ? servings[0].serving_id : null),
+            custom_serving_unit: formData.customUnit || null,
+            custom_serving_amount: formData.customAmount || null,
             quantity: 1
-        }
+        };
 
         addFood({ foodData, entryData });
-    }
-    // ===== END EVENT HANDLERS =====
+    };
 
-    // console.log("Food Details Data:", foodDetails);
-    // console.log("Selected Serving Id:", selectedServingId);
-    // console.log("Brand name:", foodDetails?.food_name);
 
     return (
         <SubLayout>
@@ -112,7 +125,7 @@ function FoodDetails() {
             {isLoading && <LoadingSpinner message="food details" />}
 
             {!isLoading && (
-                <>
+                <form onSubmit={handleSubmit(onSubmit)}>
                     <Card className="pt-0">
                         <CardHeader className="-mb-1 pt-3 pb-2 rounded-t-lg bg-primary text-white">
                             <CardTitle className="text-lg">
@@ -143,12 +156,22 @@ function FoodDetails() {
                             </div>
 
                             {/* FatSecret Servings */}
-                            <div className="grid grid-rows-2 ">
+                            <div className="grid grid-rows-2" onClick={() => {
+                                setIsCustomServing(false);
+                            }}>
                                 <div className="flex items-center justify-between gap-4">
-                                    <p>Serving Options</p>
-                                    <Separator className="h-px flex-1 bg-border " />
+                                    <p className={clsx(
+                                        "text-black",
+                                        { "text-gray-600": isCustomServing },
+                                        { "font-bold": !isCustomServing },
+                                    )}>Serving Options</p>
+                                    <Separator className="h-px flex-1 bg-border" />
                                 </div>
-                                <Select onValueChange={handleServingChange} value={selectedServingId}>
+                                <Select
+                                    onValueChange={(value) => setValue("selectedServingId", value)}
+                                    value={selectedServingId}
+                                    disabled={isCustomServing}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select serving size" />
                                     </SelectTrigger>
@@ -166,21 +189,29 @@ function FoodDetails() {
                             </div>
 
                             {/* Custom Serving Input */}
-                            <div className="grid grid-rows-2">
+                            <div className="grid grid-rows-2" onClick={() => setIsCustomServing(true)}>
                                 <div className="flex items-center justify-between gap-4">
-                                    <p>Custom Serving</p>
-                                    <Separator className="h-px flex-1 bg-border " />
+                                    <p className={clsx(
+                                        "text-black",
+                                        { "text-gray-600": !isCustomServing },
+                                        { "font-bold": isCustomServing },
+                                    )}>Custom Serving</p>
+                                    <Separator className="h-px flex-1 bg-border" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <Input
+                                        {...register("customAmount")}
                                         placeholder="Amount"
                                         type="number"
                                         min="0"
                                         step="0.1"
-                                        value={customAmount}
-                                        onChange={(e) => setCustomAmount(e.target.value)}
+                                        disabled={!isCustomServing}
                                     />
-                                    <Select onValueChange={handleCustomUnitChange} value={customUnit}>
+                                    <Select
+                                        onValueChange={(value) => setValue("customUnit", value)}
+                                        value={customUnit}
+                                        disabled={!isCustomServing}
+                                    >
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Serving metric" />
                                         </SelectTrigger>
@@ -202,9 +233,12 @@ function FoodDetails() {
                             <div className="grid grid-rows-2">
                                 <div className="flex items-center justify-between gap-4">
                                     <p>Add to Meal</p>
-                                    <Separator className="h-px flex-1 bg-border " />
+                                    <Separator className="h-px flex-1 bg-border" />
                                 </div>
-                                <Select onValueChange={handleMealChange} value={selectedMeal}>
+                                <Select
+                                    onValueChange={(value) => setValue("selectedMeal", value)}
+                                    value={selectedMeal}
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select meal" />
                                     </SelectTrigger>
@@ -222,19 +256,18 @@ function FoodDetails() {
                             </div>
 
                             <Button
+                                type="submit"
                                 className="w-full mt-2"
-                                onClick={handleAddFood}
                                 disabled={isAddingFood}
                             >
                                 {isAddingFood ? 'Adding Food...' : 'Add Food'}
                             </Button>
                         </CardContent>
                     </Card>
-                </>
+                </form>
             )}
-
         </SubLayout>
     );
 }
 
-export { FoodDetails }
+export { AddFoodEntry };

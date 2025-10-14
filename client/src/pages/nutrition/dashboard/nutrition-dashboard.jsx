@@ -19,7 +19,7 @@ const NutritionDashboard = () => {
         refetch
     } = useNutritionProfile();
 
-    console.log("Nutrition Profile:", profile);
+    // console.log("Nutrition Profile:", profile);
 
     return (
         <MainLayout>
@@ -35,12 +35,10 @@ const NutritionDashboard = () => {
 
 
 const Macros = ({ userNutritionProfile }) => {
-
     const daily_calories = userNutritionProfile ? userNutritionProfile.daily_calories_goal : 0;
     const daily_carbs = userNutritionProfile ? userNutritionProfile.daily_carbs_goal : 0;
     const daily_protein = userNutritionProfile ? userNutritionProfile.daily_protein_goal : 0;
     const daily_fats = userNutritionProfile ? userNutritionProfile.daily_fat_goal : 0;
-
 
     return (
         <div className="flex justify-center w-full">

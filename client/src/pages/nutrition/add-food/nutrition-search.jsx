@@ -23,9 +23,6 @@ const SearchFood = () => {
 
     // Single useEffect for logging
     useEffect(() => {
-        // if (data?.foods?.food) {
-        //     console.log("Foods array:", data.foods.food);
-        // }
         if (error) {
             console.error("Search Error:", error);
         }

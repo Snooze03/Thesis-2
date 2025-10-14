@@ -12,7 +12,7 @@ export const useAddFoodToDailyEntry = () => {
     const addFoodToDailyEntry = useMutation({
         mutationFn: async ({ foodData, entryData }) => {
             try {
-                // Step 1: Import food to master database (if not exists)
+                // Step 1: Import food to master database (if not yet added)
                 const importResponse = await api.post('/nutrition/foods-db/import_from_fatsecret/', {
                     food_id: foodData.food_id,
                     food_name: foodData.food_name,
@@ -71,48 +71,14 @@ export const useAddFoodToDailyEntry = () => {
     });
 
     return {
+        // Mutation action
         addFood: addFoodToDailyEntry.mutate,
         addFoodAsync: addFoodToDailyEntry.mutateAsync,
+
+        // Mutation States
         isLoading: addFoodToDailyEntry.isPending,
         isError: addFoodToDailyEntry.isError,
         error: addFoodToDailyEntry.error,
         isSuccess: addFoodToDailyEntry.isSuccess
-    };
-};
-
-/**
- * Hook for quick adding food with simplified interface
- * Uses FatSecret predefined serving by default
- */
-export const useQuickAddFood = () => {
-    const queryClient = useQueryClient();
-
-    const quickAddFood = useMutation({
-        mutationFn: async ({ food_id, meal_type, serving_id, date }) => {
-            const response = await api.post('/nutrition/food-entries/quick_add/', {
-                food_id,
-                meal_type,
-                serving_id,
-                date: date || new Date().toISOString().split('T')[0]
-            });
-            return response.data;
-        },
-        onSuccess: () => {
-            toast.success('Food added successfully!');
-            queryClient.invalidateQueries({ queryKey: ['dailyEntry'] });
-            queryClient.invalidateQueries({ queryKey: ['nutritionProfile'] });
-        },
-        onError: (error) => {
-            console.error('Error quick adding food:', error);
-            toast.error('Failed to add food. Please try again.');
-        }
-    });
-
-    return {
-        quickAdd: quickAddFood.mutate,
-        quickAddAsync: quickAddFood.mutateAsync,
-        isLoading: quickAddFood.isPending,
-        isError: quickAddFood.isError,
-        error: quickAddFood.error
     };
 };

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
 import { useAddFoodToDailyEntry } from "@/hooks/nutrition/add-food/useAddFoodToDailyEntry";
+import { useDailyEntry } from "@/hooks/nutrition/useDailyEntry";
 import { addFoodSchema } from "./add-food-schema";
 import { SubLayout } from "@/layouts/sub-layout";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -25,6 +26,7 @@ function AddFoodEntry() {
     const meal = ["breakfast", "lunch", "dinner", "snack"];
     const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
 
+    // ===== FORM HANDLER =====
     const {
         register,
         handleSubmit,
@@ -40,13 +42,16 @@ function AddFoodEntry() {
             selectedMeal: ""
         }
     });
+    // ===== END FORM HANDLER =====
 
+    // Fetch Food Details
     const {
         data,
         isLoading,
         error
     } = useFoodDetails(foodId);
 
+    // get data from json response
     const foodDetails = data?.food;
     const foodServings = foodDetails?.servings;
 
@@ -83,12 +88,18 @@ function AddFoodEntry() {
         }
     }, [errors]);
 
+    // Get today's daily entry ID
+    const {
+        data: todayDailyEntryID,
+    } = useDailyEntry();
+
+    // Mutation to add food to daily entry
     const {
         addFood,
         isLoading: isAddingFood,
     } = useAddFoodToDailyEntry();
 
-    // Handle form submission
+    // ===== FORM SUBMISSION HANDLER =====
     const onSubmit = (formData) => {
         const foodData = {
             food_id: foodDetails.food_id || foodId,
@@ -100,7 +111,7 @@ function AddFoodEntry() {
         };
 
         const entryData = {
-            daily_entry: 14,
+            daily_entry: todayDailyEntryID,
             meal_type: formData.selectedMeal,
             serving_type: "fatsecret",
             fatsecret_serving_id: formData.selectedServingId || (servings[0] ? servings[0].serving_id : null),
@@ -111,6 +122,7 @@ function AddFoodEntry() {
 
         addFood({ foodData, entryData });
     };
+    // ==== END FORM SUBMISSION HANDLER =====
 
 
     return (

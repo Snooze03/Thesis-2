@@ -23,22 +23,32 @@ export function Macros({ dailyEntry }) {
                                 Calories
                             </CardTitle>
 
-                            <RadialProgress value={dailyEntry.calories_progress} max={daily_calories} size="xl" label="remaining" className="-mb-5" />
+                            <RadialProgress value={dailyEntry.total_calories} max={daily_calories} size="xl" label="remaining" className="-mb-5" />
                             <div className="grid grid-cols-2 gap-3 text-sm p-4 -mb-2">
                                 <div className="grid auto-rows-auto gap-[4px] place-items-start bg-orange-100 px-4 py-3 rounded-lg">
                                     <p>
                                         <TrendingUp className="inline size-4 mr-1" />
                                         Consumed
                                     </p>
-                                    <p className="font-semibold">{dailyEntry.calories_progress} <span className="text-muted-foreground font-normal">kcal</span></p>
-                                    <Progress value={dailyEntry.calories_progress} className="bg-gray-100 [&>*]:bg-orange-300 mt-1" />
+                                    <p className="font-semibold">
+                                        {dailyEntry.total_calories}
+                                        <span className="text-muted-foreground font-normal ml-1">
+                                            kcal
+                                        </span>
+                                    </p>
+                                    <Progress value={dailyEntry.total_calories} className="bg-gray-100 [&>*]:bg-orange-300 mt-1" />
                                 </div>
                                 <div className="grid auto-rows-auto gap-[4px] place-items-start bg-green-100 px-4 py-3 rounded-lg">
                                     <p>
                                         <Target className="inline size-4 mr-1" />
                                         Goal
                                     </p>
-                                    <p className="font-semibold">{daily_calories} <span className="text-muted-foreground font-normal">kcal</span></p>
+                                    <p className="font-semibold">
+                                        {daily_calories}
+                                        <span className="text-muted-foreground font-normal ml-1">
+                                            kcal
+                                        </span>
+                                    </p>
                                     <Progress value={100} className="bg-gray-100 [&>*]:bg-green-300 mt-1" />
                                 </div>
                             </div>
@@ -55,10 +65,14 @@ export function Macros({ dailyEntry }) {
                                     <Wheat className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Carbs</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">{dailyEntry.carbs_progress}/{daily_carbs} g</p>
-                                <p className="col-start-4 justify-self-end font-semibold text-md">{(daily_carbs - dailyEntry.carbs_progress).toFixed(2)} g</p>
+                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                    {dailyEntry.total_carbs}/{daily_carbs} g
+                                </p>
+                                <p className="col-start-4 justify-self-end font-semibold text-md">
+                                    {(daily_carbs - dailyEntry.total_carbs).toFixed(2)} g
+                                </p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>
-                                <Progress value={dailyEntry.carbs_progress} max={daily_carbs} className="col-span-4 bg-gray-100 [&>*]:bg-orange-300" />
+                                <Progress value={dailyEntry.total_carbs} max={daily_carbs} className="col-span-4 bg-gray-100 [&>*]:bg-orange-300" />
                             </div>
 
                             <div className="w-full px-6 grid grid-cols-[auto_1fr_1fr_1fr] grid-rows-3 items-center">
@@ -66,10 +80,14 @@ export function Macros({ dailyEntry }) {
                                     <Beef className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Protein</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">{dailyEntry.protein_progress}/{daily_protein} g</p>
-                                <p className="col-start-4 justify-self-end font-semibold text-md">{(daily_protein - dailyEntry.protein_progress).toFixed(2)} g</p>
+                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                    {dailyEntry.total_protein}/{daily_protein} g
+                                </p>
+                                <p className="col-start-4 justify-self-end font-semibold text-md">
+                                    {(daily_protein - dailyEntry.total_protein).toFixed(2)} g
+                                </p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>
-                                <Progress value={dailyEntry.protein_progress} max={daily_protein} className="col-span-4 bg-gray-100 [&>*]:bg-green-300" />
+                                <Progress value={dailyEntry.total_protein} max={daily_protein} className="col-span-4 bg-gray-100 [&>*]:bg-green-300" />
                             </div>
 
                             <div className="w-full px-6 grid grid-cols-[auto_1fr_1fr_1fr] grid-rows-3 items-center">
@@ -77,10 +95,14 @@ export function Macros({ dailyEntry }) {
                                     <Citrus className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Fats</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">{dailyEntry.fat_progress}/{daily_fats} g</p>
-                                <p className="col-start-4 justify-self-end font-semibold">{(daily_fats - dailyEntry.fat_progress).toFixed(2)} g</p>
+                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                    {dailyEntry.total_fat}/{daily_fats} g
+                                </p>
+                                <p className="col-start-4 justify-self-end font-semibold">
+                                    {(daily_fats - dailyEntry.total_fat).toFixed(2)} g
+                                </p>
                                 <p className="col-start-4 justify-self-end text-muted-foreground text-sm">remaining</p>
-                                <Progress value={dailyEntry.fat_progress} max={daily_fats} className="col-span-4 bg-gray-100 [&>*]:bg-violet-300" />
+                                <Progress value={dailyEntry.total_fat} max={daily_fats} className="col-span-4 bg-gray-100 [&>*]:bg-violet-300" />
                             </div>
 
                         </Card>

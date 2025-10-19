@@ -1,10 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardAction, CardContent } from "@/components/ui/card";
-import { Coffee, Utensils, Moon, Cookie, Search } from "lucide-react";
+import { Card, CardAction, CardContent, CardTitle } from "@/components/ui/card";
+import { Search, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatDate } from "@/utils/formatDate";
+import { Separator } from "@/components/ui/separator";
 
-export function AddFood() {
+export function FoodEntry({ dailyEntry }) {
     const navigate = useNavigate();
+    const meals = dailyEntry.meals_breakdown;
+    console.log(`Meals: ${meals}`);
 
     const handleAddFood = () => {
         navigate("add");
@@ -13,47 +17,49 @@ export function AddFood() {
     return (
         <Card>
             <CardContent>
-                <div className="grid grid-cols-1 grid-rows-4 gap-3 lg:grid-cols-2 lg:grid-rows-2">
-                    <div className="grid grid-cols-[min-content_auto] gap-3">
-                        <div className="bg-orange-100 rounded-full self-center">
-                            <Coffee className="size-6 m-2 stroke-orange-300 self-center justify-self-center" />
-                        </div>
-                        <div>
-                            <p>Breakfast</p>
-                            <p className="text-gray-500">422 calories | 3 items</p>
-                        </div>
+                <CardTitle>
+                    <div className="flex justify-center items-center gap-2">
+                        <Calendar className="size-4" />
+                        <p>{formatDate(dailyEntry.date)}</p>
                     </div>
+                </CardTitle>
 
+                <div className="space-y-4 mt-4">
+                    {Object.entries(meals).map(([mealType, mealData]) => (
+                        <div key={mealType}>
+                            {/* Meal type (breakfast, lunch etc) */}
+                            <div className="flex justify-between items-center">
+                                <h3 className="capitalize">
+                                    {mealData.name || mealType}
+                                </h3>
+                                <p className="text-sm text-black bg-orange-300 px-3 py-[.5px]  rounded-full">
+                                    {mealData.totals?.calories || 0} cal
+                                </p>
+                            </div>
+                            <Separator className="mt-1" />
 
-                    <div className="grid grid-cols-[min-content_auto] gap-3">
-                        <div className="bg-green-100 rounded-full self-center">
-                            <Utensils className="size-6 m-2 stroke-green-300 self-center justify-self-center" />
-                        </div>
-                        <div>
-                            <p>Lunch</p>
-                            <p className="text-gray-500">751 calories | 2 items</p>
-                        </div>
-                    </div>
+                            {/* Food entries */}
+                            {mealData.entries && mealData.entries.length > 0 ? (
+                                <div className="mt-2">
+                                    {mealData.entries.map((entry, index) => (
+                                        <div key={index} className="flex justify-between gap-3">
+                                            <p className="text-sm text-gray-700">
+                                                {entry.food_name} - {entry.quantity}x
+                                            </p>
+                                            <p className="text-sm text-gray-600">
+                                                {entry.protein}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground mt-2 italic">
+                                    No foods added
+                                </p>
+                            )}
 
-                    <div className="grid grid-cols-[min-content_auto] gap-3">
-                        <div className="bg-violet-100 rounded-full self-center">
-                            <Moon className="size-6 m-2 stroke-violet-300 self-center justify-self-center" />
                         </div>
-                        <div>
-                            <p>Dinner</p>
-                            <p className="text-gray-500">870 calories | 3 items</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-[min-content_auto] gap-3">
-                        <div className="bg-sky-100 rounded-full self-center">
-                            <Cookie className="size-6 m-2 stroke-sky-300 self-center justify-self-center" />
-                        </div>
-                        <div>
-                            <p>Snacks</p>
-                            <p className="text-gray-500">560 calories | 2 items</p>
-                        </div>
-                    </div>
+                    ))}
                 </div>
 
                 <CardAction className="w-full mt-5">

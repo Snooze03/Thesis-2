@@ -41,6 +41,31 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=["get"])
+    def health_metrics(self, request, pk=None):
+        """
+        Get comprehensive health metrics for the user.
+
+        Returns BMI, BMI category, BMR, TDEE, and other health-related metrics.
+        """
+        nutrition_profile = self.get_object()
+
+        health_data = {
+            "bmi": nutrition_profile.bmi,
+            "bmi_category": nutrition_profile.get_bmi_category(),
+            "bmr": nutrition_profile.bmr,
+            "tdee": nutrition_profile.tdee,
+            "daily_goals": {
+                "calories": nutrition_profile.daily_calories_goal,
+                "protein": nutrition_profile.daily_protein_goal,
+                "carbs": nutrition_profile.daily_carbs_goal,
+                "fat": nutrition_profile.daily_fat_goal,
+            },
+            "is_auto_calculated": nutrition_profile.is_auto_calculated,
+        }
+
+        return Response(health_data)
+
+    @action(detail=True, methods=["get"])
     def weekly_summary(self, request, pk=None):
         """
         Get weekly nutrition summary for the user.
@@ -109,6 +134,13 @@ class NutritionProfileViewSet(viewsets.ModelViewSet):
                     if nutrition_profile.daily_fat_goal > 0
                     else 0
                 ),
+            },
+            # Include health metrics in weekly summary
+            "health_metrics": {
+                "bmi": nutrition_profile.bmi,
+                "bmi_category": nutrition_profile.get_bmi_category(),
+                "bmr": nutrition_profile.bmr,
+                "tdee": nutrition_profile.tdee,
             },
         }
 

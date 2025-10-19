@@ -2,7 +2,9 @@ import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { useDailyEntry } from "@/hooks/nutrition/useDailyEntry";
 import { Macros } from "./macros";
-import { AddFood } from "./daily-entry";
+import { FoodEntry } from "./daily-entry";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 const NutritionDashboard = () => {
     const {
@@ -14,8 +16,10 @@ const NutritionDashboard = () => {
 
     // console.log("Nutrition Profile:", profile);
 
+    useScrollLock(isDailyEntryLoading);
+
     if (isDailyEntryLoading) {
-        return <MainLayout>Loading...</MainLayout>;
+        return <NutritionDashboardSkeleton />;
     }
 
     return (
@@ -24,8 +28,20 @@ const NutritionDashboard = () => {
             <SectionSubText>Log and track your macros</SectionSubText>
             <Macros dailyEntry={dailyEntry} />
 
-            <SectionSubTitle>Add Food</SectionSubTitle>
-            <AddFood />
+            <SectionSubTitle>Food Entries</SectionSubTitle>
+            <FoodEntry dailyEntry={dailyEntry} />
+        </MainLayout>
+    );
+}
+
+const NutritionDashboardSkeleton = () => {
+    return (
+        <MainLayout>
+            <Skeleton className="w-25 h-10" />
+            <Skeleton className="w-30 h-5" />
+            <Skeleton className="w-full h-55" />
+            <Skeleton className="w-30 h-5" />
+            <Skeleton className="w-full h-55" />
         </MainLayout>
     );
 }

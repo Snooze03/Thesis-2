@@ -14,7 +14,7 @@ export function useDailyEntry() {
 
     return {
         fetchTodayDailyEntry,
-        data: fetchTodayDailyEntry.data?.data.id,
+        data: fetchTodayDailyEntry.data?.data,
         isLoading: fetchTodayDailyEntry.isLoading,
         error: fetchTodayDailyEntry.error,
     };

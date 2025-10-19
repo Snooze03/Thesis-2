@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
@@ -21,6 +22,7 @@ function AddFoodEntry() {
     const { useFoodDetails } = useNutritionSearch();
     const navigate = useNavigate();
     const location = useLocation();
+    const queryClient = useQueryClient();
     const foodId = location.state?.foodId;
     const [isCustomServing, setIsCustomServing] = useState(false);
     const meal = ["breakfast", "lunch", "dinner", "snack"];
@@ -93,11 +95,22 @@ function AddFoodEntry() {
         data: todayDailyEntryID,
     } = useDailyEntry();
 
-    // Mutation to add food to daily entry
+    // ===== ADD FOOD MUTATION =====
     const {
         addFood,
         isLoading: isAddingFood,
-    } = useAddFoodToDailyEntry();
+    } = useAddFoodToDailyEntry({
+        onSuccess: () => {
+            toast.success('Food added successfully!');
+
+            // Invalidate related queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
+            queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+
+            navigate(-1, { replace: true });
+        }
+    });
+    // ===== END ADD FOOD MUTATION =====
 
     // ===== FORM SUBMISSION HANDLER =====
     const onSubmit = (formData) => {
@@ -111,7 +124,7 @@ function AddFoodEntry() {
         };
 
         const entryData = {
-            daily_entry: todayDailyEntryID,
+            daily_entry: todayDailyEntryID.id,
             meal_type: formData.selectedMeal,
             serving_type: "fatsecret",
             fatsecret_serving_id: formData.selectedServingId || (servings[0] ? servings[0].serving_id : null),

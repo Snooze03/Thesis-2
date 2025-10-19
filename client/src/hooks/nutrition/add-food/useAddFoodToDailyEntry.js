@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import api from '@/api';
 
@@ -6,9 +6,7 @@ import api from '@/api';
  * Hook for adding food to master database and daily entry
  * Handles the two-step process: import food -> add to daily entry
  */
-export const useAddFoodToDailyEntry = () => {
-    const queryClient = useQueryClient();
-
+export const useAddFoodToDailyEntry = (options = {}) => {
     const addFoodToDailyEntry = useMutation({
         mutationFn: async ({ foodData, entryData }) => {
             try {
@@ -54,12 +52,10 @@ export const useAddFoodToDailyEntry = () => {
             }
         },
         onSuccess: (data) => {
-            toast.success('Food added successfully!');
-
-            // Invalidate related queries to refresh data
-            queryClient.invalidateQueries({ queryKey: ['dailyEntry'] });
-            queryClient.invalidateQueries({ queryKey: ['nutritionProfile'] });
-            queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
+            // Custom onSuccess handler
+            if (options.onSuccess) {
+                options.onSuccess(data);
+            }
         },
         onError: (error) => {
             console.error('Error adding food to daily entry:', error);
@@ -67,6 +63,10 @@ export const useAddFoodToDailyEntry = () => {
                 error.response?.data?.message ||
                 'Failed to add food. Please try again.'
             );
+
+            if (options.onError) {
+                options.onError(error);
+            }
         }
     });
 

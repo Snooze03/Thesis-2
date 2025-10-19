@@ -13,3 +13,5 @@ openai
 python-decouple
 requests-oauthlib
 celery
+schedule
+django-celery-results

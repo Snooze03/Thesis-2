@@ -5,6 +5,7 @@ from ..models import NutritionProfile
 class NutritionProfileSerializer(serializers.ModelSerializer):
     account_email = serializers.EmailField(source="account.email", read_only=True)
     account_name = serializers.CharField(source="account.get_full_name", read_only=True)
+    bmi_category = serializers.CharField(source="get_bmi_category", read_only=True)
 
     class Meta:
         model = NutritionProfile
@@ -17,6 +18,8 @@ class NutritionProfileSerializer(serializers.ModelSerializer):
             "daily_protein_goal",
             "daily_carbs_goal",
             "daily_fat_goal",
+            "bmi",
+            "bmi_category",
             "bmr",
             "tdee",
             "is_auto_calculated",
@@ -28,6 +31,8 @@ class NutritionProfileSerializer(serializers.ModelSerializer):
             "account",
             "account_email",
             "account_name",
+            "bmi",
+            "bmi_category",
             "bmr",
             "tdee",
             "created_at",

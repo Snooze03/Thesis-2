@@ -107,16 +107,17 @@ class FoodEntry(models.Model):
 
     # For FatSecret predefined servings
     fatsecret_serving_id = models.CharField(
-        max_length=10,
         blank=True,
         null=True,
+        max_length=10,
         help_text="Index/ID of the serving in food.fatsecret_servings array",
     )
 
     # For custom servings
     custom_serving_unit = models.CharField(
-        max_length=50,
         blank=True,
+        null=True,
+        max_length=50,
         help_text="Custom unit like 'grams', 'cups', 'pieces'",
     )
     custom_serving_amount = models.FloatField(

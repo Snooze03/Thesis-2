@@ -15,9 +15,12 @@ def create_nutrition_profile(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=Profile)
-def update_nutrition_profile(sender, instance, **kwargs):
+def update_nutrition_profile(sender, instance, update_fields=None, **kwargs):
     """Update nutrition profile when user profile changes"""
     nutrition_profile = getattr(instance.account, "nutrition_profile", None)
+
+    if update_fields is not None and update_fields == {"current_weight"}:
+        return
     if nutrition_profile:
         nutrition_profile.update_macros()
 

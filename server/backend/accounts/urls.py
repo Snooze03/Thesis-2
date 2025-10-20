@@ -1,16 +1,21 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views.account import AccountProfileViewSet, AccountUpdateView
-from .views.profile import ProfileViewSet
-from .views.weight_history import WeightHistoryViewSet
-from .views.signup import CombinedSignupView
+from .views import (
+    AccountProfileViewSet,
+    AccountUpdateView,
+    ProfileViewSet,
+    WeightHistoryViewSet,
+    ProgressPhotoViewSet,
+    CombinedSignupView,
+)
 
 
 router = DefaultRouter()
 router.register(r"profile", AccountProfileViewSet, basename="account-profile")
 router.register(r"profiles", ProfileViewSet, basename="profile")
 router.register(r"weight-history", WeightHistoryViewSet, basename="weight-history")
+router.register(r"progress-photos", ProgressPhotoViewSet, basename="progress-photos")
 
 urlpatterns = [
     path(

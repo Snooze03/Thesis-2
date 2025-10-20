@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import Account, ProgressPhoto
+from ..models import ProgressPhoto
 
 
 class ProgressPhotoSerializer(serializers.ModelSerializer):

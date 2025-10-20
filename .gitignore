@@ -9,6 +9,7 @@ server/db.sqlite3
 server/staticfiles/
 server/media/
 server/backend/.env
+server/backend/media/
 *.pyc
 *.pyo
 *.pyd

@@ -13,6 +13,11 @@ from .weight_history import (
     WeightHistoryCreateSerializer,
 )
 
+from .progress_photo import (
+    ProgressPhotoSerializer,
+    ProgressPhotoUpdateSerializer,
+)
+
 __all__ = [
     # Account serializers
     "AccountSerializer",
@@ -25,4 +30,7 @@ __all__ = [
     # Weight History serializers
     "WeightHistorySerializer",
     "WeightHistoryCreateSerializer",
+    # Progress Photo serializers
+    "ProgressPhotoSerializer",
+    "ProgressPhotoUpdateSerializer",
 ]

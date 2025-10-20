@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from './constants';
 import { jwtDecode } from 'jwt-decode';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from './api';
-import { LoadingSpinner } from './components/ui/loading-spinner';
 import { Login } from './pages/login/login-form';
 import { MultiStepForm } from './pages/sign-up/multi-step-form';
 import { ChatRoutes } from './pages/chat/chat-routes';
@@ -22,7 +21,11 @@ function NotFound() {
 }
 
 function Logout() {
+    const queryClient = useQueryClient();
+
     localStorage.clear();
+    queryClient.clear();
+
     return <Navigate to="/login" />
 }
 

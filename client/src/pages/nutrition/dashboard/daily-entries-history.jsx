@@ -31,42 +31,35 @@ export function DailyEntriesHistory() {
         setCurrentPage(page);
     };
 
-    // Generate page numbers to show - fixed logic
+    // Generate page numbers to show 
     const generatePageNumbers = () => {
         const { totalPages } = pagination;
-        const maxVisiblePages = 3; // Show maximum 3 page numbers
+        const maxVisiblePages = 4; // number of consecutive pages to show
         const pages = [];
 
+        // If total pages is small enough, show all pages
         if (totalPages <= maxVisiblePages + 2) {
-            // If total pages is small, show all
             for (let i = 1; i <= totalPages; i++) {
                 pages.push(i);
             }
-        } else {
-            // Show current page and 1 page on each side
-            const startPage = Math.max(1, currentPage - 1);
-            const endPage = Math.min(totalPages, currentPage + 1);
+            return pages;
+        }
 
-            // Always show first page if not in range
-            if (startPage > 1) {
-                pages.push(1);
-                if (startPage > 2) {
-                    pages.push('ellipsis-start');
-                }
-            }
+        // Calculate the range of pages to show around current page
+        const half = Math.floor(maxVisiblePages / 2);
+        let startPage = Math.max(1, currentPage - half);
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-            // Add the range around current page
-            for (let i = startPage; i <= endPage; i++) {
-                pages.push(i);
-            }
+        // Adjust if we're near the end
+        if (endPage === totalPages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
 
-            // Always show last page if not in range
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    pages.push('ellipsis-end');
-                }
-                pages.push(totalPages);
-            }
+        // Add the visible page range
+        for (let i = startPage; i <= endPage; i++) {
+            // Avoid duplicating page 1 if it's already added
+            if (i === 1 && pages.includes(1)) continue;
+            pages.push(i);
         }
 
         return pages;
@@ -109,7 +102,7 @@ export function DailyEntriesHistory() {
                     ))}
 
                     {pagination.totalPages > 1 && (
-                        <div className="w-max">
+                        <div className="w-full max-w-full overflow-hidden">
                             <Pagination className="w-full">
                                 <PaginationContent className="flex-nowrap justify-center overflow-x-auto px-2">
                                     <PaginationItem className="shrink-0">

@@ -5,6 +5,7 @@ import { Macros } from "./macros";
 import { FoodEntry } from "./daily-entry";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { DailyEntriesHistory } from "./daily-entries-history";
 
 const NutritionDashboard = () => {
     const {
@@ -29,7 +30,8 @@ const NutritionDashboard = () => {
             <Macros dailyEntry={dailyEntry} />
 
             <SectionSubTitle>Food Entries</SectionSubTitle>
-            <FoodEntry dailyEntry={dailyEntry} />
+            {/* <FoodEntry dailyEntry={dailyEntry} /> */}
+            <DailyEntriesHistory />
         </MainLayout>
     );
 }

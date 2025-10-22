@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from datetime import date
@@ -15,6 +16,14 @@ from ..serializers import (
 )
 
 
+class DailyEntryPagination(PageNumberPagination):
+    """Pagination class for daily entries"""
+
+    page_size = 1
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
 class DailyEntryViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing daily nutrition entries.
@@ -25,6 +34,7 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
 
     serializer_class = DailyEntrySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = DailyEntryPagination
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["date"]
     ordering_fields = ["date"]
@@ -35,12 +45,6 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
         return DailyEntry.objects.filter(
             nutrition_profile__account=self.request.user
         ).prefetch_related("food_entries__food")
-
-    def get_serializer_class(self):
-        """Return appropriate serializer based on action"""
-        if self.action in ["retrieve", "with_meals_detail"]:
-            return DailyEntryDetailSerializer
-        return DailyEntrySerializer
 
     def create(self, request, *args, **kwargs):
         """
@@ -106,6 +110,94 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
                 {"error": "Invalid date format. Use YYYY-MM-DD"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    @action(detail=False, methods=["get"])
+    def recent(self, request):
+        """Get recent daily entries (last 7 days) for the authenticated user."""
+        queryset = self.get_queryset()[:7]  # Limit to 7 most recent entries
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def history(self, request):
+        """
+        Get paginated daily entries history for the authenticated user.
+
+        Query parameters:
+        - page: page number (default: 1)
+        - page_size: entries per page (default: 10, max: 50)
+        - date_from: filter entries from this date (YYYY-MM-DD)
+        - date_to: filter entries to this date (YYYY-MM-DD)
+        """
+        queryset = self.get_queryset()
+
+        # Apply date filtering if provided
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+
+        if date_from:
+            try:
+                queryset = queryset.filter(date__gte=date_from)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date_from format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if date_to:
+            try:
+                queryset = queryset.filter(date__lte=date_to)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid date_to format. Use YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # Fallback if pagination is disabled
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Get nutrition summary statistics for the authenticated user."""
+        queryset = self.get_queryset()
+
+        # Calculate averages for the last 30 days
+        recent_entries = queryset[:30]
+
+        if not recent_entries.exists():
+            return Response(
+                {
+                    "message": "No daily entries found",
+                    "averages": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0},
+                }
+            )
+
+        total_calories = sum(entry.total_calories for entry in recent_entries)
+        total_protein = sum(entry.total_protein for entry in recent_entries)
+        total_carbs = sum(entry.total_carbs for entry in recent_entries)
+        total_fat = sum(entry.total_fat for entry in recent_entries)
+
+        count = len(recent_entries)
+
+        return Response(
+            {
+                "period": "Last 30 days",
+                "entries_count": count,
+                "averages": {
+                    "calories": round(total_calories / count, 2),
+                    "protein": round(total_protein / count, 2),
+                    "carbs": round(total_carbs / count, 2),
+                    "fat": round(total_fat / count, 2),
+                },
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def recalculate_totals(self, request, pk=None):

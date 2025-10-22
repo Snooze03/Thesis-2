@@ -38,13 +38,14 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["date"]
     ordering_fields = ["date"]
-    ordering = ["-date"]
+    ordering = ["date"]
 
     def get_queryset(self):
-        """Return daily entries for the authenticated user's nutrition profile"""
-        return DailyEntry.objects.filter(
-            nutrition_profile__account=self.request.user
-        ).prefetch_related("food_entries__food")
+        """Filter daily entries by the authenticated user's nutrition profile."""
+        nutrition_profile = getattr(self.request.user, "nutrition_profile", None)
+        if nutrition_profile:
+            return DailyEntry.objects.filter(nutrition_profile=nutrition_profile)
+        return DailyEntry.objects.none()
 
     def create(self, request, *args, **kwargs):
         """
@@ -68,20 +69,21 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def today(self, request):
-        """
-        Get or create today's daily entry for the authenticated user.
-
-        If no entry exists for today, creates a new one with zero totals.
-        """
-        today = date.today()
-        nutrition_profile = request.user.nutrition_profile
+        """Get or create today's daily entry for the authenticated user."""
+        nutrition_profile = getattr(request.user, "nutrition_profile", None)
+        if not nutrition_profile:
+            return Response(
+                {"error": "User does not have a nutrition profile"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         daily_entry, created = DailyEntry.objects.get_or_create(
-            nutrition_profile=nutrition_profile, date=today
+            nutrition_profile=nutrition_profile,
+            date=date.today(),
         )
 
         serializer = self.get_serializer(daily_entry)
-        return Response({"created": created, "data": serializer.data})
+        return Response({"data": serializer.data})
 
     @action(detail=False, methods=["get"])
     def date_range(self, request):
@@ -122,14 +124,9 @@ class DailyEntryViewSet(viewsets.ModelViewSet):
     def history(self, request):
         """
         Get paginated daily entries history for the authenticated user.
-
-        Query parameters:
-        - page: page number (default: 1)
-        - page_size: entries per page (default: 10, max: 50)
-        - date_from: filter entries from this date (YYYY-MM-DD)
-        - date_to: filter entries to this date (YYYY-MM-DD)
+        Ordered from oldest to newest so latest entries get higher page numbers.
         """
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().order_by("date")  # Explicitly order oldest first
 
         # Apply date filtering if provided
         date_from = request.query_params.get("date_from")

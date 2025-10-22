@@ -2,7 +2,6 @@ import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { useDailyEntry } from "@/hooks/nutrition/useDailyEntry";
 import { Macros } from "./macros";
-import { FoodEntry } from "./daily-entry";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { DailyEntriesHistory } from "./daily-entries-history";
@@ -13,8 +12,7 @@ const NutritionDashboard = () => {
         isLoading: isDailyEntryLoading,
     } = useDailyEntry();
 
-    console.log(dailyEntry);
-
+    // console.log(dailyEntry);
     // console.log("Nutrition Profile:", profile);
 
     useScrollLock(isDailyEntryLoading);
@@ -30,7 +28,6 @@ const NutritionDashboard = () => {
             <Macros dailyEntry={dailyEntry} />
 
             <SectionSubTitle>Food Entries</SectionSubTitle>
-            {/* <FoodEntry dailyEntry={dailyEntry} /> */}
             <DailyEntriesHistory />
         </MainLayout>
     );

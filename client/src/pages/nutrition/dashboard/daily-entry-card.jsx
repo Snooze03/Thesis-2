@@ -38,7 +38,7 @@ export function DailyEntryCard({ dailyEntry }) {
     };
 
     return (
-        <Card className={`${isToday ? 'ring-1 ring-primary' : ''}`}>
+        <Card>
             <CardContent>
                 <CardTitle>
                     <div className="flex justify-between items-center">
@@ -123,6 +123,6 @@ export function DailyEntryCard({ dailyEntry }) {
                     </CardAction>
                 )}
             </CardContent>
-        </Card>
+        </Card >
     );
 }

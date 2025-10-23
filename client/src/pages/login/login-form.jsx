@@ -1,5 +1,3 @@
-"use client"
-
 import { useMutation } from "@tanstack/react-query";
 import api from "@/api";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "@/constants";

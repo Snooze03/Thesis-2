@@ -1,5 +1,3 @@
-"use client"
-
 import api from "@/api";
 import { BasicInformationSchema } from "../schema/edit-schema";
 import { formOptions } from "@/pages/sign-up/signup-schema";

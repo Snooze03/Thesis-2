@@ -1,5 +1,3 @@
-"use client"
-
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";

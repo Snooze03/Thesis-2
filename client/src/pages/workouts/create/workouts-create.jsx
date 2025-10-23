@@ -1,5 +1,3 @@
-"use client"
-
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";

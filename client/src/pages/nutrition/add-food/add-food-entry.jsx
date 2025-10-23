@@ -12,7 +12,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Flame, Beef, Wheat, Citrus, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "react-hot-toast";
@@ -106,6 +106,7 @@ function AddFoodEntry() {
             // Invalidate related queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
             queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
 
             navigate(-1, { replace: true });
         }
@@ -152,31 +153,51 @@ function AddFoodEntry() {
             {!isLoading && (
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <Card className="pt-0">
-                        <CardHeader className="-mb-1 pt-3 pb-2 rounded-t-lg bg-primary text-white">
-                            <CardTitle className="text-lg">
-                                {foodDetails?.food_name || "Food Name"} <span className="font-normal text-gray-700">{foodDetails?.brand_name}</span>
-                            </CardTitle>
+                        <CardHeader className="-mb-1 pt-3 pb-2 rounded-t-lg bg-primary-700 text-white">
+                            <div className="flex justify-between items-center">
+                                <div className="flex gap-2 items-center">
+                                    <p className="font-bold text-lg">
+                                        {foodDetails?.food_name || "Food Name"}
+                                    </p>
+                                    <span className="font-normal">
+                                        {foodDetails?.brand_name ? `(${foodDetails.brand_name})` : null}
+                                    </span>
+                                </div>
+                                <Utensils className="size-5 stroke-white" />
+                            </div>
+                            {/* <CardTitle className="text-lg"> */}
+                            {/* </CardTitle> */}
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Food macros */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="px-3 py-2 bg-primary-200 rounded-sm text-center shadow-sm">
-                                    <p className="font-semibold text-gray-900">
+                            <div className="grid grid-cols-4 gap-3">
+                                <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-primary-100 rounded-md text-gray-700">
+                                    <Flame className="size-4 stroke-primary" />
+                                    <p className=" text-sm">
                                         Calories
                                     </p>
-                                    <p>{selectedServing?.calories || 0}</p>
+                                    <p className="text-sm">{selectedServing?.calories || 0}</p>
                                 </div>
-                                <div className="px-3 py-2 bg-green-200 rounded-sm text-center shadow-sm">
-                                    <p className="font-semibold text-gray-900">Protein</p>
-                                    <p>{selectedServing?.protein || 0} <span className="text-gray-700">g</span></p>
+                                <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-green-100 rounded-md text-green-500">
+                                    <Beef className="size-4 stroke-green-400" />
+                                    <p className="text-sm">
+                                        Protein
+                                    </p>
+                                    <p className="text-sm">{selectedServing?.protein || 0} g</p>
                                 </div>
-                                <div className="px-3 py-2 bg-orange-200 rounded-sm text-center shadow-sm">
-                                    <p className="font-semibold text-gray-900">Carbs</p>
-                                    <p>{selectedServing?.carbohydrate || 0} <span className="text-gray-700">g</span></p>
+                                <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-orange-100 rounded-md text-orange-500">
+                                    <Wheat className="size-4 stroke-orange-400" />
+                                    <p className="text-sm">
+                                        Carbs
+                                    </p>
+                                    <p className="text-sm">{selectedServing?.carbohydrate || 0} g</p>
                                 </div>
-                                <div className="px-3 py-2 bg-violet-200 rounded-sm text-center shadow-sm">
-                                    <p className="font-semibold text-gray-900">Fats</p>
-                                    <p>{selectedServing?.fat || 0} <span className="text-gray-700">g</span></p>
+                                <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-purple-100 rounded-md text-purple-500">
+                                    <Citrus className="size-4 stroke-purple-400" />
+                                    <p className="text-sm">
+                                        Fats
+                                    </p>
+                                    <p className="text-sm">{selectedServing?.fat || 0} g</p>
                                 </div>
                             </div>
 

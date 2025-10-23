@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
-import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/add-food/useUpdateFoodEntry";
+import { useFatSecretSearch } from "@/hooks/nutrition/useFatSecretSearch";
+import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/food/useUpdateFoodEntry";
 import { addFoodSchema } from "../add-food/add-food-schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -17,7 +17,7 @@ import clsx from "clsx";
 import { Trash } from "lucide-react";
 
 export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
-    const { useFoodDetails } = useNutritionSearch();
+    const { useFoodDetails } = useFatSecretSearch();
     const queryClient = useQueryClient();
     const [isCustomServing, setIsCustomServing] = useState(false);
     const meal = ["breakfast", "lunch", "dinner", "snack"];

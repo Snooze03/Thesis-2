@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
+import { useFatSecretSearch } from "@/hooks/nutrition/useFatSecretSearch";
 import { Input } from "@/components/ui/input";
 import { Search, Flame, Beef, Wheat, Citrus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ const SearchFood = () => {
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const navigate = useNavigate();
 
-    const { useFoodSearch } = useNutritionSearch();
+    const { useFoodSearch } = useFatSecretSearch();
 
     // Search foods query
     const {

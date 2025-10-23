@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
-import { useAddFoodToDailyEntry } from "@/hooks/nutrition/add-food/useAddFoodToDailyEntry";
+import { useFatSecretSearch } from "@/hooks/nutrition/useFatSecretSearch";
+import { useAddFoodToDailyEntry } from "@/hooks/nutrition/food/useAddFoodToDailyEntry";
 import { useDailyEntry } from "@/hooks/nutrition/useDailyEntry";
 import { addFoodSchema } from "./add-food-schema";
 import { SubLayout } from "@/layouts/sub-layout";
@@ -19,7 +19,7 @@ import { toast } from "react-hot-toast";
 import clsx from "clsx";
 
 function AddFoodEntry() {
-    const { useFoodDetails } = useNutritionSearch();
+    const { useFoodDetails } = useFatSecretSearch();
     const navigate = useNavigate();
     const location = useLocation();
     const queryClient = useQueryClient();

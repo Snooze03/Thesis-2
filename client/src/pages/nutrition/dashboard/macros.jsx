@@ -65,7 +65,7 @@ export function Macros({ dailyEntry }) {
                                     <Wheat className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Carbs</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                <p className="col-start-2 row-start-2 col-end-4 text-muted-foreground text-sm">
                                     {dailyEntry.total_carbs}/{daily_carbs} g
                                 </p>
                                 <p className="col-start-4 justify-self-end font-semibold text-md">
@@ -80,7 +80,7 @@ export function Macros({ dailyEntry }) {
                                     <Beef className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Protein</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                <p className="col-start-2 row-start-2 col-end-4 text-muted-foreground text-sm">
                                     {dailyEntry.total_protein}/{daily_protein} g
                                 </p>
                                 <p className="col-start-4 justify-self-end font-semibold text-md">
@@ -95,7 +95,7 @@ export function Macros({ dailyEntry }) {
                                     <Citrus className="size-4 m-2 stroke-white" />
                                 </div>
                                 <p className="col-start-2 text-md">Fats</p>
-                                <p className="col-start-2 row-start-2 text-muted-foreground text-sm">
+                                <p className="col-start-2 row-start-2 col-end-4 text-muted-foreground text-sm">
                                     {dailyEntry.total_fat}/{daily_fats} g
                                 </p>
                                 <p className="col-start-4 justify-self-end font-semibold">

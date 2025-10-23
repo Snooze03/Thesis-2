@@ -1,14 +1,21 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardAction, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Coffee, Sandwich, Carrot, Drumstick, Search } from "lucide-react";
+import { Calendar, Coffee, Sandwich, Carrot, Drumstick, Search, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/utils/formatDate";
+import { FoodEntryDetails } from "./food-entry-details";
+import { cn } from "@/lib/utils";
 
 export function DailyEntryCard({ dailyEntry }) {
     const navigate = useNavigate();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedFoodId, setSelectedFoodId] = useState(null);
+    const [selectedEntry, setSelectedEntry] = useState(null);
     const meals = dailyEntry.meals_breakdown;
-    const isToday = dailyEntry.date === new Date().toISOString().split('T')[0];
+    const todayPH = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+    const isToday = dailyEntry.date === todayPH;
 
     const mealStyles = {
         breakfast: {
@@ -37,92 +44,140 @@ export function DailyEntryCard({ dailyEntry }) {
         navigate("add");
     };
 
+    const handleFoodDetails = (entry) => {
+        // Extract the id's from the entry
+        const entryId = entry.id;
+        const foodId = entry.food_id;
+
+        if (foodId && entryId) {
+            setSelectedEntry(entryId);
+            setSelectedFoodId(foodId);
+            setDialogOpen(true);
+        } else {
+            console.warn('No food ID found in entry:', entry);
+        }
+    }
+
     return (
-        <Card>
-            <CardContent>
-                <CardTitle>
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="size-4" />
-                            <p>{formatDate(dailyEntry.date)}</p>
-                            {isToday && (
-                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                                    Today
-                                </span>
-                            )}
+        <>
+            <Card>
+                <CardContent>
+                    <CardTitle>
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="size-4" />
+                                <p>{formatDate(dailyEntry.date)}</p>
+                                {isToday && (
+                                    <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                                        Today
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm font-medium">
+                                {dailyEntry.total_calories.toFixed(0)} / {dailyEntry.nutrition_goals?.daily_calories_goal || 0} cal
+                            </p>
                         </div>
-                        <p className="text-sm font-medium">
-                            {dailyEntry.total_calories.toFixed(0)} / {dailyEntry.nutrition_goals?.daily_calories_goal || 0} cal
-                        </p>
-                    </div>
-                </CardTitle>
+                    </CardTitle>
 
-                <div className="space-y-4 mt-4">
-                    {Object.entries(meals).map(([mealType, mealData]) => {
-                        const mealStyle = mealStyles[mealType] || {
-                            bgColor: "bg-gray-300",
-                            iconColor: "text-gray-600",
-                            icon: <Calendar className="size-4" />
-                        };
+                    <div className="space-y-4 mt-4">
+                        {Object.entries(meals).map(([mealType, mealData]) => {
+                            const mealStyle = mealStyles[mealType] || {
+                                bgColor: "bg-gray-300",
+                                iconColor: "text-gray-600",
+                                icon: <Calendar className="size-4" />
+                            };
 
-                        return (
-                            <div key={mealType}>
-                                {/* Meal type (breakfast, lunch etc) */}
-                                <div className="flex justify-between items-center">
-                                    <div className="capitalize flex items-center gap-2">
-                                        <span className={mealStyle.iconColor}>
-                                            {mealStyle.icon}
-                                        </span>
-                                        <h3>{mealData.name || mealType}</h3>
+                            return (
+                                <div key={mealType}>
+                                    {/* Meal type (breakfast, lunch etc) */}
+                                    <div className="flex justify-between items-center">
+                                        <div className="capitalize flex items-center gap-2">
+                                            <span className={mealStyle.iconColor}>
+                                                {mealStyle.icon}
+                                            </span>
+                                            <h3>{mealData.name || mealType}</h3>
+                                        </div>
+                                        <p className={`text-sm text-black ${mealStyle.bgColor} px-3 py-[1px] rounded-full`}>
+                                            {mealData.totals?.calories?.toFixed(0) || 0}
+                                        </p>
                                     </div>
-                                    <p className={`text-sm text-black ${mealStyle.bgColor} px-3 py-[.5px] rounded-full`}>
-                                        {mealData.totals?.calories?.toFixed(0) || 0} cal
-                                    </p>
-                                </div>
-                                <Separator className="mt-1" />
+                                    <Separator className="mt-1" />
 
-                                {/* Food entries */}
-                                {mealData.entries && mealData.entries.length > 0 ? (
-                                    <div className="mt-2">
-                                        {mealData.entries.slice(0, 2).map((entry, index) => (
-                                            <div key={index} className="flex justify-between gap-3">
-                                                <p className="text-sm text-gray-700 truncate">
-                                                    {entry.food_name} - {entry.quantity}x
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {entry.calories.toFixed(0)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                        {mealData.entries.length > 2 && (
+                                    {/* Food entries */}
+                                    {mealData.entries && mealData.entries.length > 0 ? (
+                                        <div className="mt-2 space-y-2">
+                                            {/* {mealData.entries.slice(0, 2).map((entry, index) => ( */}
+                                            {mealData.entries.map((entry, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={cn(
+                                                        "flex justify-between gap-3 px-3 py-1 rounded-md",
+                                                        "cursor-pointer hover:bg-gray-100"
+                                                    )}
+                                                    onClick={() => handleFoodDetails(entry)}
+                                                >
+                                                    <div className="space-y-[.5px]">
+                                                        <p className="text-sm text-gray-800 truncate">
+                                                            {entry.food_name} - {entry.quantity}x
+                                                        </p>
+                                                        <p className="text-sm text-gray-600">
+                                                            {entry.food_brand ? `${entry.food_brand} • ${entry.serving_description}` : entry.serving_description}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600">
+                                                        {entry.calories.toFixed(0)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                            {/* {mealData.entries.length > 2 && (
                                             <p className="text-xs text-muted-foreground mt-1">
                                                 +{mealData.entries.length - 2} more items...
                                             </p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground mt-2 italic">
-                                        No foods added
-                                    </p>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                                        )} */}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground mt-2 italic">
+                                            No foods added
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
 
-                {/* Only show Add Food button for today's entry */}
-                {isToday && (
+                    {/* Only show Add Food button for today's entry */}
                     <CardAction className="w-full mt-5">
-                        <Button
-                            className="w-full"
-                            onClick={handleAddFood}
-                        >
-                            <Search className="inline" />
-                            Add Food
-                        </Button>
+                        {isToday ? (
+                            <Button
+                                className="w-full"
+                                onClick={handleAddFood}
+                            >
+                                <Search className="inline" />
+                                Add Food
+                            </Button>
+                        ) : (
+                            <Button
+                                className="w-full"
+                                // onClick={handleViewDetails}
+                                variant="outline"
+                            >
+                                <Search className="inline" />
+                                View Details
+                            </Button>
+                        )}
                     </CardAction>
-                )}
-            </CardContent>
-        </Card >
+                </CardContent>
+            </Card >
+
+            <FoodEntryDetails
+                isOpen={dialogOpen}
+                onClose={() => {
+                    setDialogOpen(false);
+                    setSelectedFoodId(null);
+                }}
+                foodId={selectedFoodId}
+                entryId={selectedEntry}
+            />
+        </>
     );
 }

@@ -1,5 +1,3 @@
-"use client"
-
 import { useLocation, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { SubLayout } from '@/layouts/sub-layout';

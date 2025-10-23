@@ -1,5 +1,3 @@
-"use client";
-
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";

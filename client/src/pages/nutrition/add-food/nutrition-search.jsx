@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Flame, Beef, Wheat, Citrus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clsx } from "clsx";
 import { useDebounce } from "@/hooks/nutrition/useDebounce";
+import { parseFoodDescription } from "@/utils/parseFoodDescription";
 
 const SearchFood = () => {
     const [searchTerm, setSearchTerm] = useState("");
@@ -75,11 +76,11 @@ const SearchFood = () => {
 
             {/* Search Results */}
             {hasResults && (
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-3">
                     <p className="text-sm text-gray-600">
                         Found {totalResults} results, showing {foods.length}
                     </p>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         {foods.map((food, index) => (
                             <FoodItem
                                 key={food.food_id || index}
@@ -104,27 +105,62 @@ const SearchFood = () => {
 };
 
 // Updated FoodItem component with loading states
-const FoodItem = ({ food, isSelected, isLoadingDetails, onAdd }) => (
-    <div
-        className={clsx(
-            "px-3 py-2 rounded-lg hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer border",
-            isSelected
-                ? "bg-primary-100 border-primary-300"
-                : "hover:bg-primary-50 border-gray-200",
-            isLoadingDetails && "opacity-50"
-        )}
-        onClick={onAdd}
-    >
-        <div className="flex gap-2 items-center">
-            <p className="font-medium">{food.food_name}</p>
-            {food.brand_name && (
-                <p className="text-gray-600">({food.brand_name})</p>
+const FoodItem = ({ food, isSelected, isLoadingDetails, onAdd }) => {
+    const nutritionData = parseFoodDescription(food.food_description);
+
+    return (
+        <div
+            className={clsx(
+                "px-4 py-3 rounded-lg hover:shadow-sm transition-all delay-20 duration-100 ease-in-out cursor-pointer border",
+                isSelected
+                    ? "bg-primary-100 border-primary-300"
+                    : "hover:bg-primary-50 border-gray-200",
+                isLoadingDetails && "opacity-50"
             )}
+            onClick={onAdd}
+        >
+            <div className="flex flex-wrap gap-1 justify-between items-center">
+                <p className="font-medium">
+                    {food.food_name}
+                </p>
+                {food.brand_name && (
+                    <p className="text-gray-700">({food.brand_name})</p>
+                )}
+            </div>
+
+            <div className="mt-1 space-y-2">
+                <div className="flex items-center gap-1">
+                    <Flame className="size-3 stroke-orange-400" />
+                    <p className="text-gray-700 text-sm">
+                        {nutritionData.nutrition.calories} kcal
+                        <span className="text-gray-500 ml-2 text-xs">
+                            Per ({nutritionData.servingSize})
+                        </span>
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100">
+                        <Wheat className="size-3 stroke-orange-400" />
+                        <p className="text-orange-600 text-xs">{nutritionData.nutrition.carbs}g
+                            Carbs
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-green-100">
+                        <Beef className="size-3 stroke-green-400" />
+                        <p className="text-green-600 text-xs">{nutritionData.nutrition.protein}g
+                            Protein
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-purple-100">
+                        <Citrus className="size-3 stroke-purple-400" />
+                        <p className="text-purple-600 text-xs">{nutritionData.nutrition.fat}g
+                            Fats
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-        {food.food_description && (
-            <p className="text-gray-600 text-sm mt-1">{food.food_description}</p>
-        )}
-    </div>
-);
+    )
+};
 
 export { SearchFood };

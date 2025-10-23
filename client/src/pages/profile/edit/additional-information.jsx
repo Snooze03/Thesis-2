@@ -1,5 +1,3 @@
-"use client"
-
 import { useForm } from "react-hook-form";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import api from "@/api";

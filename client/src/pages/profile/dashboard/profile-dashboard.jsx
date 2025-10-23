@@ -1,5 +1,3 @@
-"use client"
-
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useAccountProfile } from "@/hooks/profile/useAccountProfile";
 import { MainLayout } from "@/layouts/main-layout";

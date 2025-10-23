@@ -47,6 +47,7 @@ class FoodEntrySerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "food_name",
+            "food_id",
             "food_brand",
             "serving_type_display",
             "meal_type_display",
@@ -202,6 +203,7 @@ class DailyEntrySerializer(serializers.ModelSerializer):
                 # Serialize the entry (but avoid circular serialization)
                 entry_data = {
                     "id": entry.id,
+                    "food_id": entry.food.food_id,
                     "food_name": entry.food.food_name,
                     "food_brand": entry.food.brand_name or "",
                     "quantity": entry.quantity,
@@ -294,11 +296,14 @@ class DailyEntrySerializer(serializers.ModelSerializer):
 class FoodEntryCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating food entries"""
 
+    food_id = serializers.CharField(source="food.food_id", read_only=True)
+
     class Meta:
         model = FoodEntry
         fields = [
             "daily_entry",
             "food",
+            "food_id",
             "meal_type",
             "serving_type",
             "fatsecret_serving_id",
@@ -306,6 +311,7 @@ class FoodEntryCreateSerializer(serializers.ModelSerializer):
             "custom_serving_amount",
             "quantity",
         ]
+        read_only_fields = ["food_id"]
 
     def validate_quantity(self, value):
         """Validate quantity is positive"""

@@ -1,5 +1,3 @@
-"use client"
-
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "@/api";
 import { useQuery } from "@tanstack/react-query";

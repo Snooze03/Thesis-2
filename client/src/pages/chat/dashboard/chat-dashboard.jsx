@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react";
 import { useChatAssistant } from "@/hooks/useChatAssistant";
 import { useNavigate } from "react-router-dom";

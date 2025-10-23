@@ -1,4 +1,3 @@
-
 import { pipe, object, string, nonEmpty, email, safeParse } from "valibot";
 
 // Prefix for Valibot

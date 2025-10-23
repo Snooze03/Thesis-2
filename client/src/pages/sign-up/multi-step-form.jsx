@@ -1,5 +1,3 @@
-"use client"
-
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { useState } from "react";

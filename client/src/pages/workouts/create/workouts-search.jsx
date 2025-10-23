@@ -1,5 +1,3 @@
-"use client"
-
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
 import { SubLayout } from "@/layouts/sub-layout";

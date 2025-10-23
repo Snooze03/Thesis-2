@@ -1,5 +1,3 @@
-"use client"
-
 import { Link } from "react-router";
 import { LoginLayout } from "@/layouts/login-layout";
 import { Button } from "@/components/ui/button";

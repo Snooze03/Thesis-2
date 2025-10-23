@@ -106,6 +106,7 @@ function AddFoodEntry() {
             // Invalidate related queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
             queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
 
             navigate(-1, { replace: true });
         }
@@ -171,7 +172,7 @@ function AddFoodEntry() {
                             {/* Food macros */}
                             <div className="grid grid-cols-4 gap-3">
                                 <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-primary-100 rounded-md text-gray-700">
-                                    <Flame className="size-4 stroke-orange-400" />
+                                    <Flame className="size-4 stroke-primary" />
                                     <p className=" text-sm">
                                         Calories
                                     </p>

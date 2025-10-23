@@ -5,15 +5,16 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useNutritionSearch } from "@/hooks/nutrition/useNutritionSearch";
 import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/add-food/useUpdateFoodEntry";
 import { addFoodSchema } from "../add-food/add-food-schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
-import { Flame, Beef, Wheat, Citrus, Utensils, X } from "lucide-react";
+import { Flame, Beef, Wheat, Citrus, Utensils, RefreshCcw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import clsx from "clsx";
+import { Trash } from "lucide-react";
 
 export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
     const { useFoodDetails } = useNutritionSearch();
@@ -107,7 +108,9 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
         isDeletingFoodEntry,
     } = useDeleteFoodEntry({
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
+            onClose();
+        },
+        onError: () => {
             onClose();
         }
     });
@@ -131,34 +134,21 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
         deleteFoodEntry(entryId);
     }
 
-
     return (
-        <AlertDialog open={isOpen} onOpenChange={onClose}>
-            <AlertDialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                <AlertDialogHeader>
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                            <AlertDialogTitle className="flex items-center gap-2 text-lg">
-                                <Utensils className="size-5" />
-                                {foodDetails?.food_name || "Food Details"}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="mt-1">
-                                {foodDetails?.brand_name
-                                    ? `${foodDetails.brand_name} - View nutritional information and edit`
-                                    : "View nutritional information and edit this food"
-                                }
-                            </AlertDialogDescription>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onClose}
-                            className="h-8 w-8 p-0"
-                        >
-                            <X className="size-4" />
-                        </Button>
-                    </div>
-                </AlertDialogHeader>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-lg">
+                        <Utensils className="size-5" />
+                        {foodDetails?.food_name || "Food Details"}
+                    </DialogTitle>
+                    <DialogDescription className="mt-1">
+                        {foodDetails?.brand_name
+                            ? `${foodDetails.brand_name} - View nutritional information and edit`
+                            : "View nutritional information and edit this food"
+                        }
+                    </DialogDescription>
+                </DialogHeader>
 
                 {isLoading && (
                     <div className="py-8">
@@ -290,13 +280,14 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
                             </Select>
                         </div>
 
-                        <AlertDialogFooter className="flex gap-2 pt-4">
+                        <DialogFooter className="flex gap-2 pt-4">
                             <Button
                                 type="button"
-                                variant="outline"
+                                variant="destructive"
                                 onClick={handleDeleteEntry}
                                 disabled={isUpdatingFoodEntry}
                             >
+                                <Trash className="size-4" />
                                 Delete
                             </Button>
                             <Button
@@ -304,12 +295,13 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
                                 disabled={isUpdatingFoodEntry}
                                 className="flex-1"
                             >
+                                <RefreshCcw className="size-4" />
                                 {isUpdatingFoodEntry ? 'Updating...' : 'Update Food'}
                             </Button>
-                        </AlertDialogFooter>
+                        </DialogFooter>
                     </form>
                 )}
-            </AlertDialogContent>
-        </AlertDialog>
+            </DialogContent>
+        </Dialog>
     );
 }

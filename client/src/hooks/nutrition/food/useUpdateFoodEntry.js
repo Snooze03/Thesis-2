@@ -17,9 +17,9 @@ export const useUpdateFoodEntry = (options = {}) => {
         onSuccess: (data) => {
             toast.success('Food entry updated successfully!');
 
-            queryClient.invalidateQueries({
-                queryKey: ['foodEntries', 'todayDailyEntry', 'dailyEntriesHistory']
-            });
+            queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
+            queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
 
             // Custom onSuccess handler
             if (options.onSuccess) {
@@ -58,9 +58,9 @@ export const useDeleteFoodEntry = (options = {}) => {
         onSuccess: (data) => {
             toast.success('Food entry deleted successfully!');
 
-            queryClient.invalidateQueries({
-                queryKey: ['foodEntries', 'todayDailyEntry', 'dailyEntriesHistory']
-            });
+            queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
+            queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
 
             if (options.onSuccess) {
                 options.onSuccess(data);

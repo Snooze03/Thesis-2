@@ -21,6 +21,13 @@ from .daily_entry import (
     DailyEntryDetailSerializer,
 )
 
+from .diet_plan import (
+    DietPlanSerializer,
+    DietPlanListSerializer,
+    DietPlanFoodSerializer,
+    DietPlanFoodCreateSerializer,
+)
+
 __all__ = [
     # Profile
     "NutritionProfileSerializer",
@@ -36,4 +43,9 @@ __all__ = [
     "QuickAddFoodEntrySerializer",
     "MealBreakdownSerializer",
     "DailyEntryDetailSerializer",
+    # Diet Plan
+    "DietPlanSerializer",
+    "DietPlanListSerializer",
+    "MealItemSerializer",
+    "MealItemCreateSerializer",
 ]

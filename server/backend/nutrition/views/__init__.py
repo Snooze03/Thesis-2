@@ -15,6 +15,11 @@ from .daily_entry import (
     FoodEntryViewSet,
 )
 
+from .diet_plan import (
+    DietPlanViewSet,
+    DietPlanFoodViewSet,
+)
+
 __all__ = [
     # Profile
     "NutritionProfileViewSet",
@@ -26,4 +31,7 @@ __all__ = [
     # Tracking
     "DailyEntryViewSet",
     "FoodEntryViewSet",
+    # Diet Plan
+    "DietPlanViewSet",
+    "DietPlanFoodViewSet",
 ]

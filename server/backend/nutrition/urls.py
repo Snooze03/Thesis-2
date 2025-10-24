@@ -6,6 +6,8 @@ from .views import (
     FoodViewSet,
     DailyEntryViewSet,
     FoodEntryViewSet,
+    DietPlanViewSet,
+    DietPlanFoodViewSet,
     # Fatsecret
     test_fatsecret_token,
     search_foods,
@@ -19,6 +21,8 @@ router.register(r"profiles", NutritionProfileViewSet, basename="nutrition-profil
 router.register(r"foods-db", FoodViewSet, basename="food")
 router.register(r"daily-entries", DailyEntryViewSet, basename="daily-entry")
 router.register(r"food-entries", FoodEntryViewSet, basename="food-entry")
+router.register(r"diet-plans", DietPlanViewSet, basename="diet-plan")
+router.register(r"meal-items", DietPlanFoodViewSet, basename="meal-item")
 
 urlpatterns = [
     # Fatsecret search and token test endpoints

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useFatSecretSearch } from "@/hooks/nutrition/useFatSecretSearch";
 import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/food/useUpdateFoodEntry";
+import { useFoodDatabase } from "@/hooks/nutrition/food/useFoodDatabase";
 import { addFoodSchema } from "../add-food/add-food-schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -16,12 +17,14 @@ import { toast } from "react-hot-toast";
 import clsx from "clsx";
 import { Trash } from "lucide-react";
 
-export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
+export function FoodEntryDetails({ isOpen, onClose, entryId, foodDatabaseId }) {
     const { useFoodDetails } = useFatSecretSearch();
     const queryClient = useQueryClient();
     const [isCustomServing, setIsCustomServing] = useState(false);
     const meal = ["breakfast", "lunch", "dinner", "snack"];
     const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
+
+    // console.log(`Food DB ID ${foodDatabaseId} for Food ID ${foodId} in Entry ID ${entryId}`);
 
     // ===== FORM HANDLER =====
     const {
@@ -44,20 +47,17 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
 
     // Fetch Food Details
     const {
-        data,
+        foodData,
         isLoading,
-    } = useFoodDetails(foodId, { enabled: isOpen && !!foodId });
+        isError,
+        error,
+    } = useFoodDatabase(foodDatabaseId);
 
     // get data from json response
-    const foodDetails = data?.food;
-    const foodServings = foodDetails?.servings;
-
-    // Get servings array - handle both single serving and multiple servings
-    const servings = Array.isArray(foodServings?.serving)
-        ? foodServings.serving
-        : foodServings?.serving
-            ? [foodServings.serving]
-            : [];
+    const foodDetails = foodData;
+    console.log(`Food Details: `, foodDetails);
+    const foodServings = foodData?.fatsecret_servings;
+    const servings = Array.isArray(foodServings) ? foodServings : [];
 
     // Watch form values for UI updates
     const selectedServingId = watch("selectedServingId");
@@ -98,7 +98,6 @@ export function FoodEntryDetails({ isOpen, onClose, foodId, entryId }) {
         isUpdatingFoodEntry,
     } = useUpdateFoodEntry({
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
             onClose();
         }
     });

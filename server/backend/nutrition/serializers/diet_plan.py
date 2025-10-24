@@ -119,6 +119,7 @@ class DietPlanSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "user_id",
             "total_calories",
             "total_protein",
             "total_carbs",

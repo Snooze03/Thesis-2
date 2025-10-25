@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { NutritionDashboard } from "./dashboard/nutrition-dashboard";
-import { AddFood } from "./add-food/nutrition-add";
+import { AddFood } from "./add-food/nutrition-add-food";
 import { AddFoodEntry } from "./add-food/add-food-entry";
 import { NotFound } from "@/routes";
 

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Coffee, Sandwich, Carrot, Drumstick, Search, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/utils/formatDate";
-import { FoodEntryDetails } from "./food-entry-details";
+import { FoodDetailsDialog } from "./food-details-dialog";
 import { cn } from "@/lib/utils";
 
 export function DailyEntryCard({ dailyEntry }) {
@@ -172,7 +172,7 @@ export function DailyEntryCard({ dailyEntry }) {
                 </CardContent>
             </Card >
 
-            <FoodEntryDetails
+            <FoodDetailsDialog
                 isOpen={dialogOpen}
                 onClose={() => {
                     setDialogOpen(false);

@@ -34,7 +34,7 @@ export function DailyEntriesHistory() {
     // Generate page numbers to show 
     const generatePageNumbers = () => {
         const { totalPages } = pagination;
-        const maxVisiblePages = 5;
+        const maxVisiblePages = 4;
         const pages = [];
 
         // If total pages is small enough, show all pages

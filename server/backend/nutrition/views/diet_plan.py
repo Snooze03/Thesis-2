@@ -9,6 +9,7 @@ from django.utils import timezone
 from ..models import Food, DietPlan, DietPlanFood
 from ..serializers.diet_plan import (
     DietPlanSerializer,
+    DietPlanDetailSerializer,  # Add this import
     DietPlanListSerializer,
     DietPlanFoodSerializer,
     DietPlanFoodCreateSerializer,
@@ -35,6 +36,8 @@ class DietPlanViewSet(viewsets.ModelViewSet):
         """Return appropriate serializer based on action"""
         if self.action == "list":
             return DietPlanListSerializer
+        elif self.action in ["retrieve", "with_foods_detail"]:
+            return DietPlanDetailSerializer
         return DietPlanSerializer
 
     def perform_create(self, serializer):
@@ -53,7 +56,7 @@ class DietPlanViewSet(viewsets.ModelViewSet):
 
         headers = self.get_success_headers(serializer.data)
         return Response(
-            {"message": "Diet plan created successfully", "data": serializer.data},
+            serializer.data,  # Match daily_entry pattern
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
@@ -71,19 +74,13 @@ class DietPlanViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        return Response(
-            {"message": "Diet plan updated successfully", "data": serializer.data}
-        )
+        return Response(serializer.data)  # Match daily_entry pattern
 
     def destroy(self, request, *args, **kwargs):
         """Delete a diet plan"""
         instance = self.get_object()
-        title = instance.title
         self.perform_destroy(instance)
-        return Response(
-            {"message": f'Diet plan "{title}" deleted successfully'},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
         """List all diet plans for the authenticated user with filtering"""
@@ -105,48 +102,65 @@ class DietPlanViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(
-                {
-                    "message": "Diet plans retrieved successfully",
-                    "data": serializer.data,
-                }
-            )
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(
-            {"message": "Diet plans retrieved successfully", "data": serializer.data}
-        )
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve a specific diet plan with full details"""
         instance = self.get_object()
-        serializer = DietPlanSerializer(instance)
-        return Response(
-            {"message": "Diet plan retrieved successfully", "data": serializer.data}
-        )
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def alternatives(self, request):
         """Get all alternative diet plans"""
         queryset = self.get_queryset().filter(is_alternative=True)
         serializer = self.get_serializer(queryset, many=True)
-        return Response(
-            {
-                "message": "Alternative diet plans retrieved successfully",
-                "data": serializer.data,
-            }
-        )
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def main_plans(self, request):
         """Get all main (non-alternative) diet plans"""
         queryset = self.get_queryset().filter(is_alternative=False)
         serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def with_foods_detail(self, request, pk=None):
+        """Get diet plan with detailed food information - similar to daily_entry pattern"""
+        diet_plan = self.get_object()
+        serializer = DietPlanDetailSerializer(diet_plan)
+        return Response({"data": serializer.data})
+
+    @action(detail=True, methods=["post"])
+    def add_food(self, request, pk=None):
+        """Add a food to an existing diet plan - similar to daily_entry add_food_entry"""
+        diet_plan = self.get_object()
+
+        # Add diet_plan to request data
+        data = request.data.copy()
+        data["diet_plan"] = diet_plan.id
+
+        serializer = DietPlanFoodCreateSerializer(
+            data=data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        diet_plan_food = serializer.save()
+
+        # Return the created food entry with full details
+        response_serializer = DietPlanFoodSerializer(diet_plan_food)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def recalculate_totals(self, request, pk=None):
+        """Recalculate nutrition totals for the diet plan - similar to daily_entry"""
+        diet_plan = self.get_object()
+        totals = diet_plan.calculate_totals()
+
         return Response(
-            {
-                "message": "Main diet plans retrieved successfully",
-                "data": serializer.data,
-            }
+            {"message": "Totals recalculated successfully", "totals": totals}
         )
 
     @action(detail=True, methods=["post"])
@@ -174,14 +188,8 @@ class DietPlanViewSet(viewsets.ModelViewSet):
                 order=diet_plan_food.order,
             )
 
-        serializer = DietPlanSerializer(new_plan)
-        return Response(
-            {
-                "message": "Diet plan duplicated successfully",
-                "data": serializer.data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        serializer = DietPlanDetailSerializer(new_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def toggle_alternative(self, request, pk=None):
@@ -190,14 +198,8 @@ class DietPlanViewSet(viewsets.ModelViewSet):
         diet_plan.is_alternative = not diet_plan.is_alternative
         diet_plan.save()
 
-        status_text = "alternative" if diet_plan.is_alternative else "main"
-        serializer = DietPlanSerializer(diet_plan)
-        return Response(
-            {
-                "message": f"Diet plan marked as {status_text} successfully",
-                "data": serializer.data,
-            }
-        )
+        serializer = self.get_serializer(diet_plan)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def foods(self, request, pk=None):
@@ -211,33 +213,7 @@ class DietPlanViewSet(viewsets.ModelViewSet):
             foods = foods.filter(meal_type=meal_type)
 
         serializer = DietPlanFoodSerializer(foods, many=True)
-        return Response(
-            {
-                "message": "Diet plan foods retrieved successfully",
-                "data": serializer.data,
-            }
-        )
-
-    @action(detail=True, methods=["post"])
-    def add_food(self, request, pk=None):
-        """Add a food to an existing diet plan"""
-        diet_plan = self.get_object()
-
-        # Add diet_plan to request data
-        data = request.data.copy()
-        data["diet_plan"] = diet_plan.id
-
-        serializer = DietPlanFoodCreateSerializer(
-            data=data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        diet_plan_food = serializer.save()
-
-        # Return updated diet plan
-        plan_serializer = DietPlanSerializer(diet_plan)
-        return Response(
-            {"message": "Food added successfully", "data": plan_serializer.data}
-        )
+        return Response(serializer.data)
 
     @action(detail=True, methods=["delete"])
     def remove_food(self, request, pk=None):
@@ -254,17 +230,11 @@ class DietPlanViewSet(viewsets.ModelViewSet):
             diet_plan_food = get_object_or_404(
                 DietPlanFood, id=food_id, diet_plan=diet_plan
             )
-            food_name = diet_plan_food.food.food_name
             diet_plan_food.delete()
 
             # Return updated diet plan
-            serializer = DietPlanSerializer(diet_plan)
-            return Response(
-                {
-                    "message": f'Food "{food_name}" removed successfully',
-                    "data": serializer.data,
-                }
-            )
+            serializer = self.get_serializer(diet_plan)
+            return Response(serializer.data)
 
         except Exception as e:
             return Response(
@@ -286,9 +256,7 @@ class DietPlanViewSet(viewsets.ModelViewSet):
             ],
         }
 
-        return Response(
-            {"message": "Diet plan choices retrieved successfully", "data": choices}
-        )
+        return Response(choices)
 
     @action(detail=False, methods=["get"])
     def statistics(self, request):
@@ -311,9 +279,7 @@ class DietPlanViewSet(viewsets.ModelViewSet):
             },
         }
 
-        return Response(
-            {"message": "Diet plan statistics retrieved successfully", "data": stats}
-        )
+        return Response(stats)
 
     @action(detail=True, methods=["get"])
     def nutrition_analysis(self, request, pk=None):
@@ -354,15 +320,13 @@ class DietPlanViewSet(viewsets.ModelViewSet):
                     "percentage": round((meal_calories / total_calories) * 100, 1),
                 }
 
-        return Response(
-            {"message": "Nutrition analysis retrieved successfully", "data": analysis}
-        )
+        return Response(analysis)
 
 
 class DietPlanFoodViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing foods within diet plans
-    Similar to food entries but for diet plans
+    Similar to FoodEntryViewSet in daily_entry
     """
 
     serializer_class = DietPlanFoodSerializer
@@ -373,7 +337,7 @@ class DietPlanFoodViewSet(viewsets.ModelViewSet):
         return (
             DietPlanFood.objects.filter(diet_plan__user_id=self.request.user)
             .select_related("food", "diet_plan")
-            .order_by("-created_at")
+            .order_by("meal_type", "order", "created_at")
         )
 
     def get_serializer_class(self):
@@ -383,50 +347,45 @@ class DietPlanFoodViewSet(viewsets.ModelViewSet):
         return DietPlanFoodSerializer
 
     def create(self, request, *args, **kwargs):
-        """Create a new diet plan food"""
+        """Create a new diet plan food - match FoodEntryViewSet pattern"""
+        diet_plan_id = request.data.get("diet_plan")
+
+        # Verify the diet plan belongs to the authenticated user
+        try:
+            diet_plan = get_object_or_404(
+                DietPlan, id=diet_plan_id, user_id=request.user
+            )
+        except DietPlan.DoesNotExist:
+            return Response(
+                {"error": "Diet plan not found or access denied"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         diet_plan_food = serializer.save()
 
-        # Return the created food with full details
+        # Return full serialized data
         response_serializer = DietPlanFoodSerializer(diet_plan_food)
-        return Response(
-            {
-                "message": "Food added to diet plan successfully",
-                "data": response_serializer.data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """Update a diet plan food"""
-        partial = kwargs.pop("partial", False)
-        instance = self.get_object()
+        """Update a diet plan food - match FoodEntryViewSet pattern"""
+        response = super().update(request, *args, **kwargs)
 
-        # Remove diet_plan from update data (shouldn't be changed)
-        data = request.data.copy()
-        data.pop("diet_plan", None)
+        # Return full serialized data
+        if response.status_code == 200:
+            food_entry = self.get_object()
+            response_serializer = DietPlanFoodSerializer(food_entry)
+            return Response(response_serializer.data)
 
-        serializer = self.get_serializer(instance, data=data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        # Return updated food with full details
-        response_serializer = DietPlanFoodSerializer(instance)
-        return Response(
-            {
-                "message": "Diet plan food updated successfully",
-                "data": response_serializer.data,
-            }
-        )
+        return response
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(
-            {"message": "Diet plan deleted successfully"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        """Remove a food from a diet plan - match FoodEntryViewSet pattern"""
+        response = super().destroy(request, *args, **kwargs)
+        # The model's delete method will automatically recalculate totals
+        return response
 
     def list(self, request, *args, **kwargs):
         """List diet plan foods with filtering options"""
@@ -445,72 +404,106 @@ class DietPlanFoodViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(
-                {
-                    "message": "Diet plan foods retrieved successfully",
-                    "data": serializer.data,
-                }
-            )
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(
-            {
-                "message": "Diet plan foods retrieved successfully",
-                "data": serializer.data,
-            }
-        )
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def by_diet_plan(self, request):
         """Get foods grouped by diet plan"""
-        queryset = self.get_queryset()
+        diet_plan_id = request.query_params.get("diet_plan")
+        if not diet_plan_id:
+            return Response(
+                {"error": "diet_plan parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # Group by diet plan
-        diet_plans = DietPlan.objects.filter(user_id=request.user)
-        grouped_foods = {}
-
-        for diet_plan in diet_plans:
-            foods = queryset.filter(diet_plan=diet_plan)
-            serializer = self.get_serializer(foods, many=True)
-            grouped_foods[diet_plan.id] = {
-                "diet_plan": {
-                    "id": diet_plan.id,
-                    "is_alternative": diet_plan.is_alternative,
-                },
-                "foods": serializer.data,
-                "count": foods.count(),
-            }
-
-        return Response(
-            {
-                "message": "Foods grouped by diet plan retrieved successfully",
-                "data": grouped_foods,
-            }
-        )
+        queryset = self.get_queryset().filter(diet_plan_id=diet_plan_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def by_meal_type(self, request):
-        """Get foods grouped by meal type"""
-        queryset = self.get_queryset()
-
-        # Optional filter by diet plan
+        """Get foods grouped by meal type - similar to daily_entry pattern"""
+        meal_type = request.query_params.get("meal_type")
         diet_plan_id = request.query_params.get("diet_plan")
+
+        if not meal_type:
+            return Response(
+                {"error": "meal_type parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.get_queryset().filter(meal_type=meal_type)
+
         if diet_plan_id:
             queryset = queryset.filter(diet_plan_id=diet_plan_id)
 
-        grouped_foods = {}
-        for meal_type, meal_name in DietPlanFood.MEAL_TYPE_CHOICES:
-            foods = queryset.filter(meal_type=meal_type)
-            serializer = self.get_serializer(foods, many=True)
-            grouped_foods[meal_type] = {
-                "name": meal_name,
-                "foods": serializer.data,
-                "count": foods.count(),
-            }
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
-        return Response(
-            {
-                "message": "Foods grouped by meal type retrieved successfully",
-                "data": grouped_foods,
-            }
+    @action(detail=True, methods=["post"])
+    def duplicate(self, request, pk=None):
+        """Duplicate a diet plan food to another diet plan"""
+        original_food = self.get_object()
+        target_diet_plan_id = request.data.get("target_diet_plan")
+
+        if not target_diet_plan_id:
+            return Response(
+                {"error": "target_diet_plan is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_diet_plan = get_object_or_404(
+                DietPlan, id=target_diet_plan_id, user_id=request.user
+            )
+        except DietPlan.DoesNotExist:
+            return Response(
+                {"error": "Target diet plan not found or access denied"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Create duplicate
+        duplicated_food = DietPlanFood.objects.create(
+            diet_plan=target_diet_plan,
+            food=original_food.food,
+            meal_type=request.data.get("meal_type", original_food.meal_type),
+            serving_type=original_food.serving_type,
+            fatsecret_serving_id=original_food.fatsecret_serving_id,
+            custom_serving_unit=original_food.custom_serving_unit,
+            custom_serving_amount=original_food.custom_serving_amount,
+            quantity=original_food.quantity,
+            order=original_food.order,
         )
+
+        serializer = DietPlanFoodSerializer(duplicated_food)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"])
+    def quick_add(self, request):
+        """Quickly add a food with minimal information - similar to daily_entry"""
+        required_fields = ["diet_plan", "food", "meal_type"]
+        for field in required_fields:
+            if field not in request.data:
+                return Response(
+                    {"error": f"{field} is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Use default serving and quantity if not provided
+        data = request.data.copy()
+        if "serving_type" not in data:
+            data["serving_type"] = "fatsecret"
+        if "quantity" not in data:
+            data["quantity"] = 1.0
+
+        serializer = DietPlanFoodCreateSerializer(
+            data=data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        diet_plan_food = serializer.save()
+
+        response_serializer = DietPlanFoodSerializer(diet_plan_food)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)

@@ -24,6 +24,7 @@ const AddFoodForm = ({
     isLoading,
     isError,
     isSubmitting = false,
+    isAddingToDietPlan = false,
     defaultValues = {},
     showMealSelection = true
 }) => {
@@ -139,7 +140,8 @@ const AddFoodForm = ({
 
         // Config
         showMealSelection,
-        isSubmitting
+        isSubmitting,
+        isAddingToDietPlan
     };
 
     if (isLoading) {
@@ -383,15 +385,18 @@ const AddFoodFormMealSelection = () => {
 
 // Submit button component
 const AddFoodFormSubmitButton = ({ children = "Add Food" }) => {
-    const { isSubmitting } = useContext(AddFoodFormContext);
+    const { isSubmitting, isAddingToDietPlan } = useContext(AddFoodFormContext);
+
+    // Button should be disabled if either loading state is true
+    const isDisabled = isSubmitting || isAddingToDietPlan;
 
     return (
         <Button
             type="submit"
             className="w-full mt-2"
-            disabled={isSubmitting}
+            disabled={isDisabled}
         >
-            {isSubmitting ? 'Adding Food...' : children}
+            {isDisabled ? 'Adding Food...' : children}
         </Button>
     );
 };

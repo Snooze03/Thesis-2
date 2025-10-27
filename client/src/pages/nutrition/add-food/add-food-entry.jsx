@@ -48,7 +48,7 @@ function AddFoodEntry() {
     const {
         addFoodToDietPlan: {
             mutate: addFoodToDietMutate,
-            isLoading: isAddingToDietPlan
+            isPending: isAddingToDietPlan
         }
     } = useDietPlan({
         onSuccess: () => {
@@ -82,12 +82,16 @@ function AddFoodEntry() {
         }
     };
 
+    // Determine which loading state to use based on the context
+    const isSubmitting = isDietPlan ? isAddingToDietPlan : isAddingFood;
+
     return (
         <SubLayout>
             <AddFoodForm
                 foodData={foodData}
                 onSubmit={handleSubmit}
-                isSubmitting={isAddingFood || isAddingToDietPlan}
+                isSubmitting={isSubmitting}
+                isAddingToDietPlan={isAddingToDietPlan}
                 isLoading={isLoading}
                 isError={isError}
                 showMealSelection={true}

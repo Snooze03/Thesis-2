@@ -1,5 +1,6 @@
-from .models import Template, Exercise, TemplateExercise
 from rest_framework import serializers
+from ..models import Template, TemplateExercise
+from .exercise import ExerciseSerializer
 
 
 class TemplateSerializer(serializers.ModelSerializer):
@@ -14,20 +15,6 @@ class TemplateSerializer(serializers.ModelSerializer):
 
     def get_exercise_count(self, obj):
         return obj.template_exercises.count()
-
-
-class ExerciseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Exercise
-        fields = [
-            "id",
-            "name",
-            "type",
-            "muscle",
-            "equipment",
-            "difficulty",
-            "instructions",
-        ]
 
 
 class TemplateExerciseSerializer(serializers.ModelSerializer):

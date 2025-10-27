@@ -99,10 +99,25 @@ export function useDietPlan(options = {}) {
         }
     });
 
+    const updateFoodItem = useMutation({
+        mutationFn: async ({ mealItemId, updateData }) => {
+            const response = await api.patch(`/nutrition/meal-items/${mealItemId}/`, updateData);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            toast.success('Meal item updated successfully!');
+            queryClient.invalidateQueries({ queryKey: ['diet-plan'] });
+            if (options.onSuccess) {
+                options.onSuccess(data);
+            }
+        }
+    })
+
     return {
         fetchDietPlan,
         addFoodToDietPlan,
         deleteMealItem,
         addFoodToDailyEntry,
+        updateFoodItem,
     }
 }

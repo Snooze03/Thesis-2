@@ -288,15 +288,18 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                         </div>
 
                         <DialogFooter className="flex gap-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={handleDeleteEntry}
-                                disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
-                            >
-                                <Trash className="size-4" />
-                                {isDeletingFoodEntry ? 'Deleting...' : 'Delete Food'}
-                            </Button>
+                            {/* Hide delete button when isDietPlan is true */}
+                            {!isDietPlan && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={handleDeleteEntry}
+                                    disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
+                                >
+                                    <Trash className="size-4" />
+                                    {isDeletingFoodEntry ? 'Deleting...' : 'Delete Food'}
+                                </Button>
+                            )}
                             <Button
                                 type="submit"
                                 disabled={isUpdatingFoodEntry || isDeletingFoodEntry}

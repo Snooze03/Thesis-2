@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDailyEntry } from "@/hooks/nutrition/useDailyEntry";
 import { SectionSubTitle } from "@/components/ui/section-title";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
 import { useDietPlan } from "@/hooks/nutrition/diet-plan/useDietPlan";
 import { SearchFood } from "./search-food";
-import { Flame, Wheat, Beef, Citrus, Pencil, Trash } from "lucide-react";
+import { Plus, Wheat, Beef, Citrus, Pencil, Trash } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import clsx from "clsx";
 
@@ -15,8 +15,13 @@ function DietPlan({ is_alternative = false }) {
     const [showSearchFood, setShowSearchFood] = useState(false);
 
     const {
+        data: todayDailyEntryID,
+    } = useDailyEntry();
+
+    const {
         fetchDietPlan: { data: dietPlanData, isLoading, isError },
-        deleteMealItem: { mutate: deleteMealItem }
+        deleteMealItem: { mutate: deleteMealItem },
+        addFoodToDailyEntry: { mutate: addFoodToEntry }
     } = useDietPlan();
 
     if (isLoading) return <div>Loading...</div>;
@@ -86,6 +91,18 @@ function DietPlan({ is_alternative = false }) {
         setShowSearchFood(false);
     }
 
+    const handleAddToEntry = (foodId, entryData) => {
+        addFoodToEntry({
+            dailyEntryId: todayDailyEntryID.id,
+            foodId: foodId,
+            entryData: { ...entryData }
+        });
+    }
+
+    const handleEditFood = (foodEntryId) => {
+        console.log(`Edit food entry ID: ${foodEntryId}`);
+    }
+
     const handleDeleteFood = (foodEntryId) => {
         deleteMealItem(foodEntryId);
     }
@@ -93,9 +110,11 @@ function DietPlan({ is_alternative = false }) {
     // Component to render individual food items
     const renderFoodItem = (foodEntry) => {
         const selectedServing = getSelectedServing(foodEntry);
+        // console.log(`Food ID ${foodEntry.id}`);
 
         const menuItems = [
-            { icon: Pencil, label: "Edit", action: () => console.log("Edit food entry") },
+            { icon: Plus, label: "Add Food", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
+            { icon: Pencil, label: "Edit", action: () => handleEditFood(foodEntry.id) },
             { icon: Trash, label: "Delete", action: () => handleDeleteFood(foodEntry.id), variant: "destructive" },
         ];
 

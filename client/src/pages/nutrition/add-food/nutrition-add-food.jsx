@@ -31,7 +31,7 @@ const AddFood = () => {
                     <AddSearch />
                 </TabsContent>
                 <TabsContent value="alternatives">
-                    {/* <Article categoryDirectory="/articles/recovery" /> */}
+                    <DietPlan is_alternative={true} />
                 </TabsContent>
             </Tabs>
         </SubLayout>

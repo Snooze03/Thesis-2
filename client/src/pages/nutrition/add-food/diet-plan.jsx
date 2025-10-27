@@ -10,7 +10,7 @@ import { Flame, Wheat, Beef, Citrus, Pencil, Trash } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import clsx from "clsx";
 
-function DietPlan() {
+function DietPlan({ is_alternative = false }) {
     const navigate = useNavigate();
     const [showSearchFood, setShowSearchFood] = useState(false);
 
@@ -22,11 +22,12 @@ function DietPlan() {
     if (isLoading) return <div>Loading...</div>;
     if (isError) return <div>Error loading diet plan</div>;
 
-    console.log(dietPlanData);
+    // console.log(dietPlanData);
 
-    const mainDietPlan = dietPlanData?.find(plan => !plan.is_alternative);
-    const is_alternative = dietPlanData?.find(plan => plan.is_alternative);
-    const mainDietPlanId = mainDietPlan?.id;
+    const selectedDietPlan = dietPlanData?.find(plan =>
+        is_alternative ? plan.is_alternative : !plan.is_alternative
+    );
+    const selectedDietPlanId = selectedDietPlan?.id;
 
     // Define meal types with their corresponding data keys
     const mealTypes = [
@@ -79,7 +80,7 @@ function DietPlan() {
             state: {
                 foodId: food.food_id,
                 isDietPlan: true,
-                dietPlanId: mainDietPlanId
+                dietPlanId: selectedDietPlanId
             }
         });
         setShowSearchFood(false);
@@ -147,7 +148,7 @@ function DietPlan() {
 
     // Component to render each meal section
     const renderMealSection = (mealType) => {
-        const foodItems = mainDietPlan?.[mealType.key] || [];
+        const foodItems = selectedDietPlan?.[mealType.key] || [];
 
         return (
             <div key={mealType.key} className="space-y-3">

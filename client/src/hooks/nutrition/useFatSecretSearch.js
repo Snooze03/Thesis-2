@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api";
 
-export function useNutritionSearch() {
+export function useFatSecretSearch() {
     const searchFoods = async ({ queryKey }) => {
         const [_, searchTerm, page = 0] = queryKey;
         if (!searchTerm || searchTerm.length < 3) {

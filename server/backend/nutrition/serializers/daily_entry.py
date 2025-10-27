@@ -8,6 +8,7 @@ class FoodEntrySerializer(serializers.ModelSerializer):
     # Read-only fields for displaying food info
     food_name = serializers.CharField(source="food.food_name", read_only=True)
     food_brand = serializers.CharField(source="food.brand_name", read_only=True)
+    food_database_id = serializers.CharField(source="food.id", read_only=True)
     serving_description = serializers.SerializerMethodField()
     serving_type_display = serializers.CharField(
         source="get_serving_type_display", read_only=True
@@ -25,6 +26,7 @@ class FoodEntrySerializer(serializers.ModelSerializer):
             "id",
             "daily_entry",
             "food",
+            "food_database_id",
             "food_name",
             "food_brand",
             "meal_type",
@@ -47,7 +49,7 @@ class FoodEntrySerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "food_name",
-            "food_id",
+            "food_database_id",
             "food_brand",
             "serving_type_display",
             "meal_type_display",
@@ -204,6 +206,7 @@ class DailyEntrySerializer(serializers.ModelSerializer):
                 entry_data = {
                     "id": entry.id,
                     "food_id": entry.food.food_id,
+                    "food_database_id": entry.food.id,
                     "food_name": entry.food.food_name,
                     "food_brand": entry.food.brand_name or "",
                     "quantity": entry.quantity,

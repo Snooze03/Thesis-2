@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Coffee, Sandwich, Carrot, Drumstick, Search, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/utils/formatDate";
-import { FoodEntryDetails } from "./food-entry-details";
+import { FoodDetailsDialog } from "./food-details-dialog";
 import { cn } from "@/lib/utils";
 
 export function DailyEntryCard({ dailyEntry }) {
@@ -13,6 +13,7 @@ export function DailyEntryCard({ dailyEntry }) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedFoodId, setSelectedFoodId] = useState(null);
     const [selectedEntry, setSelectedEntry] = useState(null);
+    const [foodDatabaseId, setFoodDatabaseId] = useState(null);
     const meals = dailyEntry.meals_breakdown;
     const todayPH = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
     const isToday = dailyEntry.date === todayPH;
@@ -47,11 +48,13 @@ export function DailyEntryCard({ dailyEntry }) {
     const handleFoodDetails = (entry) => {
         // Extract the id's from the entry
         const entryId = entry.id;
-        const foodId = entry.food_id;
+        const foodDbId = entry.food_database_id;
 
-        if (foodId && entryId) {
+        console.log(`Entry Details:`, { ...entry });
+
+        if (entryId && foodDbId) {
             setSelectedEntry(entryId);
-            setSelectedFoodId(foodId);
+            setFoodDatabaseId(foodDbId);
             setDialogOpen(true);
         } else {
             console.warn('No food ID found in entry:', entry);
@@ -169,13 +172,14 @@ export function DailyEntryCard({ dailyEntry }) {
                 </CardContent>
             </Card >
 
-            <FoodEntryDetails
+            <FoodDetailsDialog
                 isOpen={dialogOpen}
                 onClose={() => {
                     setDialogOpen(false);
                     setSelectedFoodId(null);
                 }}
                 foodId={selectedFoodId}
+                foodDatabaseId={foodDatabaseId}
                 entryId={selectedEntry}
             />
         </>

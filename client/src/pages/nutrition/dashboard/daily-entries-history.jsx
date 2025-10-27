@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useDailyEntriesHistory } from "@/hooks/nutrition/useDailyEntry";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { DailyEntryCard } from "./daily-entry-card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export function DailyEntriesHistory() {
     const [currentPage, setCurrentPage] = useState(null);
@@ -34,7 +34,7 @@ export function DailyEntriesHistory() {
     // Generate page numbers to show 
     const generatePageNumbers = () => {
         const { totalPages } = pagination;
-        const maxVisiblePages = 3; // number of consecutive pages to show
+        const maxVisiblePages = 4;
         const pages = [];
 
         // If total pages is small enough, show all pages
@@ -65,15 +65,6 @@ export function DailyEntriesHistory() {
         return pages;
     };
 
-    // Loading state while determining initial page
-    if (isLoading || currentPage === null) {
-        return (
-            <>
-                <Skeleton className="h-70 w-full mb-4" />
-            </>
-        );
-    }
-
     if (error) {
         return (
             <Card>
@@ -87,9 +78,9 @@ export function DailyEntriesHistory() {
     return (
         <>
             {entries.length === 0 ? (
-                <Card>
+                <Card className="min-h-90">
                     <CardContent className="py-8 text-center text-muted-foreground">
-                        No daily entries found.
+                        <LoadingSpinner message="entry" />
                     </CardContent>
                 </Card>
             ) : (

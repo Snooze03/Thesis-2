@@ -3,7 +3,7 @@ import { SubLayout } from "@/layouts/sub-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search } from "lucide-react";
-import { SearchFood } from "./nutrition-search";
+import { AddSearch } from "./add-search";
 import { DietPlan } from "./diet-plan";
 
 const AddFood = () => {
@@ -28,10 +28,10 @@ const AddFood = () => {
                     <DietPlan />
                 </TabsContent>
                 <TabsContent value="search_food">
-                    <SearchFood />
+                    <AddSearch />
                 </TabsContent>
                 <TabsContent value="alternatives">
-                    {/* <Article categoryDirectory="/articles/recovery" /> */}
+                    <DietPlan is_alternative={true} />
                 </TabsContent>
             </Tabs>
         </SubLayout>

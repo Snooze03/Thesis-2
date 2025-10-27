@@ -47,11 +47,22 @@ class DietPlanFoodSerializer(serializers.ModelSerializer):
 
     def get_serving_description(self, obj):
         """Get human-readable serving description"""
-        return obj.get_serving_description()
+        if obj.serving_type == "fatsecret" and obj.fatsecret_serving_id:
+            serving = obj.food.get_serving_by_id(obj.fatsecret_serving_id)
+            if serving:
+                return serving.get("serving_description", "Unknown serving")
+        elif obj.serving_type == "custom":
+            return f"{obj.custom_serving_amount} {obj.custom_serving_unit}"
+        return "Unknown serving"
 
     def get_nutrition_totals(self, obj):
         """Get nutrition totals for this food item"""
-        return obj.get_nutrition_totals()
+        return {
+            "calories": obj.calories,
+            "protein": obj.protein,
+            "carbs": obj.carbs,
+            "fat": obj.fat,
+        }
 
     def validate_food_id(self, value):
         """Validate food exists"""
@@ -86,17 +97,22 @@ class DietPlanFoodSerializer(serializers.ModelSerializer):
 
 
 class DietPlanSerializer(serializers.ModelSerializer):
-    """Serializer for DietPlan model with nested foods"""
+    """Base serializer for DietPlan model"""
 
+    # All foods (for backward compatibility)
     diet_plan_foods = DietPlanFoodSerializer(many=True, read_only=True)
+
+    # Write-only field for creating foods with the diet plan
     diet_plan_foods_data = serializers.ListField(
         child=serializers.DictField(),
         write_only=True,
         required=False,
         help_text="List of foods to create with the diet plan",
     )
+
+    # Additional computed fields
     meals_breakdown = serializers.SerializerMethodField()
-    nutrition_summary = serializers.SerializerMethodField()
+    # nutrition_summary = serializers.SerializerMethodField()
     foods_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -112,7 +128,7 @@ class DietPlanSerializer(serializers.ModelSerializer):
             "diet_plan_foods",
             "diet_plan_foods_data",
             "meals_breakdown",
-            "nutrition_summary",
+            # "nutrition_summary",
             "foods_count",
             "created_at",
             "updated_at",
@@ -132,17 +148,8 @@ class DietPlanSerializer(serializers.ModelSerializer):
         """Get nutrition breakdown by meal type"""
         return obj.get_meals_breakdown()
 
-    def get_nutrition_summary(self, obj):
-        """Get overall nutrition summary"""
-        return {
-            "total_calories": obj.total_calories,
-            "total_protein": obj.total_protein,
-            "total_carbs": obj.total_carbs,
-            "total_fat": obj.total_fat,
-        }
-
     def get_foods_count(self, obj):
-        """Get count of foods in this diet plan"""
+        """Get total count of foods in this diet plan"""
         return obj.diet_plan_foods.count()
 
     def validate_diet_plan_foods_data(self, value):
@@ -243,11 +250,63 @@ class DietPlanSerializer(serializers.ModelSerializer):
         return instance
 
 
-class DietPlanListSerializer(serializers.ModelSerializer):
-    """Simplified serializer for listing diet plans"""
+class DietPlanDetailSerializer(DietPlanSerializer):
+    """Extended serializer with detailed food information organized by meal type"""
 
+    # Nested foods organized by meal type (similar to daily entry pattern)
+    breakfast_foods = serializers.SerializerMethodField()
+    lunch_foods = serializers.SerializerMethodField()
+    dinner_foods = serializers.SerializerMethodField()
+    snack_foods = serializers.SerializerMethodField()
+
+    class Meta(DietPlanSerializer.Meta):
+        fields = DietPlanSerializer.Meta.fields + [
+            "breakfast_foods",
+            "lunch_foods",
+            "dinner_foods",
+            "snack_foods",
+        ]
+
+    def get_breakfast_foods(self, obj):
+        """Get breakfast foods for this diet plan"""
+        breakfast_foods = obj.diet_plan_foods.filter(meal_type="breakfast").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(breakfast_foods, many=True).data
+
+    def get_lunch_foods(self, obj):
+        """Get lunch foods for this diet plan"""
+        lunch_foods = obj.diet_plan_foods.filter(meal_type="lunch").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(lunch_foods, many=True).data
+
+    def get_dinner_foods(self, obj):
+        """Get dinner foods for this diet plan"""
+        dinner_foods = obj.diet_plan_foods.filter(meal_type="dinner").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(dinner_foods, many=True).data
+
+    def get_snack_foods(self, obj):
+        """Get snack foods for this diet plan"""
+        snack_foods = obj.diet_plan_foods.filter(meal_type="snack").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(snack_foods, many=True).data
+
+
+class DietPlanListSerializer(serializers.ModelSerializer):
+    """Serializer for listing diet plans with actual food items organized by meal type"""
+
+    # Nested foods organized by meal type - actual food items, not just counts
+    breakfast_foods = serializers.SerializerMethodField()
+    lunch_foods = serializers.SerializerMethodField()
+    dinner_foods = serializers.SerializerMethodField()
+    snack_foods = serializers.SerializerMethodField()
+
+    # Summary fields
     foods_count = serializers.SerializerMethodField()
-    nutrition_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = DietPlan
@@ -258,24 +317,48 @@ class DietPlanListSerializer(serializers.ModelSerializer):
             "total_protein",
             "total_carbs",
             "total_fat",
+            "breakfast_foods",
+            "lunch_foods",
+            "dinner_foods",
+            "snack_foods",
             "foods_count",
-            "nutrition_summary",
+            # "foods_by_meal_count",
+            # "nutrition_summary",
             "created_at",
             "updated_at",
         ]
 
+    def get_breakfast_foods(self, obj):
+        """Get breakfast foods for this diet plan"""
+        breakfast_foods = obj.diet_plan_foods.filter(meal_type="breakfast").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(breakfast_foods, many=True).data
+
+    def get_lunch_foods(self, obj):
+        """Get lunch foods for this diet plan"""
+        lunch_foods = obj.diet_plan_foods.filter(meal_type="lunch").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(lunch_foods, many=True).data
+
+    def get_dinner_foods(self, obj):
+        """Get dinner foods for this diet plan"""
+        dinner_foods = obj.diet_plan_foods.filter(meal_type="dinner").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(dinner_foods, many=True).data
+
+    def get_snack_foods(self, obj):
+        """Get snack foods for this diet plan"""
+        snack_foods = obj.diet_plan_foods.filter(meal_type="snack").order_by(
+            "order", "created_at"
+        )
+        return DietPlanFoodSerializer(snack_foods, many=True).data
+
     def get_foods_count(self, obj):
         """Get count of foods in this diet plan"""
         return obj.diet_plan_foods.count()
-
-    def get_nutrition_summary(self, obj):
-        """Get nutrition summary"""
-        return {
-            "total_calories": obj.total_calories,
-            "total_protein": obj.total_protein,
-            "total_carbs": obj.total_carbs,
-            "total_fat": obj.total_fat,
-        }
 
 
 class DietPlanFoodCreateSerializer(serializers.ModelSerializer):
@@ -324,6 +407,42 @@ class DietPlanFoodCreateSerializer(serializers.ModelSerializer):
             ):
                 raise serializers.ValidationError(
                     "custom_serving_unit and custom_serving_amount are required when serving_type is 'custom'"
+                )
+
+        return data
+
+
+class QuickAddDietPlanFoodSerializer(serializers.ModelSerializer):
+    """Quick add serializer for diet plan foods with minimal required fields"""
+
+    class Meta:
+        model = DietPlanFood
+        fields = [
+            "diet_plan",
+            "food",
+            "meal_type",
+            "serving_type",
+            "fatsecret_serving_id",
+            "quantity",
+        ]
+
+    def validate(self, data):
+        """Basic validation for quick add"""
+        # Set default values
+        if "serving_type" not in data:
+            data["serving_type"] = "fatsecret"
+        if "quantity" not in data:
+            data["quantity"] = 1.0
+
+        # Basic serving validation
+        if data.get("serving_type") == "fatsecret" and not data.get(
+            "fatsecret_serving_id"
+        ):
+            # Try to get the first available serving from the food
+            food = data.get("food")
+            if food and hasattr(food, "fatsecret_servings") and food.fatsecret_servings:
+                data["fatsecret_serving_id"] = food.fatsecret_servings[0].get(
+                    "serving_id"
                 )
 
         return data

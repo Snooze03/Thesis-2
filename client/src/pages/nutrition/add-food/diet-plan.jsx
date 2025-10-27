@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyItems } from "@/components/empty-items";
 import { useDietPlan } from "@/hooks/nutrition/diet-plan/useDietPlan";
 import { SearchFood } from "./search-food";
+import { FoodDetailsDialog } from "../dashboard/food-details-dialog";
 import { Plus, Wheat, Beef, Citrus, Pencil, Trash } from "lucide-react";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import clsx from "clsx";
@@ -13,6 +14,8 @@ import clsx from "clsx";
 function DietPlan({ is_alternative = false }) {
     const navigate = useNavigate();
     const [showSearchFood, setShowSearchFood] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [foodDatabaseId, setFoodDatabaseId] = useState(null);
 
     const {
         data: todayDailyEntryID,
@@ -27,7 +30,6 @@ function DietPlan({ is_alternative = false }) {
     if (isLoading) return <div>Loading...</div>;
     if (isError) return <div>Error loading diet plan</div>;
 
-    // console.log(dietPlanData);
 
     const selectedDietPlan = dietPlanData?.find(plan =>
         is_alternative ? plan.is_alternative : !plan.is_alternative
@@ -99,8 +101,10 @@ function DietPlan({ is_alternative = false }) {
         });
     }
 
-    const handleEditFood = (foodEntryId) => {
-        console.log(`Edit food entry ID: ${foodEntryId}`);
+    const handleEditFood = (foodEntry) => {
+        // console.log(`Daily entry id: ${todayDailyEntryID.id}, Food Entry id: ${foodEntry.id}`);
+        setFoodDatabaseId(foodEntry.id);
+        setDialogOpen(true);
     }
 
     const handleDeleteFood = (foodEntryId) => {
@@ -110,11 +114,10 @@ function DietPlan({ is_alternative = false }) {
     // Component to render individual food items
     const renderFoodItem = (foodEntry) => {
         const selectedServing = getSelectedServing(foodEntry);
-        // console.log(`Food ID ${foodEntry.id}`);
 
         const menuItems = [
-            { icon: Plus, label: "Add Food", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
-            { icon: Pencil, label: "Edit", action: () => handleEditFood(foodEntry.id) },
+            { icon: Plus, label: "Add to Daily Entry", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
+            { icon: Pencil, label: "Edit", action: () => handleEditFood(foodEntry) },
             { icon: Trash, label: "Delete", action: () => handleDeleteFood(foodEntry.id), variant: "destructive" },
         ];
 
@@ -139,7 +142,10 @@ function DietPlan({ is_alternative = false }) {
 
                     <div className="flex gap-1 flex-wrap">
                         <p className="text-sm text-gray-600">
-                            Serving: {Number(selectedServing.amount).toFixed(2)} {selectedServing.unit} •
+                            Serving: {selectedServing.amount && selectedServing.unit ?
+                                `${Number(selectedServing.amount).toFixed(2)} ${selectedServing.unit}` :
+                                selectedServing.description
+                            } •
                         </p>
                         <p className="text-sm text-gray-600">
                             {foodEntry.quantity}x | Calories: {foodEntry.calories}
@@ -218,6 +224,13 @@ function DietPlan({ is_alternative = false }) {
             <div className="space-y-6">
                 {mealTypes.map(renderMealSection)}
             </div>
+
+            <FoodDetailsDialog
+                isOpen={dialogOpen}
+                onClose={() => setDialogOpen(false)}
+                foodDatabaseId={foodDatabaseId}
+                isDietPlan={true}
+            />
         </>
     );
 }

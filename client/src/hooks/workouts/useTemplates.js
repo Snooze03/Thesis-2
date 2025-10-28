@@ -7,24 +7,18 @@ export function useTemplates() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
-    // Get all templates
-    const getTemplates = async () => {
-        const response = await api.get("workouts/templates/");
-        return response.data;
-    };
-
-    const templatesQuery = useQuery({
+    const fetchTemplates = useQuery({
         queryKey: ["templates"],
-        queryFn: getTemplates,
+        queryFn: async () => {
+            const response = await api.get("workouts/templates/");
+            return response.data;
+        }
     });
 
-    // Delete template
-    const deleteTemplate = async (templateId) => {
-        await api.delete(`workouts/templates/${templateId}/`);
-    };
-
     const deleteTemplateMutation = useMutation({
-        mutationFn: deleteTemplate,
+        mutationFn: async (templateId) => {
+            await api.delete(`workouts/templates/${templateId}/`);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["templates"] });
             toast.success("Template deleted successfully!");
@@ -33,25 +27,6 @@ export function useTemplates() {
             toast.error(`Error deleting template: ${error.response?.data?.message || error.message}`);
         }
     });
-
-    // Helper functions
-    const navigateToCreate = (isAlternative = false) => {
-        navigate("/workouts/templates/create", {
-            state: {
-                isAlternative,
-                mode: "create"
-            }
-        });
-    };
-
-    const navigateToEdit = (template) => {
-        navigate("/workouts/templates/edit", {
-            state: {
-                template,
-                mode: "edit"
-            }
-        });
-    };
 
     const navigateToStart = (template) => {
         navigate("/workouts/templates/start", {
@@ -73,18 +48,16 @@ export function useTemplates() {
 
     return {
         // Data
-        templates: templatesQuery.data || [],
-        routines: (templatesQuery.data || []).filter((t) => !t.isAlternative),
-        alternatives: (templatesQuery.data || []).filter((t) => t.isAlternative),
+        templates: fetchTemplates.data || [],
+        routines: (fetchTemplates.data || []).filter((t) => !t.isAlternative),
+        alternatives: (fetchTemplates.data || []).filter((t) => t.isAlternative),
 
         // Loading states
-        isLoading: templatesQuery.isPending,
-        isDeleting: deleteTemplateMutation.isLoading,
+        isLoading: fetchTemplates.isLoading,
+        isDeleting: deleteTemplateMutation.isPending,
 
         // Actions
         deleteTemplate: deleteTemplateMutation.mutate,
-        navigateToCreate,
-        navigateToEdit,
         navigateToStart,
         navigateToSearch,
     };

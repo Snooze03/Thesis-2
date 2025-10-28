@@ -1,3 +1,6 @@
+import { useTemplates } from "@/hooks/workouts/useTemplates";
+import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
@@ -5,17 +8,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { useTemplates } from "@/hooks/workouts/useTemplates";
-import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
-function WorkoutTemplate({
-    id,
-    title
-}) {
+export function TemplateItem({ id, title }) {
+    const navigate = useNavigate();
+
     const {
         deleteTemplate,
         isDeleting,
-        navigateToEdit,
         navigateToStart
     } = useTemplates();
 
@@ -31,12 +30,17 @@ function WorkoutTemplate({
     };
 
     const handleEdit = () => {
-        // Pass the complete template object instead of just the ID
+        // Pass the complete template object 
         const templateObj = {
             id,
             title,
         };
-        navigateToEdit(templateObj);
+        navigate("/workouts/templates/edit", {
+            state: {
+                templateObj,
+                mode: "edit"
+            }
+        });
     };
 
     const handleStartWorkout = () => {
@@ -58,7 +62,7 @@ function WorkoutTemplate({
     };
 
     return (
-        <AccordionItem value={`item-${id}`} className="shadow-sm rounded-lg">
+        <AccordionItem value={`item-${id}`} className="shadow-xs rounded-lg">
             <AccordionTrigger className="px-4">
                 {title}
                 <Badge className="text-xs">
@@ -167,5 +171,3 @@ function WorkoutTemplate({
         </AccordionItem>
     );
 }
-
-export { WorkoutTemplate }

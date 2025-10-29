@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Flame, Beef, Wheat, Citrus, } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clsx } from "clsx";
-import { useDebounce } from "@/hooks/nutrition/useDebounce";
+import { useDebounce } from "@/hooks/useDebounce";
 import { parseFoodDescription } from "@/utils/parseFoodDescription";
 
 // Context for sharing state between components

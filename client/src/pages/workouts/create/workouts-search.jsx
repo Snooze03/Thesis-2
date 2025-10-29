@@ -1,27 +1,36 @@
+import { useExerciseSearch } from "@/hooks/workouts/search/useExerciseSearch";
+import { useAtom } from "jotai";
+import { searchTermAtom } from "./search-atoms";
+import { SubLayout } from "@/layouts/sub-layout";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";
-import { SubLayout } from "@/layouts/sub-layout";
 import { ArrowLeft, Search, ListFilter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useExerciseSearch } from "@/hooks/workouts/useExerciseSearch";
 
 function SearchExercise() {
+    const [searchTerm, setSearchTerm] = useAtom(searchTermAtom);
+
     const {
-        searchTerm,
-        setSearchTerm,
-        selectedExercises,
-        hasSelectedItems,
+        // data
         exercises,
+        // State
         isLoading,
         isError,
-        isAdding,
-        toggleItemSelection,
+        selectedExercises,
+        // Actions
+        hasSelectedExercises,
+        toggleExerciseSelection,
         isSelected,
-        handleSearch,
         addSelectedExercises,
         handleBackToEdit,
-    } = useExerciseSearch();
+    } = useExerciseSearch(searchTerm);
+
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // console.log('Searching for:', searchTerm);
+    };
 
     return (
         <SubLayout>
@@ -30,7 +39,6 @@ function SearchExercise() {
                 <Button
                     variant="ghost"
                     onClick={handleBackToEdit}
-                    disabled={isAdding}
                 >
                     <ArrowLeft />
                 </Button>
@@ -43,14 +51,13 @@ function SearchExercise() {
                 </Button>
 
                 {/* Row 2 */}
-                <form onSubmit={handleSearch} className="relative w-full block col-span-4">
+                <form onSubmit={handleSubmit} className="relative w-full block col-span-3">
                     <Input
                         id="search_input"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="col-span-4 pl-10"
+                        className="col-span-3 pl-10"
                         placeholder="search for an exercise"
-                        disabled={isAdding}
                     />
                     <Search className={cn(
                         "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
@@ -59,6 +66,11 @@ function SearchExercise() {
             </div>
 
             <div className="flex flex-col gap-2">
+                {/* Debug info panel - remove this in production */}
+                <div className="bg-gray-100 p-2 rounded text-xs">
+                    <p><strong>Debug:</strong> Search: "{searchTerm}" | Selected: {selectedExercises.size} | Loading: {isLoading ? 'Yes' : 'No'}</p>
+                </div>
+
                 {isError && (
                     <div className="flex justify-center items-center h-64">
                         <p>Error loading exercises. Please try again.</p>
@@ -71,7 +83,7 @@ function SearchExercise() {
                         <div className="flex justify-center items-center h-64">
                             <p>Loading exercises...</p>
                         </div>
-                    ) : exercises.length > 0 ? (
+                    ) : exercises && exercises.length > 0 ? (
                         // Render lists items
                         exercises.map((exercise, index) => (
                             <ListItem
@@ -79,36 +91,26 @@ function SearchExercise() {
                                 exercise={exercise}
                                 index={index}
                                 isSelected={isSelected(exercise, index)}
-                                onToggle={() => toggleItemSelection(exercise, index)}
+                                onToggle={() => toggleExerciseSelection(exercise, index)}
                             />
                         ))
                     ) : (
                         <div className="text-center py-8 text-gray-500">
-                            No exercises found
+                            {searchTerm ? `No exercises found for "${searchTerm}"` : 'Search for exercises or browse beginner exercises below'}
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Show button if an item is selected */}
-            {hasSelectedItems && (
+            {hasSelectedExercises && (
                 <Button
                     variant="default"
                     className="h-12 fixed bottom-6 right-6 rounded-full shadow-lg px-6"
                     onClick={addSelectedExercises}
-                    disabled={isAdding}
                 >
-                    {isAdding ? (
-                        <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                            Adding...
-                        </>
-                    ) : (
-                        <>
-                            <Check className="size-5 stroke-3" />
-                            Add {selectedExercises.size} Exercise{selectedExercises.size !== 1 ? 's' : ''}
-                        </>
-                    )}
+                    <Check className="size-5 stroke-3" />
+                    Add {selectedExercises.size} Exercise{selectedExercises.size !== 1 ? 's' : ''}
                 </Button>
             )}
         </SubLayout>
@@ -163,4 +165,4 @@ function ListItem({ exercise, index, isSelected, onToggle }) {
     );
 }
 
-export { SearchExercise }
+export { SearchExercise };

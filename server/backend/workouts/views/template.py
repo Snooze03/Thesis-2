@@ -10,6 +10,7 @@ from ..serializers import (
     TemplateSerializer,
     TemplateExerciseSerializer,
     AddExercisesToTemplateSerializer,
+    CreateTemplateWithExercisesSerializer,
 )
 
 
@@ -42,6 +43,56 @@ class TemplateViewSet(viewsets.ModelViewSet):
     # Create template and assign user id as foreign key
     def perform_create(self, serializer):
         serializer.save(user_id=self.request.user)
+
+    @action(detail=False, methods=["post"])
+    def create_with_exercises(self, request):
+        """
+        Create a template and add exercises to it in one operation
+        URL: /workouts/templates/create_with_exercises/
+        Body: {
+            "title": "My Workout",
+            "isAlternative": false,
+            "exercises": [
+                {
+                    "name": "Push Up",
+                    "type": "strength",
+                    "muscle": "chest",
+                    "equipment": "body_only",
+                    "difficulty": "beginner",
+                    "instructions": "Do push ups...",
+                    "sets": 3,
+                    "reps": 10,
+                    "weight": null,
+                    "rest_time": "60s",
+                    "notes": "Focus on form"
+                }
+            ]
+        }
+        """
+        serializer = CreateTemplateWithExercisesSerializer(
+            data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            try:
+                template = serializer.save()
+
+                # Return the created template with exercise count
+                response_serializer = TemplateSerializer(template)
+                return Response(
+                    {
+                        "template": response_serializer.data,
+                        "message": f"Template '{template.title}' created successfully with {template.template_exercises.count()} exercises",
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            except Exception as e:
+                return Response(
+                    {"error": f"Failed to create template: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["get"])
     def exercises(self, request, pk=None):

@@ -1,3 +1,8 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { useTemplateTest } from "@/hooks/workouts/templates/useTemplateTest";
+import { useAtom } from "jotai";
+import { templateTitleAtom } from "./template-atoms";
+import { selectedExercisesAtom } from "./search-atoms";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -5,37 +10,84 @@ import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { EmptyItems } from "@/components/empty-items";
-import { useTemplateActions } from "@/hooks/workouts/useTemplateActions";
-import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
 function CreateTemplate() {
-    const {
-        localTitle,
-        setLocalTitle,
-        isEditing,
-        existingTemplate,
-        isLoadingTemplate,
-        isSaving,
-        handleSubmit,
-        handleAddExercise,
-        handleCancel,
-    } = useTemplateActions();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const is_alternative = location.state?.isAlternative || false;
 
-    const {
-        exercises,
-        isLoading: isLoadingExercises,
-    } = useTemplateExercises(isEditing ? existingTemplate?.id : null);
+    // Atoms
+    const [title, setTitle] = useAtom(templateTitleAtom);
+    const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
+    // Convert Map to Array for easier rendering
+    const exercisesArray = Array.from(selectedExercises.values());
+    const hasExercises = exercisesArray.length > 0;
+    const canSave = title.trim().length > 0 && hasExercises;
 
-    // Show loading state for existing template
-    if (isEditing && isLoadingTemplate) {
-        return (
-            <SubLayout>
-                <LoadingSpinner message="template" />
-            </SubLayout>
-        );
-    }
+    // Create template with exercise mutation
+    const {
+        createTemplate,
+        isCreating,
+    } = useTemplateTest();
+
+    const handleAddExercise = () => {
+        navigate("search");
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Prepare template data for API
+        const templateData = {
+            title: title.trim(),
+            isAlternative: is_alternative,
+            exercises: exercisesArray.map(exercise => ({
+                name: exercise.name,
+                type: exercise.type || '',
+                muscle: exercise.muscle || '',
+                equipment: exercise.equipment || '',
+                difficulty: exercise.difficulty || '',
+                instructions: exercise.instructions || '',
+                sets: exercise.sets || null,
+                reps: exercise.reps || null,
+                weight: exercise.weight || null,
+                rest_time: exercise.rest_time || null,
+                notes: exercise.notes || ''
+            }))
+        };
+
+        console.log('Creating template with data:', templateData);
+
+        createTemplate(templateData, {
+            onSuccess: () => {
+                // console.log('Template created successfully');
+                // Clear atoms after successful creation
+                setTitle('');
+                setSelectedExercises(new Map());
+                navigate("/workouts");
+            }
+        });
+    };
+
+    const handleCancel = () => {
+        // Clear atoms and navigate back
+        setTitle('');
+        setSelectedExercises(new Map());
+        navigate("/workouts");
+    };
+
+    const handleRemoveExercise = (exerciseKey) => {
+        setSelectedExercises(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(exerciseKey);
+            return newMap;
+        });
+    };
+
+    const handleTitleChange = (e) => {
+        setTitle(e.target.value);
+    };
 
     // Main View
     return (
@@ -50,7 +102,7 @@ function CreateTemplate() {
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>
-                                {isEditing ? "Cancel Template Editing?" : "Cancel Template Creation?"}
+                                Cancel Template Creation?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                                 Are you absolutely sure? Any unsaved changes will be lost.
@@ -73,66 +125,70 @@ function CreateTemplate() {
                     <Input
                         type="text"
                         id="template_title"
-                        value={localTitle}
-                        onChange={(e) => setLocalTitle(e.target.value)}
+                        value={title}
+                        onChange={handleTitleChange}
                         variant="ghost"
                         className="h-7"
-                        placeholder={isEditing ? "Template Name" : "New Workout Template"}
-                        disabled={isSaving}
+                        placeholder="Enter template title..."
+                        disabled={isCreating}
                     />
 
                     <Button
                         type="submit"
                         className="h-7 ml-3"
-                        disabled={isSaving || !localTitle.trim() || exercises.length === 0}
+                        disabled={isCreating || !canSave}
                     >
                         <FlagTriangleRight />
-                        {isSaving ? "Saving..." : "Save"}
+                        {isCreating ? "Saving..." : "Save"}
                     </Button>
                 </form>
             </div>
 
             {/* Body */}
             <div className="flex flex-col gap-3">
-                {/* Show exercises if editing or if there are no exercises */}
-                {(isEditing || exercises.length === 0) && (
+                {/* Debug info - remove in prod */}
+                <div className="bg-gray-100 p-2 rounded text-xs">
+                    <p><strong>Debug:</strong> Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
+                </div>
+
+                {/* Show exercises */}
+                {hasExercises ? (
                     <div className="flex flex-col gap-2">
-                        {isLoadingExercises ? (
-                            <LoadingSpinner message="exercises" />
-                        ) : exercises.length > 0 ? (
-                            <>
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-semibold text-sm text-gray-700">
-                                        Exercises ({exercises.length})
-                                    </h3>
-                                </div>
-                                <div className="space-y-4">
-                                    {exercises.map((templateExercise) => (
-                                        <div key={templateExercise.id} className="relative group">
-                                            <ExerciseCard
-                                                template_exercise={templateExercise}
-                                                isEditing={isEditing}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        ) : (
-                            <EmptyItems
-                                title="No exercises added yet"
-                                description="Click 'Add Exercises' to get started!"
-                            />
-                        )}
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-sm text-gray-700">
+                                Exercises ({exercisesArray.length})
+                            </h3>
+                        </div>
+                        <div className="space-y-4">
+                            {exercisesArray.map((exercise, index) => {
+                                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                return (
+                                    <div key={exerciseKey} className="relative group">
+                                        <ExerciseCard
+                                            exercise={exercise}
+                                            isEditing={true}
+                                            onRemove={() => handleRemoveExercise(exerciseKey)}
+                                        // onUpdate={(updates) => updateExercise(index, updates)} // Implement if needed
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
+                ) : (
+                    <EmptyItems
+                        title="No exercises added yet"
+                        description="Click 'Add Exercises' to get started!"
+                    />
                 )}
 
                 {/* Add Exercise Button */}
                 <Button
-                    className="bg-white text-primary font-semibold border-2 border-dashed border-primary/30 hover:bg-primary/10"
+                    className="w-full bg-white text-primary font-semibold border-2 border-dashed border-primary/30 hover:bg-primary/10"
                     onClick={handleAddExercise}
-                    disabled={isSaving}
+                    disabled={isCreating}
                 >
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="size-4 mr-1" />
                     ADD EXERCISE
                 </Button>
             </div>
@@ -140,4 +196,4 @@ function CreateTemplate() {
     );
 }
 
-export { CreateTemplate }
+export { CreateTemplate };

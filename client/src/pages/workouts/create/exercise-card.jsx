@@ -6,27 +6,21 @@ import * as v from "valibot";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
+import { useState } from "react";
 
 function ExerciseCard({
-    template_exercise,
-    isEditing,
+    exercise,
+    isEditing = true,
+    onRemove,
+    onUpdate
 }) {
     const navigate = useNavigate();
 
-    // Variables to easily refer to certain properties
-    const template_id = template_exercise.template;
-    const template_exercise_id = template_exercise.exercise.id;
-    const exercise = template_exercise.exercise;
-    const sets = [...Array(template_exercise.sets).keys()];
+    // Local state for exercise parameters (use props values as defaults)
+    const [sets, setSets] = useState(exercise.sets || 3);
 
-    // Use the custom hook for template exercises operations
-    const {
-        removeExercise,
-        updateSets,
-        isRemoving,
-        isUpdating,
-    } = useTemplateExercises(template_id);
+    // Create array for rendering sets
+    const setsArray = [...Array(sets).keys()];
 
     // Hook Form and valibot validation for weights and reps input
     const {
@@ -40,41 +34,29 @@ function ExerciseCard({
     // ===== EVENT HANDLERS =====
     const handleRemoveExercise = () => {
         if (window.confirm("Are you sure you want to remove this exercise?")) {
-            removeExercise({
-                templateId: template_id,
-                exerciseId: template_exercise_id,
-            });
+            onRemove?.();
         }
     };
 
     const handleAddSet = () => {
-        updateSets({
-            template_exercise_ID: template_exercise.id,
-            newSet: template_exercise.sets + 1,
-        });
+        const newSets = sets + 1;
+        setSets(newSets);
+        // Update the exercise in the atom
+        onUpdate?.({ sets: newSets });
     };
 
     const handleDeleteSet = () => {
-        updateSets({
-            template_exercise_ID: template_exercise.id,
-            newSet: template_exercise.sets - 1,
-        });
+        if (sets > 1) {
+            const newSets = sets - 1;
+            setSets(newSets);
+            // Update the exercise in the atom
+            onUpdate?.({ sets: newSets });
+        }
     };
 
     const handleReplace = () => {
-        // Get the template object from location state or construct it
-        const templateData = {
-            id: template_id,
-            // You might need to get more template data here
-        };
-
-        // Navigate to search with template state
-        navigate("/workouts/templates/search", {
-            state: {
-                template: templateData,
-                mode: "search"
-            }
-        });
+        // Navigate to search to replace this exercise
+        navigate("/workouts/templates/create/search");
     };
 
     const handleRestTimer = () => {
@@ -87,13 +69,12 @@ function ExerciseCard({
             icon: Plus,
             label: "Add Set",
             action: handleAddSet,
-            disabled: isUpdating
         },
         {
             icon: Trash2,
             label: "Delete Set",
             action: handleDeleteSet,
-            disabled: template_exercise.sets <= 1 || isUpdating
+            disabled: sets <= 1
         },
         {
             icon: AlarmClock,
@@ -104,14 +85,12 @@ function ExerciseCard({
             icon: Replace,
             label: "Replace Exercise",
             action: handleReplace,
-            disabled: isRemoving
         },
         {
             icon: Minus,
             label: "Remove Exercise",
             variant: "destructive",
             action: handleRemoveExercise,
-            disabled: isRemoving
         },
     ];
 
@@ -124,14 +103,13 @@ function ExerciseCard({
                         <p className="font-semibold leading-tight">
                             {exercise.name}
                             <span className="font-normal text-gray-600 ml-2 capitalize">
-                                ({exercise.muscle})
+                                ({exercise.muscle || 'Unknown muscle'})
                             </span>
                         </p>
-                        <p className="text-gray-600 text-sm mt-0.5">{exercise.equipment}</p>
+                        <p className="text-gray-600 text-sm mt-0.5">{exercise.equipment || 'No equipment'}</p>
                     </div>
                     <KebabMenu
                         items={menuItems}
-                        disabled={isRemoving || isUpdating}
                         className="flex-shrink-0"
                     />
                 </div>
@@ -146,12 +124,12 @@ function ExerciseCard({
             </div>
 
             {/* Sets */}
-            {sets.map((_, index) => {
+            {setsArray.map((_, index) => {
                 index++;
                 return (
                     <div className="grid grid-cols-[.2fr_auto_.5fr_.5fr_auto] gap-3 place-items-center" key={index}>
                         <p className="text-primary font-semibold">{index}</p>
-                        <p className="text-gray-600">30kg x 10</p>
+                        <p className="text-gray-600">-</p>
                         <Input
                             id={`weight_${index}`}
                             {...register(`weight_${index}`)}
@@ -197,4 +175,4 @@ const ExerciseSchema = v.object({
     )
 });
 
-export { ExerciseCard }
+export { ExerciseCard };

@@ -1,14 +1,13 @@
 import { MainLayout } from "@/layouts/main-layout";
 import { useNavigate } from "react-router-dom";
+import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Accordion } from "@/components/ui/accordion";
 import { TemplateItem } from "./template-item";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
-import { useTemplates } from "@/hooks/workouts/useTemplates";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const WorkoutsDashboard = () => {

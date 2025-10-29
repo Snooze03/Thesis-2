@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useTemplateTest } from "@/hooks/workouts/templates/useTemplateTest";
+import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useAtom } from "jotai";
 import { templateTitleAtom } from "./template-atoms";
 import { selectedExercisesAtom } from "./search-atoms";
@@ -29,7 +29,7 @@ function CreateTemplate() {
     const {
         createTemplate,
         isCreating,
-    } = useTemplateTest();
+    } = useTemplates();
 
     const handleAddExercise = () => {
         navigate("search");

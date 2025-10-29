@@ -7,6 +7,7 @@ export function useTemplates() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
+    // Fetch auth user templates
     const fetchTemplates = useQuery({
         queryKey: ["templates"],
         queryFn: async () => {
@@ -15,6 +16,23 @@ export function useTemplates() {
         }
     });
 
+    // Create template with selected exercises
+    const createTemplate = useMutation({
+        mutationFn: async (templateData) => {
+            const response = await api.post("workouts/templates/create_with_exercises/", templateData);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["templates"] });
+            toast.success("Template created successfully!");
+        },
+        onError: (error) => {
+            const errorMessage = error.response?.data?.message || "Failed to create template";
+            toast.error(errorMessage);
+        }
+    });
+
+    // Delete template
     const deleteTemplateMutation = useMutation({
         mutationFn: async (templateId) => {
             await api.delete(`workouts/templates/${templateId}/`);
@@ -52,11 +70,16 @@ export function useTemplates() {
         routines: (fetchTemplates.data || []).filter((t) => !t.isAlternative),
         alternatives: (fetchTemplates.data || []).filter((t) => t.isAlternative),
 
-        // Loading states
+        // Fetching loading states
         isLoading: fetchTemplates.isLoading,
         isDeleting: deleteTemplateMutation.isPending,
 
-        // Actions
+        // Create actions
+        createTemplate: createTemplate.mutate,
+        // Create states
+        isCreating: createTemplate.isPending,
+
+        // Delete
         deleteTemplate: deleteTemplateMutation.mutate,
         navigateToStart,
         navigateToSearch,

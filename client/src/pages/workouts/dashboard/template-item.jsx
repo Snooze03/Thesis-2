@@ -1,4 +1,4 @@
-import { useTemplates } from "@/hooks/workouts/useTemplates";
+import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";

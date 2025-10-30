@@ -15,7 +15,6 @@ export function TemplateItem({ id, title }) {
     const {
         deleteTemplate,
         isDeleting,
-        navigateToStart
     } = useTemplates();
 
     const {
@@ -35,12 +34,12 @@ export function TemplateItem({ id, title }) {
             id,
             title,
         };
-        navigate("/workouts/templates/edit", {
-            state: {
-                templateObj,
-                mode: "edit"
-            }
-        });
+        // navigate("templates/edit", {
+        //     state: {
+        //         templateObj,
+        //         mode: "edit"
+        //     }
+        // });
     };
 
     const handleStartWorkout = () => {
@@ -48,7 +47,7 @@ export function TemplateItem({ id, title }) {
             id,
             title,
         };
-        navigateToStart(templateObj);
+        // navigateToStart(templateObj);
     };
     // ===== END EVENT HANDLERS =====
 
@@ -88,7 +87,7 @@ export function TemplateItem({ id, title }) {
                                     key={templateExercise.id || `exercise-${index}`}
                                 >
                                     <div className="grid place-items-center size-10 bg-primary-300 rounded-full text-sm">
-                                        <p>{templateExercise.sets || 3}x</p>
+                                        <p>{templateExercise.total_sets || 3}x</p>
                                     </div>
                                     <div className="flex flex-col justify-center">
                                         <p className="font-medium truncate">{exercise.name}</p>

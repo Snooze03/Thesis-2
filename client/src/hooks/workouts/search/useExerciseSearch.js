@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { selectedExercisesAtom } from "@/pages/workouts/create/search-atoms";
 import { useAtom } from "jotai";
-import api from "@/api";
 import apiNinjas from "@/apiNinjas";
-import { toast } from "react-hot-toast";
 
 export function useExerciseSearch(searchTerm) {
     const navigate = useNavigate();
@@ -29,7 +26,7 @@ export function useExerciseSearch(searchTerm) {
     });
 
     // Action functions
-    const toggleExerciseSelection = (exercise, index) => {
+    const toggleExerciseSelection = (exercise) => {
         // Use exercise name as unique key (or a combination if names might not be unique)
         const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
 
@@ -38,39 +35,51 @@ export function useExerciseSearch(searchTerm) {
             if (newMap.has(exerciseKey)) {
                 newMap.delete(exerciseKey);
             } else {
-                newMap.set(exerciseKey, exercise);
+                // Add exercise with default sets_data structure
+                const exerciseWithDefaults = {
+                    ...exercise,
+                    sets_data: [
+                        { reps: null, weight: null },
+                    ],
+                    rest_time: null,
+                    notes: ""
+                };
+                newMap.set(exerciseKey, exerciseWithDefaults);
             }
             return newMap;
         });
     };
 
-    const isSelected = (exercise, index) => {
+    const isSelected = (exercise) => {
         const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
-        return selectedExercises.has(exerciseKey); // Fix: use correct variable name
+        return selectedExercises.has(exerciseKey);
     };
 
     const addSelectedExercises = () => {
         if (selectedExercises.size === 0) return;
 
-        // Convert Map values to array
+        // Convert Map values to array with proper sets_data structure
         const exercisesToAdd = Array.from(selectedExercises.values()).map(exercise => ({
             name: exercise.name || '',
             type: exercise.type || '',
             muscle: exercise.muscle || '',
             equipment: exercise.equipment || '',
             difficulty: exercise.difficulty || '',
-            instructions: exercise.instructions || ''
+            instructions: exercise.instructions || '',
+            sets_data: exercise.sets_data || [
+                { reps: null, weight: null },
+            ],
+            rest_time: exercise.rest_time || null,
+            notes: exercise.notes || ""
         }));
 
         console.log('Selected exercises to add:', exercisesToAdd);
 
-        // TODO: Integrate with your template creation context
-        // For now, just navigate back to create page
+        // Navigate back to create page
         navigate("/workouts/templates/create");
     };
 
     const handleBackToEdit = () => {
-        // Fix: navigate to create page instead of edit
         navigate("/workouts/templates/create");
     };
 

@@ -38,14 +38,14 @@ const WorkoutsDashboard = () => {
             <TemplatesList
                 title="My Routines"
                 templates={routines}
-                isPending={isLoading}
+                isLoading={isLoading}
                 onCreateClick={() => handleCreateTemplate(false)}
             />
 
             <TemplatesList
                 title="Alternative Routines"
                 templates={alternatives}
-                isPending={isLoading}
+                isLoading={isLoading}
                 onCreateClick={() => handleCreateTemplate(true)}
             />
 
@@ -54,7 +54,7 @@ const WorkoutsDashboard = () => {
     );
 };
 
-function TemplatesList({ title, templates, isPending, onCreateClick }) {
+function TemplatesList({ title, templates, isLoading, onCreateClick }) {
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
@@ -68,7 +68,7 @@ function TemplatesList({ title, templates, isPending, onCreateClick }) {
                 </Button>
             </div>
 
-            {isPending ? (
+            {isLoading ? (
                 <div className="space-y-3">
                     {[...Array(3)].map((_, index) => (
                         <Skeleton key={index} className="h-12 w-full rounded-md" />
@@ -77,7 +77,7 @@ function TemplatesList({ title, templates, isPending, onCreateClick }) {
             ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
                     {templates.map((item) => (
-                        <TemplateItem key={item.id} id={item.id} title={item.title} />
+                        <TemplateItem key={item.id} templateData={item} />
                     ))}
                 </Accordion>
             ) : (

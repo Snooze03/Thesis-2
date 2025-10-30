@@ -21,14 +21,19 @@ class TemplateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        gets alternative/main workouts
+        gets alternative/main workouts with optimized queries
         URL: /workouts/templates/?is_alternative=false || true
         """
-        # Get templates belonging to the authenticated user
-        queryset = Template.objects.filter(user_id=self.request.user)
+        # Get templates belonging to the authenticated user with prefetch
+        queryset = (
+            Template.objects.filter(user_id=self.request.user)
+            .prefetch_related("template_exercises__exercise")
+            .order_by("-id")
+        )  # Most recent first
+
         is_alternative = self.request.query_params.get("is_alternative")
 
-        # Check if the requests is asking for alternative templates
+        # Check if the request is asking for alternative templates
         if is_alternative is not None:
             url_param = is_alternative.lower()
 
@@ -80,8 +85,13 @@ class TemplateViewSet(viewsets.ModelViewSet):
             try:
                 template = serializer.save()
 
-                # Return the created template with exercise count
-                response_serializer = TemplateSerializer(template)
+                # Reload the template with prefetched exercises for the response
+                template_with_exercises = Template.objects.prefetch_related(
+                    "template_exercises__exercise"
+                ).get(id=template.id)
+
+                # Return the created template with exercise data
+                response_serializer = TemplateSerializer(template_with_exercises)
                 return Response(
                     {
                         "template": response_serializer.data,
@@ -104,9 +114,11 @@ class TemplateViewSet(viewsets.ModelViewSet):
         URL: /workouts/templates/{id}/exercises/
         """
         template = self.get_object()
-        template_exercises = TemplateExercise.objects.filter(
-            template=template
-        ).select_related("exercise")
+        template_exercises = (
+            TemplateExercise.objects.filter(template=template)
+            .select_related("exercise")
+            .order_by("order", "created_at")
+        )
         serializer = TemplateExerciseSerializer(template_exercises, many=True)
         return Response(serializer.data)
 

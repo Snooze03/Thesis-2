@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import JSONField
 from accounts.models import Account
 from .exercise import Exercise
 
@@ -30,23 +31,18 @@ class TemplateExercise(models.Model):
         related_name="exercise_templates",
     )
 
-    sets = models.IntegerField(
-        default=1,
+    # Store sets data as JSON array of objects
+    # Structure: [{"reps": 12, "weight": 50.5}, {"reps": 10, "weight": 55.0}]
+    sets_data = JSONField(
+        default=list,
         blank=True,
-        null=True,
+        help_text="Array of objects containing reps and weight for each set",
     )
-    reps = models.IntegerField(
-        blank=True,
-        null=True,
-    )
-    weight = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        blank=True,
-        null=True,
-    )
-    rest_time = models.CharField(
-        max_length=20,
+
+    # Keep total sets count for easier querying
+    total_sets = models.IntegerField(default=1, help_text="Total number of sets")
+
+    rest_time = models.TimeField(
         blank=True,
         null=True,
     )
@@ -59,3 +55,47 @@ class TemplateExercise(models.Model):
     class Meta:
         unique_together = ("template", "exercise")
         ordering = ["order", "created_at"]
+
+    def save(self, *args, **kwargs):
+        """Override save to ensure total_sets matches sets_data length"""
+        if self.sets_data:
+            self.total_sets = len(self.sets_data)
+        super().save(*args, **kwargs)
+
+    def add_set(self, reps=None, weight=None):
+        """Add a new set to the exercise"""
+        if not self.sets_data:
+            self.sets_data = []
+
+        self.sets_data.append(
+            {"reps": reps, "weight": float(weight) if weight else None}
+        )
+        self.total_sets = len(self.sets_data)
+
+    def update_set(self, set_index, reps=None, weight=None):
+        """Update a specific set by index"""
+        if 0 <= set_index < len(self.sets_data):
+            if reps is not None:
+                self.sets_data[set_index]["reps"] = reps
+            if weight is not None:
+                self.sets_data[set_index]["weight"] = float(weight)
+
+    def remove_set(self, set_index):
+        """Remove a set by index"""
+        if 0 <= set_index < len(self.sets_data):
+            self.sets_data.pop(set_index)
+            self.total_sets = len(self.sets_data)
+
+    @property
+    def formatted_sets_display(self):
+        """Return a formatted string representation of sets"""
+        if not self.sets_data:
+            return "No sets configured"
+
+        sets_display = []
+        for i, set_data in enumerate(self.sets_data, 1):
+            reps = set_data.get("reps", "N/A")
+            weight = set_data.get("weight", "N/A")
+            sets_display.append(f"Set {i}: {reps} reps @ {weight}kg")
+
+        return " | ".join(sets_display)

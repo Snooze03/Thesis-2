@@ -20,6 +20,7 @@ class TemplateSerializer(serializers.ModelSerializer):
 class TemplateExerciseSerializer(serializers.ModelSerializer):
     exercise = ExerciseSerializer(read_only=True)
     exercise_name = serializers.CharField(source="exercise.name", read_only=True)
+    formatted_sets_display = serializers.CharField(read_only=True)
 
     class Meta:
         model = TemplateExercise
@@ -28,13 +29,40 @@ class TemplateExerciseSerializer(serializers.ModelSerializer):
             "template",
             "exercise",
             "exercise_name",
-            "sets",
-            "reps",
-            "weight",
+            "sets_data",
+            "total_sets",
             "rest_time",
             "notes",
             "order",
+            "formatted_sets_display",
         ]
+
+    def validate_sets_data(self, value):
+        """Validate sets_data structure"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("sets_data must be a list")
+
+        for i, set_data in enumerate(value):
+            if not isinstance(set_data, dict):
+                raise serializers.ValidationError(f"Set {i+1} must be an object")
+
+            # Validate reps
+            reps = set_data.get("reps")
+            if reps is not None and (not isinstance(reps, int) or reps < 0):
+                raise serializers.ValidationError(
+                    f"Set {i+1}: reps must be a positive integer or null"
+                )
+
+            # Validate weight
+            weight = set_data.get("weight")
+            if weight is not None and (
+                not isinstance(weight, (int, float)) or weight < 0
+            ):
+                raise serializers.ValidationError(
+                    f"Set {i+1}: weight must be a positive number or null"
+                )
+
+        return value
 
 
 class AddExercisesToTemplateSerializer(serializers.Serializer):
@@ -43,6 +71,26 @@ class AddExercisesToTemplateSerializer(serializers.Serializer):
     """
 
     exercises = serializers.ListField(child=serializers.DictField(), allow_empty=False)
+
+    def validate_exercises(self, value):
+        """Validate exercise data including sets_data"""
+        for exercise_data in value:
+            # Validate sets_data if provided
+            sets_data = exercise_data.get("sets_data", [])
+            if sets_data and not isinstance(sets_data, list):
+                raise serializers.ValidationError("sets_data must be a list")
+
+            for i, set_data in enumerate(sets_data):
+                if not isinstance(set_data, dict):
+                    raise serializers.ValidationError(f"Set {i+1} must be an object")
+
+                # Check for required keys
+                if "reps" not in set_data or "weight" not in set_data:
+                    raise serializers.ValidationError(
+                        f"Set {i+1} must have 'reps' and 'weight' keys"
+                    )
+
+        return value
 
 
 class CreateTemplateWithExercisesSerializer(serializers.ModelSerializer):
@@ -77,6 +125,21 @@ class CreateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         f"Exercise must have a '{field}' field"
                     )
+
+            # Validate sets_data if provided
+            sets_data = exercise_data.get("sets_data", [])
+            if sets_data:
+                for i, set_data in enumerate(sets_data):
+                    if not isinstance(set_data, dict):
+                        raise serializers.ValidationError(
+                            f"Set {i+1} must be an object"
+                        )
+
+                    if "reps" not in set_data or "weight" not in set_data:
+                        raise serializers.ValidationError(
+                            f"Set {i+1} must have 'reps' and 'weight' keys"
+                        )
+
         return value
 
     def create(self, validated_data):
@@ -111,12 +174,43 @@ class CreateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                 TemplateExercise.objects.create(
                     template=template,
                     exercise=exercise,
-                    sets=exercise_data.get("sets"),
-                    reps=exercise_data.get("reps"),
-                    weight=exercise_data.get("weight"),
+                    sets_data=exercise_data.get("sets_data", []),
                     rest_time=exercise_data.get("rest_time"),
                     notes=exercise_data.get("notes", ""),
                     order=order,
                 )
 
         return template
+
+
+class SetManagementSerializer(serializers.Serializer):
+    """
+    Serializer for managing individual sets in a TemplateExercise
+    """
+
+    action = serializers.ChoiceField(choices=["add", "update", "remove"])
+    set_index = serializers.IntegerField(required=False, min_value=0)
+    reps = serializers.IntegerField(required=False, min_value=0, allow_null=True)
+    weight = serializers.FloatField(required=False, min_value=0, allow_null=True)
+
+    def validate(self, data):
+        action = data.get("action")
+
+        if action == "add":
+            # For add, we don't need set_index
+            pass
+        elif action in ["update", "remove"]:
+            # For update/remove, we need set_index
+            if "set_index" not in data:
+                raise serializers.ValidationError(
+                    "set_index is required for update/remove actions"
+                )
+
+        if action == "update":
+            # For update, we need at least one of reps or weight
+            if "reps" not in data and "weight" not in data:
+                raise serializers.ValidationError(
+                    "At least one of 'reps' or 'weight' is required for update"
+                )
+
+        return data

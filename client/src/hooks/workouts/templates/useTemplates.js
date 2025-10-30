@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import api from "@/api";
 import { toast } from "react-hot-toast";
 
 export function useTemplates() {
     const queryClient = useQueryClient();
-    const navigate = useNavigate();
 
     // Fetch auth user templates
     const fetchTemplates = useQuery({
@@ -19,7 +17,23 @@ export function useTemplates() {
     // Create template with selected exercises
     const createTemplate = useMutation({
         mutationFn: async (templateData) => {
-            const response = await api.post("workouts/templates/create_with_exercises/", templateData);
+            // Ensure proper structure for backend
+            const formattedData = {
+                ...templateData,
+                exercises: templateData.exercises.map(exercise => ({
+                    name: exercise.name,
+                    type: exercise.type || '',
+                    muscle: exercise.muscle || '',
+                    equipment: exercise.equipment || '',
+                    difficulty: exercise.difficulty || '',
+                    instructions: exercise.instructions || '',
+                    sets_data: exercise.sets_data || [],
+                    rest_time: exercise.rest_time || null,
+                    notes: exercise.notes || ''
+                }))
+            };
+
+            const response = await api.post("workouts/templates/create_with_exercises/", formattedData);
             return response.data;
         },
         onSuccess: (data) => {
@@ -46,24 +60,6 @@ export function useTemplates() {
         }
     });
 
-    const navigateToStart = (template) => {
-        navigate("/workouts/templates/start", {
-            state: {
-                template,
-                mode: "start"
-            }
-        });
-    };
-
-    const navigateToSearch = (template) => {
-        navigate("/workouts/templates/search", {
-            state: {
-                template,
-                mode: "search"
-            }
-        });
-    };
-
     return {
         // Data
         templates: fetchTemplates.data || [],
@@ -81,7 +77,7 @@ export function useTemplates() {
 
         // Delete
         deleteTemplate: deleteTemplateMutation.mutate,
-        navigateToStart,
-        navigateToSearch,
+        // Delete states
+        isDeleting: deleteTemplateMutation.isPending,
     };
 }

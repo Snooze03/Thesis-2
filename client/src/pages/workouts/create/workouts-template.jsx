@@ -13,10 +13,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { EmptyItems } from "@/components/empty-items";
 import { useCallback } from "react";
 
-function CreateTemplate() {
+export function WorkoutsTemplate() {
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Nav states
     const is_alternative = location.state?.isAlternative || false;
+    const is_editing = location.state?.isEditing || true;
+    const templateData = location.state?.templateObj || null;
+    console.log(`Template Data:`, { ...templateData });
 
     // Atoms
     const [title, setTitle] = useAtom(templateTitleAtom);
@@ -33,8 +38,10 @@ function CreateTemplate() {
         isCreating,
     } = useTemplates();
 
+
+    // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
-        navigate("search");
+        navigate("search", { replace: true });
     };
 
     const handleSubmit = (e) => {
@@ -75,7 +82,7 @@ function CreateTemplate() {
         // Clear atoms and navigate back
         setTitle('');
         setSelectedExercises(new Map());
-        navigate(-1, { replace: true });
+        navigate(-2, { replace: true });
     };
 
     // Memoize these functions to prevent recreating on every render
@@ -101,6 +108,8 @@ function CreateTemplate() {
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
     };
+    // ===== END EVENT HANDLERS =====
+
 
     // Main View
     return (
@@ -180,7 +189,7 @@ function CreateTemplate() {
                                     <div key={exerciseKey} className="relative group">
                                         <ExerciseCard
                                             exercise={exercise}
-                                            isEditing={true}
+                                            isEditing={is_editing}
                                             onRemove={() => handleRemoveExercise(exerciseKey)}
                                             onUpdate={(updates) => handleUpdateExercise(exerciseKey, updates)}
                                         />
@@ -209,5 +218,3 @@ function CreateTemplate() {
         </SubLayout>
     );
 }
-
-export { CreateTemplate };

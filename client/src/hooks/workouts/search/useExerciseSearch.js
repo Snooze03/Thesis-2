@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { selectedExercisesAtom } from "@/pages/workouts/create/search-atoms";
+import { selectedExercisesAtom } from "@/pages/workouts/create/template-atoms";
 import { useAtom } from "jotai";
 import apiNinjas from "@/apiNinjas";
 

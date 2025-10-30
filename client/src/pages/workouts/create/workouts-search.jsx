@@ -1,6 +1,6 @@
 import { useExerciseSearch } from "@/hooks/workouts/search/useExerciseSearch";
 import { useAtom } from "jotai";
-import { searchTermAtom } from "./search-atoms";
+import { searchTermAtom } from "./template-atoms";
 import { SubLayout } from "@/layouts/sub-layout";
 import { clsx } from "clsx";
 import { cn } from "@/lib/utils";

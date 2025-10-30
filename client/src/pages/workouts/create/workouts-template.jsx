@@ -1,8 +1,9 @@
+import { useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useAtom } from "jotai";
 import { templateTitleAtom } from "./template-atoms";
-import { selectedExercisesAtom } from "./search-atoms";
+import { selectedExercisesAtom, isEditingTemplateAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -11,21 +12,24 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { EmptyItems } from "@/components/empty-items";
-import { useCallback } from "react";
 
+// Component for Creating/Editing/Starting a workout routine
 export function WorkoutsTemplate() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Nav states
-    const is_alternative = location.state?.isAlternative || false;
-    const is_editing = location.state?.isEditing || true;
-    const templateData = location.state?.templateObj || null;
-    console.log(`Template Data:`, { ...templateData });
-
     // Atoms
     const [title, setTitle] = useAtom(templateTitleAtom);
     const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
+    const [is_editing] = useAtom(isEditingTemplateAtom);
+
+    // Nav states
+    const is_alternative = location.state?.isAlternative || false;
+    const template_data = location.state?.templateObj || null;
+
+    // Track if we've already populated the atoms to prevent re-population
+    const hasPopulatedAtoms = useRef(false);
+    const isEditMode = Boolean(is_editing && hasPopulatedAtoms);
 
     // Convert Map to Array for easier rendering
     const exercisesArray = Array.from(selectedExercises.values());
@@ -38,10 +42,66 @@ export function WorkoutsTemplate() {
         isCreating,
     } = useTemplates();
 
+    // Populate atoms with template data when editing (only once)
+    useEffect(() => {
+        if (isEditMode && template_data && !hasPopulatedAtoms.current) {
+            // Set the title
+            setTitle(template_data.title || '');
+
+            // Convert template exercises to the format expected by selectedExercises atom
+            const exercisesMap = new Map();
+
+            if (template_data.template_exercises && template_data.template_exercises.length > 0) {
+                template_data.template_exercises.forEach((templateExercise) => {
+                    const exercise = templateExercise.exercise;
+
+                    // Create the exercise key (same format used in search)
+                    const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+
+                    // Create the exercise object with all necessary data
+                    const exerciseData = {
+                        // Exercise basic info
+                        name: exercise.name,
+                        type: exercise.type || '',
+                        muscle: exercise.muscle || '',
+                        equipment: exercise.equipment || '',
+                        difficulty: exercise.difficulty || '',
+                        instructions: exercise.instructions || '',
+
+                        // Template exercise specific data
+                        sets_data: templateExercise.sets_data || [
+                            { reps: null, weight: null }
+                        ],
+                        rest_time: templateExercise.rest_time || null,
+                        notes: templateExercise.notes || '',
+
+                        // Additional metadata for editing
+                        template_exercise_id: templateExercise.id,
+                        order: templateExercise.order || 0,
+                    };
+
+                    exercisesMap.set(exerciseKey, exerciseData);
+                });
+            }
+
+            setSelectedExercises(exercisesMap);
+            hasPopulatedAtoms.current = true; // Mark as populated
+        }
+    }, [isEditMode, template_data, setTitle, setSelectedExercises]);
+
+    // Only clear atoms when explicitly cancelled or successful save
+    const clearAtoms = useCallback(() => {
+        setTitle('');
+        setSelectedExercises(new Map());
+        hasPopulatedAtoms.current = false;
+    }, [setTitle, setSelectedExercises]);
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
-        navigate("search", { replace: true });
+        // Navigate to search but maintain the navigation state
+        navigate("search", {
+            state: location.state // Pass through the current state
+        });
     };
 
     const handleSubmit = (e) => {
@@ -66,23 +126,24 @@ export function WorkoutsTemplate() {
             }))
         };
 
-        console.log('Creating template with data:', templateData);
+        if (isEditMode) {
+            console.log("Editing existing template:", templateData);
+        } else {
+            createTemplate(templateData, {
+                onSuccess: () => {
+                    // Clear atoms after successful creation
+                    clearAtoms();
+                    navigate("/workouts");
+                }
+            });
+        }
 
-        createTemplate(templateData, {
-            onSuccess: () => {
-                // Clear atoms after successful creation
-                setTitle('');
-                setSelectedExercises(new Map());
-                navigate("/workouts");
-            }
-        });
     };
 
     const handleCancel = () => {
         // Clear atoms and navigate back
-        setTitle('');
-        setSelectedExercises(new Map());
-        navigate(-2, { replace: true });
+        clearAtoms();
+        navigate(-1, { replace: true });
     };
 
     // Memoize these functions to prevent recreating on every render
@@ -110,6 +171,10 @@ export function WorkoutsTemplate() {
     };
     // ===== END EVENT HANDLERS =====
 
+    // Determine UI text based on mode
+    const pageTitle = isEditMode ? `Edit Template` : `Create Template`;
+    const buttonText = isEditMode ? (isCreating ? "Updating..." : "Update") : (isCreating ? "Saving..." : "Save");
+    const cancelText = isEditMode ? "Cancel Template Editing?" : "Cancel Template Creation?";
 
     // Main View
     return (
@@ -124,7 +189,7 @@ export function WorkoutsTemplate() {
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>
-                                Cancel Template Creation?
+                                {cancelText}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                                 Are you absolutely sure? Any unsaved changes will be lost.
@@ -150,7 +215,7 @@ export function WorkoutsTemplate() {
                         value={title}
                         onChange={handleTitleChange}
                         variant="ghost"
-                        className="h-7"
+                        className="h-7 border-b-gray-700"
                         placeholder="Enter template title..."
                         disabled={isCreating}
                     />
@@ -161,7 +226,7 @@ export function WorkoutsTemplate() {
                         disabled={isCreating || !canSave}
                     >
                         <FlagTriangleRight />
-                        {isCreating ? "Saving..." : "Save"}
+                        {buttonText}
                     </Button>
                 </form>
             </div>
@@ -170,8 +235,8 @@ export function WorkoutsTemplate() {
             <div className="flex flex-col gap-3">
                 {/* Debug info - remove in prod */}
                 <div className="bg-gray-100 p-2 rounded text-xs">
-                    <p><strong>Debug:</strong> Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
-                    <p><strong>Sets Data Structure:</strong> Using sets_data array format</p>
+                    <p><strong>Debug:</strong> Mode: {isEditMode ? 'Edit' : 'Create'} | Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
+                    <p><strong>Template ID:</strong> {template_data?.id || 'N/A'} | <strong>Populated:</strong> {hasPopulatedAtoms.current ? 'Yes' : 'No'}</p>
                 </div>
 
                 {/* Show exercises */}
@@ -189,7 +254,7 @@ export function WorkoutsTemplate() {
                                     <div key={exerciseKey} className="relative group">
                                         <ExerciseCard
                                             exercise={exercise}
-                                            isEditing={is_editing}
+                                            isEditing={true} // Always allow editing in this component
                                             onRemove={() => handleRemoveExercise(exerciseKey)}
                                             onUpdate={(updates) => handleUpdateExercise(exerciseKey, updates)}
                                         />

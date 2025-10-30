@@ -16,3 +16,4 @@ celery
 schedule
 django-celery-results
 pillow
+django-json-field

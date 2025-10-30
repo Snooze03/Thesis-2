@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { EmptyItems } from "@/components/empty-items";
+import { useCallback } from "react";
 
 function CreateTemplate() {
     const location = useLocation();
@@ -20,6 +21,7 @@ function CreateTemplate() {
     // Atoms
     const [title, setTitle] = useAtom(templateTitleAtom);
     const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
+
     // Convert Map to Array for easier rendering
     const exercisesArray = Array.from(selectedExercises.values());
     const hasExercises = exercisesArray.length > 0;
@@ -38,7 +40,7 @@ function CreateTemplate() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Prepare template data for API
+        // Prepare template data for API with proper sets_data structure
         const templateData = {
             title: title.trim(),
             isAlternative: is_alternative,
@@ -49,9 +51,9 @@ function CreateTemplate() {
                 equipment: exercise.equipment || '',
                 difficulty: exercise.difficulty || '',
                 instructions: exercise.instructions || '',
-                sets: exercise.sets || null,
-                reps: exercise.reps || null,
-                weight: exercise.weight || null,
+                sets_data: exercise.sets_data || [
+                    { reps: null, weight: null },
+                ],
                 rest_time: exercise.rest_time || null,
                 notes: exercise.notes || ''
             }))
@@ -61,7 +63,6 @@ function CreateTemplate() {
 
         createTemplate(templateData, {
             onSuccess: () => {
-                // console.log('Template created successfully');
                 // Clear atoms after successful creation
                 setTitle('');
                 setSelectedExercises(new Map());
@@ -74,16 +75,28 @@ function CreateTemplate() {
         // Clear atoms and navigate back
         setTitle('');
         setSelectedExercises(new Map());
-        navigate("/workouts");
+        navigate(-1, { replace: true });
     };
 
-    const handleRemoveExercise = (exerciseKey) => {
+    // Memoize these functions to prevent recreating on every render
+    const handleRemoveExercise = useCallback((exerciseKey) => {
         setSelectedExercises(prev => {
             const newMap = new Map(prev);
             newMap.delete(exerciseKey);
             return newMap;
         });
-    };
+    }, [setSelectedExercises]);
+
+    const handleUpdateExercise = useCallback((exerciseKey, updates) => {
+        setSelectedExercises(prev => {
+            const newMap = new Map(prev);
+            const exercise = newMap.get(exerciseKey);
+            if (exercise) {
+                newMap.set(exerciseKey, { ...exercise, ...updates });
+            }
+            return newMap;
+        });
+    }, [setSelectedExercises]);
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
@@ -149,6 +162,7 @@ function CreateTemplate() {
                 {/* Debug info - remove in prod */}
                 <div className="bg-gray-100 p-2 rounded text-xs">
                     <p><strong>Debug:</strong> Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
+                    <p><strong>Sets Data Structure:</strong> Using sets_data array format</p>
                 </div>
 
                 {/* Show exercises */}
@@ -168,7 +182,7 @@ function CreateTemplate() {
                                             exercise={exercise}
                                             isEditing={true}
                                             onRemove={() => handleRemoveExercise(exerciseKey)}
-                                        // onUpdate={(updates) => updateExercise(index, updates)} // Implement if needed
+                                            onUpdate={(updates) => handleUpdateExercise(exerciseKey, updates)}
                                         />
                                     </div>
                                 );

@@ -1,52 +1,43 @@
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
-import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 import { useNavigate } from "react-router-dom";
+import { useAtom } from "jotai";
+import { isEditingTemplateAtom } from "../create/template-atoms";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
-export function TemplateItem({ id, title }) {
+export function TemplateItem({ templateData }) {
     const navigate = useNavigate();
+    const [is_editing, setIsEditing] = useAtom(isEditingTemplateAtom);
+    const templateId = templateData?.id;
+    const exercises = templateData?.template_exercises || [];
+    const title = templateData?.title || "Untitled Template";
 
     const {
         deleteTemplate,
         isDeleting,
     } = useTemplates();
 
-    const {
-        exercises,
-        isLoading: isPendingExercise,
-        isError: isErrorExercise
-    } = useTemplateExercises(id);
 
     // ===== EVENT HANDLERS =====
     const handleDelete = () => {
-        deleteTemplate(id);
+        deleteTemplate(templateId);
     };
 
     const handleEdit = () => {
-        // Pass the complete template object 
-        const templateObj = {
-            id,
-            title,
-        };
+        setIsEditing(true);
         navigate("templates", {
             state: {
-                templateObj,
-                isEditing: true
+                templateObj: templateData,
             }
         });
     };
 
     const handleStartWorkout = () => {
-        const templateObj = {
-            id,
-            title,
-        };
+        console.log(`Start Workout`);
         // navigateToStart(templateObj);
     };
     // ===== END EVENT HANDLERS =====
@@ -61,7 +52,7 @@ export function TemplateItem({ id, title }) {
     };
 
     return (
-        <AccordionItem value={`item-${id}`} className="shadow-xs rounded-lg">
+        <AccordionItem value={`item-${templateId}`} className="shadow-xs rounded-lg">
             <AccordionTrigger className="px-4">
                 {title}
                 <Badge className="text-xs">
@@ -71,13 +62,7 @@ export function TemplateItem({ id, title }) {
 
             <AccordionContent className="px-5 py-4 space-y-3">
                 {/* Exercise List */}
-                {isPendingExercise ? (
-                    <LoadingSpinner message="exercises" />
-                ) : isErrorExercise ? (
-                    <div className="text-center py-4 text-red-500">
-                        <p>Error loading exercises</p>
-                    </div>
-                ) : exercises.length > 0 ? (
+                {exercises.length > 0 ? (
                     <>
                         {exercises.map((templateExercise, index) => {
                             const exercise = templateExercise.exercise;

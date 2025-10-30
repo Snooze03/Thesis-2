@@ -5,16 +5,36 @@ from .exercise import ExerciseSerializer
 
 class TemplateSerializer(serializers.ModelSerializer):
     exercise_count = serializers.SerializerMethodField()
+    template_exercises = serializers.SerializerMethodField()
 
     class Meta:
         model = Template
-        fields = ["id", "user_id", "title", "isAlternative", "exercise_count"]
+        fields = [
+            "id",
+            "user_id",
+            "title",
+            "isAlternative",
+            "exercise_count",
+            "template_exercises",
+        ]
         extra_kwargs = {
             "user_id": {"read_only": True},
         }
 
     def get_exercise_count(self, obj):
         return obj.template_exercises.count()
+
+    def get_template_exercises(self, obj):
+        """
+        Return all template exercises for this template
+        """
+        # Use prefetch_related to avoid N+1 queries if available
+        template_exercises = obj.template_exercises.all().order_by(
+            "order", "created_at"
+        )
+        return TemplateExerciseSerializer(
+            template_exercises, many=True, read_only=True
+        ).data
 
 
 class TemplateExerciseSerializer(serializers.ModelSerializer):

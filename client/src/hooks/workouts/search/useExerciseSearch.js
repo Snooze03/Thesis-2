@@ -76,11 +76,11 @@ export function useExerciseSearch(searchTerm) {
         console.log('Selected exercises to add:', exercisesToAdd);
 
         // Navigate back to create page
-        navigate("/workouts/templates/create");
+        navigate("/workouts/templates");
     };
 
     const handleBackToEdit = () => {
-        navigate("/workouts/templates/create");
+        navigate("/workouts/templates");
     };
 
     const clearSelections = () => {

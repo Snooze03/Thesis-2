@@ -34,12 +34,12 @@ export function TemplateItem({ id, title }) {
             id,
             title,
         };
-        // navigate("templates/edit", {
-        //     state: {
-        //         templateObj,
-        //         mode: "edit"
-        //     }
-        // });
+        navigate("templates", {
+            state: {
+                templateObj,
+                isEditing: true
+            }
+        });
     };
 
     const handleStartWorkout = () => {
@@ -93,7 +93,7 @@ export function TemplateItem({ id, title }) {
                                         <p className="font-medium truncate">{exercise.name}</p>
                                         <div className="flex gap-2 text-sm text-gray-600">
                                             {exercise.equipment && (
-                                                <span>{exercise.equipment}</span>
+                                                <span className="capitalize">{exercise.equipment}</span>
                                             )}
                                             {exercise.equipment && exercise.muscle && (
                                                 <span>•</span>

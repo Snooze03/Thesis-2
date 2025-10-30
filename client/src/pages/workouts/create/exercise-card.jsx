@@ -1,3 +1,4 @@
+import { React } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
@@ -42,7 +43,7 @@ function ExerciseCard({
     }, [setsData, onUpdate]);
 
     const handleReplace = () => {
-        navigate("/workouts/templates/create/search");
+        navigate("/workouts/templates");
     };
 
     const handleRestTimer = () => {
@@ -95,10 +96,10 @@ function ExerciseCard({
             {/* Header */}
             <div>
                 <div className="flex justify-between items-start gap-3 mb-1">
-                    <div className="flex-1">
+                    <div className="flex-1 ">
                         <p className="font-semibold leading-tight">
                             {exercise.name}
-                            <span className="font-normal text-gray-600 ml-2 capitalize">
+                            <span className="ml-2 font-normal text-gray-600 capitalize">
                                 ({exercise.muscle || 'Unknown muscle'})
                             </span>
                         </p>
@@ -121,14 +122,14 @@ function ExerciseCard({
 
             {/* Sets */}
             {setsData.map((set, index) => (
-                <div className="grid grid-cols-[.2fr_auto_.5fr_.5fr_auto] gap-3 place-items-center" key={index}>
+                <div className="grid grid-cols-[.16fr_.4fr.5fr_.5fr_auto] gap-3 place-items-center" key={index}>
                     <p className="text-primary font-semibold">{index + 1}</p>
-                    <p className="text-gray-600">-</p>
+                    <p className="text-gray-600">-----------</p>
                     <Input
                         className="size-5 w-full px-2 text-center"
                         type="number"
                         step="0.5"
-                        disabled={!isEditing}
+                        disabled={isEditing}
                         placeholder="0"
                         value={set.weight || ''}
                         onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
@@ -136,19 +137,18 @@ function ExerciseCard({
                     <Input
                         className="size-5 w-full px-2 text-center"
                         type="number"
-                        disabled={!isEditing}
+                        disabled={isEditing}
                         placeholder="0"
                         value={set.reps || ''}
                         onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
                     />
-                    {!isEditing ? (
+                    {isEditing ? (
                         <Lock className="text-gray-600 size-4" />
                     ) : (
                         <div className="size-4" />
                     )}
                 </div>
             ))}
-            <span />
         </Card>
     );
 }

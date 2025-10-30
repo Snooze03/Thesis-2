@@ -22,7 +22,7 @@ const WorkoutsDashboard = () => {
     useScrollLock(isLoading);
 
     const handleCreateTemplate = (is_alternative = false) => {
-        navigate("/workouts/templates/create", {
+        navigate("/workouts/templates", {
             state: {
                 isAlternative: is_alternative,
                 mode: "create"

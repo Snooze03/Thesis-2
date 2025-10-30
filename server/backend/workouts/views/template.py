@@ -11,6 +11,7 @@ from ..serializers import (
     TemplateExerciseSerializer,
     AddExercisesToTemplateSerializer,
     CreateTemplateWithExercisesSerializer,
+    SetManagementSerializer,
 )
 
 
@@ -60,9 +61,11 @@ class TemplateViewSet(viewsets.ModelViewSet):
                     "equipment": "body_only",
                     "difficulty": "beginner",
                     "instructions": "Do push ups...",
-                    "sets": 3,
-                    "reps": 10,
-                    "weight": null,
+                    "sets_data": [
+                        {"reps": 12, "weight": null},
+                        {"reps": 10, "weight": null},
+                        {"reps": 8, "weight": null}
+                    ],
                     "rest_time": "60s",
                     "notes": "Focus on form"
                 }
@@ -115,6 +118,16 @@ class TemplateViewSet(viewsets.ModelViewSet):
         1. Create Exercise records if they don't exist
         2. Create TemplateExercise records to link them to the template
         URL: /workouts/templates/{id}/add_exercises/
+        Body: {
+            "exercises": [
+                {
+                    "name": "Push Up",
+                    "type": "strength",
+                    "muscle": "chest",
+                    "sets_data": [{"reps": 10, "weight": null}]
+                }
+            ]
+        }
         """
         template = self.get_object()
         serializer = AddExercisesToTemplateSerializer(data=request.data)
@@ -148,9 +161,12 @@ class TemplateViewSet(viewsets.ModelViewSet):
                                 template=template,
                                 exercise=exercise,
                                 defaults={
+                                    "sets_data": exercise_data.get("sets_data", []),
+                                    "rest_time": exercise_data.get("rest_time"),
+                                    "notes": exercise_data.get("notes", ""),
                                     "order": TemplateExercise.objects.filter(
                                         template=template
-                                    ).count()
+                                    ).count(),
                                 },
                             )
                         )
@@ -161,6 +177,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
                                     "exercise_id": exercise.id,
                                     "exercise_name": exercise.name,
                                     "already_existed": not created,
+                                    "total_sets": template_exercise.total_sets,
                                 }
                             )
                         else:
@@ -243,18 +260,97 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
         ).select_related("exercise", "template")
 
     @action(detail=True, methods=["post"])
-    def set_params(self, request, pk=None):
+    def manage_sets(self, request, pk=None):
         """
-        Set sets, weight, and reps for a TemplateExercise instance.
-        URL: /workouts/template-exercises/{id}/set_params/
+        Manage sets for a TemplateExercise instance (add, update, remove)
+        URL: /workouts/template-exercises/{id}/manage_sets/
+
+        Add set: {"action": "add", "reps": 12, "weight": 50.0}
+        Update set: {"action": "update", "set_index": 0, "reps": 15, "weight": 55.0}
+        Remove set: {"action": "remove", "set_index": 1}
         """
-        template_exercise = get_object_or_404(TemplateExercise, pk=pk)
+        template_exercise = self.get_object()
+        serializer = SetManagementSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        action = data["action"]
+
+        try:
+            if action == "add":
+                template_exercise.add_set(
+                    reps=data.get("reps"), weight=data.get("weight")
+                )
+                message = "Set added successfully"
+
+            elif action == "update":
+                set_index = data["set_index"]
+                if set_index >= len(template_exercise.sets_data):
+                    return Response(
+                        {"error": f"Set index {set_index} does not exist"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                template_exercise.update_set(
+                    set_index=set_index,
+                    reps=data.get("reps"),
+                    weight=data.get("weight"),
+                )
+                message = f"Set {set_index + 1} updated successfully"
+
+            elif action == "remove":
+                set_index = data["set_index"]
+                if set_index >= len(template_exercise.sets_data):
+                    return Response(
+                        {"error": f"Set index {set_index} does not exist"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                template_exercise.remove_set(set_index)
+                message = f"Set {set_index + 1} removed successfully"
+
+            template_exercise.save()
+
+            # Return updated template exercise data
+            response_serializer = TemplateExerciseSerializer(template_exercise)
+            return Response(
+                {"message": message, "template_exercise": response_serializer.data},
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to {action} set: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=["patch"])
+    def update_exercise_params(self, request, pk=None):
+        """
+        Update exercise parameters (rest_time, notes, order) for a TemplateExercise
+        URL: /workouts/template-exercises/{id}/update_exercise_params/
+        Body: {"rest_time": "90s", "notes": "Focus on form", "order": 2}
+        """
+        template_exercise = self.get_object()
+
+        # Only allow updating specific fields
+        allowed_fields = ["rest_time", "notes", "order"]
+        update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
         serializer = self.get_serializer(
-            template_exercise, data=request.data, partial=True
+            template_exercise, data=update_data, partial=True
         )
+
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "message": "Exercise parameters updated successfully",
+                    "template_exercise": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

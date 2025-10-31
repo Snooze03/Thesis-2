@@ -239,14 +239,14 @@ class SetManagementSerializer(serializers.Serializer):
 
 class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating a template with exercises (incremental updates)
+    Serializer for updating a template with exercises (replacement logic)
     """
 
     exercises = serializers.ListField(
         child=serializers.DictField(),
         allow_empty=True,
         required=False,
-        help_text="List of exercises to update/add in the template",
+        help_text="List of exercises to keep in the template",
     )
 
     class Meta:
@@ -284,11 +284,18 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        """Update template and update/add exercises incrementally"""
+        """Update template and replace exercises with the provided list"""
         from django.db import transaction
         from django.db import models
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         exercises_data = validated_data.pop("exercises", None)
+
+        logger.info(
+            f"Updating template {instance.id} with {len(exercises_data) if exercises_data else 0} exercises"
+        )
 
         with transaction.atomic():
             # Update template basic fields
@@ -298,12 +305,44 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
             )
             instance.save()
 
-            # If exercises data is provided, update/add exercises incrementally
+            # If exercises data is provided, replace all exercises
             if exercises_data is not None:
+                # Get all current template exercises for this template
+                current_template_exercises = list(instance.template_exercises.all())
+                current_exercise_ids = {te.id for te in current_template_exercises}
+
+                # Get the IDs of exercises we want to keep/update
+                provided_exercise_ids = set()
+                for exercise_data in exercises_data:
+                    template_exercise_id = exercise_data.get("template_exercise_id")
+                    if template_exercise_id:
+                        provided_exercise_ids.add(template_exercise_id)
+
+                # Find exercises to remove (existing ones not in the provided list)
+                exercises_to_remove = current_exercise_ids - provided_exercise_ids
+
+                logger.info(f"Current exercises: {current_exercise_ids}")
+                logger.info(f"Provided exercises: {provided_exercise_ids}")
+                logger.info(f"Exercises to remove: {exercises_to_remove}")
+
+                # Remove exercises that weren't included in the update
+                if exercises_to_remove:
+                    removed_count = TemplateExercise.objects.filter(
+                        id__in=exercises_to_remove, template=instance
+                    ).delete()[0]
+                    logger.info(f"Removed {removed_count} exercises")
+                else:
+                    removed_count = 0
+
+                # Now process the exercises we want to keep/add
                 updated_exercises = []
                 added_exercises = []
 
-                for exercise_data in exercises_data:
+                for i, exercise_data in enumerate(exercises_data):
+                    logger.info(
+                        f"Processing exercise {i+1}: {exercise_data.get('name')} - ID: {exercise_data.get('template_exercise_id')}"
+                    )
+
                     # Get or create the exercise in our database
                     exercise, created = Exercise.objects.get_or_create(
                         name=exercise_data["name"].strip(),
@@ -320,12 +359,16 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                     template_exercise_id = exercise_data.get("template_exercise_id")
 
                     if template_exercise_id:
+                        logger.info(
+                            f"Updating existing template exercise ID: {template_exercise_id}"
+                        )
                         # Update existing template exercise
                         try:
                             template_exercise = TemplateExercise.objects.get(
                                 id=template_exercise_id, template=instance
                             )
                             # Update the fields
+                            old_sets = template_exercise.sets_data.copy()
                             template_exercise.sets_data = exercise_data.get(
                                 "sets_data", template_exercise.sets_data
                             )
@@ -339,48 +382,41 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                                 "order", template_exercise.order
                             )
                             template_exercise.save()
+                            logger.info(
+                                f"Updated sets from {old_sets} to {template_exercise.sets_data}"
+                            )
                             updated_exercises.append(template_exercise)
                         except TemplateExercise.DoesNotExist:
+                            logger.warning(
+                                f"Template exercise ID {template_exercise_id} not found, creating new"
+                            )
                             # If template_exercise_id doesn't exist, create new one
                             template_exercise = self._create_template_exercise(
                                 instance, exercise, exercise_data
                             )
                             added_exercises.append(template_exercise)
                     else:
-                        # Check if this exercise already exists in the template
-                        existing_template_exercise = TemplateExercise.objects.filter(
-                            template=instance, exercise=exercise
-                        ).first()
+                        logger.info(
+                            f"No template_exercise_id provided, creating new exercise"
+                        )
+                        # Create new template exercise
+                        template_exercise = self._create_template_exercise(
+                            instance, exercise, exercise_data
+                        )
+                        added_exercises.append(template_exercise)
 
-                        if existing_template_exercise:
-                            # Update existing exercise
-                            existing_template_exercise.sets_data = exercise_data.get(
-                                "sets_data", existing_template_exercise.sets_data
-                            )
-                            existing_template_exercise.rest_time = exercise_data.get(
-                                "rest_time", existing_template_exercise.rest_time
-                            )
-                            existing_template_exercise.notes = exercise_data.get(
-                                "notes", existing_template_exercise.notes
-                            )
-                            existing_template_exercise.order = exercise_data.get(
-                                "order", existing_template_exercise.order
-                            )
-                            existing_template_exercise.save()
-                            updated_exercises.append(existing_template_exercise)
-                        else:
-                            # Create new template exercise
-                            template_exercise = self._create_template_exercise(
-                                instance, exercise, exercise_data
-                            )
-                            added_exercises.append(template_exercise)
+                logger.info(
+                    f"Update complete: {len(updated_exercises)} updated, {len(added_exercises)} added, {removed_count} removed"
+                )
 
                 # Store update info for response
                 instance._update_info = {
                     "updated_count": len(updated_exercises),
                     "added_count": len(added_exercises),
+                    "removed_count": removed_count,
                     "updated_exercises": [te.exercise.name for te in updated_exercises],
                     "added_exercises": [te.exercise.name for te in added_exercises],
+                    "removed_exercises": list(exercises_to_remove),
                 }
 
         return instance

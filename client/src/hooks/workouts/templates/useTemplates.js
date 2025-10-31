@@ -46,8 +46,25 @@ export function useTemplates() {
         }
     });
 
+    // Update template
+    const updateTemplate = useMutation({
+        mutationFn: async ({ templateId, templateData }) => {
+            const response = await api.patch(`workouts/templates/${templateId}/`, templateData);
+            console.log("Template updated:", response.data);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["templates"] });
+            toast.success("Template updated successfully!");
+        },
+        onError: (error) => {
+            toast.error(`Error updating template: ${error.response?.data?.message || error.message}`);
+            console.log(`Update Template Error: ${error}`);
+        }
+    })
+
     // Delete template
-    const deleteTemplateMutation = useMutation({
+    const deleteTemplate = useMutation({
         mutationFn: async (templateId) => {
             await api.delete(`workouts/templates/${templateId}/`);
         },
@@ -68,16 +85,21 @@ export function useTemplates() {
 
         // Fetching loading states
         isLoading: fetchTemplates.isLoading,
-        isDeleting: deleteTemplateMutation.isPending,
+        isDeleting: deleteTemplate.isPending,
 
         // Create actions
         createTemplate: createTemplate.mutate,
         // Create states
         isCreating: createTemplate.isPending,
 
+        // Update actions
+        updateTemplate: updateTemplate.mutate,
+        // Update states
+        isUpdating: updateTemplate.isPending,
+
         // Delete
-        deleteTemplate: deleteTemplateMutation.mutate,
+        deleteTemplate: deleteTemplate.mutate,
         // Delete states
-        isDeleting: deleteTemplateMutation.isPending,
+        isDeleting: deleteTemplate.isPending,
     };
 }

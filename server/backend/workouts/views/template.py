@@ -11,6 +11,7 @@ from ..serializers import (
     TemplateExerciseSerializer,
     AddExercisesToTemplateSerializer,
     CreateTemplateWithExercisesSerializer,
+    UpdateTemplateWithExercisesSerializer,
     SetManagementSerializer,
 )
 
@@ -46,9 +47,83 @@ class TemplateViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def get_serializer_class(self):
+        """
+        Return the serializer class based on the action
+        """
+        if self.action in ["update", "partial_update"]:
+            return UpdateTemplateWithExercisesSerializer
+        return self.serializer_class
+
     # Create template and assign user id as foreign key
     def perform_create(self, serializer):
         serializer.save(user_id=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update a template with exercises (incremental updates)
+        URL: PATCH/PUT /workouts/templates/{id}/
+        """
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+
+        if serializer.is_valid():
+            try:
+                updated_template = serializer.save()
+
+                # Get update info from the serializer
+                update_info = getattr(
+                    updated_template,
+                    "_update_info",
+                    {
+                        "updated_count": 0,
+                        "added_count": 0,
+                        "updated_exercises": [],
+                        "added_exercises": [],
+                    },
+                )
+
+                # Reload the template with prefetched exercises for the response
+                template_with_exercises = Template.objects.prefetch_related(
+                    "template_exercises__exercise"
+                ).get(id=updated_template.id)
+
+                # Return the updated template with exercise data
+                response_serializer = TemplateSerializer(template_with_exercises)
+
+                message = f"Template '{updated_template.title}' updated successfully"
+                if update_info["updated_count"] > 0:
+                    message += f" - Updated {update_info['updated_count']} exercise(s)"
+                if update_info["added_count"] > 0:
+                    message += f" - Added {update_info['added_count']} exercise(s)"
+
+                return Response(
+                    {
+                        "template": response_serializer.data,
+                        "message": message,
+                        "update_summary": {
+                            "updated_exercises": update_info["updated_exercises"],
+                            "added_exercises": update_info["added_exercises"],
+                            "total_exercises": updated_template.template_exercises.count(),
+                        },
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            except Exception as e:
+                return Response(
+                    {"error": f"Failed to update template: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Partial update (PATCH) for template
+        """
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
     @action(detail=False, methods=["post"])
     def create_with_exercises(self, request):

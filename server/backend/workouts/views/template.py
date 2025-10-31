@@ -61,8 +61,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """
-        Update a template with exercises (incremental updates)
-        URL: PATCH/PUT /workouts/templates/{id}/
+        Update a template with exercises (replacement logic)
         """
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
@@ -79,8 +78,10 @@ class TemplateViewSet(viewsets.ModelViewSet):
                     {
                         "updated_count": 0,
                         "added_count": 0,
+                        "removed_count": 0,
                         "updated_exercises": [],
                         "added_exercises": [],
+                        "removed_exercises": [],
                     },
                 )
 
@@ -97,6 +98,8 @@ class TemplateViewSet(viewsets.ModelViewSet):
                     message += f" - Updated {update_info['updated_count']} exercise(s)"
                 if update_info["added_count"] > 0:
                     message += f" - Added {update_info['added_count']} exercise(s)"
+                if update_info["removed_count"] > 0:
+                    message += f" - Removed {update_info['removed_count']} exercise(s)"
 
                 return Response(
                     {
@@ -105,6 +108,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
                         "update_summary": {
                             "updated_exercises": update_info["updated_exercises"],
                             "added_exercises": update_info["added_exercises"],
+                            "removed_exercises": update_info["removed_exercises"],
                             "total_exercises": updated_template.template_exercises.count(),
                         },
                     },

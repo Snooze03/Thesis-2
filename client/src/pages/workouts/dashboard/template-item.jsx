@@ -1,7 +1,7 @@
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useNavigate } from "react-router-dom";
 import { useAtom } from "jotai";
-import { isEditingTemplateAtom } from "../create/template-atoms";
+import { templateModeAtom } from "../create/template-atoms";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
@@ -11,7 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 export function TemplateItem({ templateData }) {
     const navigate = useNavigate();
-    const [is_editing, setIsEditing] = useAtom(isEditingTemplateAtom);
+    const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
     const templateId = templateData?.id;
     const exercises = templateData?.template_exercises || [];
     const title = templateData?.title || "Untitled Template";
@@ -28,7 +28,7 @@ export function TemplateItem({ templateData }) {
     };
 
     const handleEdit = () => {
-        setIsEditing(true);
+        setTemplateMode("edit");
         navigate("templates", {
             state: {
                 templateObj: templateData,

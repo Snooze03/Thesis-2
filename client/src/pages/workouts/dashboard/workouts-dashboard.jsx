@@ -2,6 +2,8 @@ import { MainLayout } from "@/layouts/main-layout";
 import { useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useAtom } from "jotai";
+import { templateModeAtom } from "../create/template-atoms";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
 import { TemplateItem } from "./template-item";
@@ -12,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const WorkoutsDashboard = () => {
     const navigate = useNavigate();
+    const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
 
     const {
         routines,
@@ -22,10 +25,10 @@ const WorkoutsDashboard = () => {
     useScrollLock(isLoading);
 
     const handleCreateTemplate = (is_alternative = false) => {
+        setTemplateMode("create");
         navigate("/workouts/templates", {
             state: {
                 isAlternative: is_alternative,
-                mode: "create"
             }
         });
     }

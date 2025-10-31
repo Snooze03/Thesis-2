@@ -4,6 +4,7 @@ from .template import (
     AddExercisesToTemplateSerializer,
     CreateTemplateWithExercisesSerializer,
     SetManagementSerializer,
+    UpdateTemplateWithExercisesSerializer,
 )
 
 from .exercise import (
@@ -18,6 +19,7 @@ __all__ = [
     "AddExercisesToTemplateSerializer",
     "CreateTemplateWithExercisesSerializer",
     "SetManagementSerializer",
+    "UpdateTemplateWithExercisesSerializer",
     # Exercise
     "ExerciseSerializer",
 ]

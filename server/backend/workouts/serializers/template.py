@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import models
 from ..models import Template, TemplateExercise, Exercise
 from .exercise import ExerciseSerializer
 
@@ -234,3 +235,171 @@ class SetManagementSerializer(serializers.Serializer):
                 )
 
         return data
+
+
+class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating a template with exercises (incremental updates)
+    """
+
+    exercises = serializers.ListField(
+        child=serializers.DictField(),
+        allow_empty=True,
+        required=False,
+        help_text="List of exercises to update/add in the template",
+    )
+
+    class Meta:
+        model = Template
+        fields = ["title", "isAlternative", "exercises"]
+
+    def validate_exercises(self, value):
+        """Validate each exercise in the list"""
+        if not value:
+            return value
+
+        for exercise_data in value:
+            # Validate required fields for each exercise
+            required_fields = ["name"]
+            for field in required_fields:
+                if field not in exercise_data or not exercise_data[field].strip():
+                    raise serializers.ValidationError(
+                        f"Exercise must have a '{field}' field"
+                    )
+
+            # Validate sets_data if provided
+            sets_data = exercise_data.get("sets_data", [])
+            if sets_data:
+                for i, set_data in enumerate(sets_data):
+                    if not isinstance(set_data, dict):
+                        raise serializers.ValidationError(
+                            f"Set {i+1} must be an object"
+                        )
+
+                    if "reps" not in set_data or "weight" not in set_data:
+                        raise serializers.ValidationError(
+                            f"Set {i+1} must have 'reps' and 'weight' keys"
+                        )
+
+        return value
+
+    def update(self, instance, validated_data):
+        """Update template and update/add exercises incrementally"""
+        from django.db import transaction
+        from django.db import models
+
+        exercises_data = validated_data.pop("exercises", None)
+
+        with transaction.atomic():
+            # Update template basic fields
+            instance.title = validated_data.get("title", instance.title)
+            instance.isAlternative = validated_data.get(
+                "isAlternative", instance.isAlternative
+            )
+            instance.save()
+
+            # If exercises data is provided, update/add exercises incrementally
+            if exercises_data is not None:
+                updated_exercises = []
+                added_exercises = []
+
+                for exercise_data in exercises_data:
+                    # Get or create the exercise in our database
+                    exercise, created = Exercise.objects.get_or_create(
+                        name=exercise_data["name"].strip(),
+                        defaults={
+                            "type": exercise_data.get("type", ""),
+                            "muscle": exercise_data.get("muscle", ""),
+                            "equipment": exercise_data.get("equipment", ""),
+                            "difficulty": exercise_data.get("difficulty", ""),
+                            "instructions": exercise_data.get("instructions", ""),
+                        },
+                    )
+
+                    # Check if template_exercise_id is provided (for updating existing)
+                    template_exercise_id = exercise_data.get("template_exercise_id")
+
+                    if template_exercise_id:
+                        # Update existing template exercise
+                        try:
+                            template_exercise = TemplateExercise.objects.get(
+                                id=template_exercise_id, template=instance
+                            )
+                            # Update the fields
+                            template_exercise.sets_data = exercise_data.get(
+                                "sets_data", template_exercise.sets_data
+                            )
+                            template_exercise.rest_time = exercise_data.get(
+                                "rest_time", template_exercise.rest_time
+                            )
+                            template_exercise.notes = exercise_data.get(
+                                "notes", template_exercise.notes
+                            )
+                            template_exercise.order = exercise_data.get(
+                                "order", template_exercise.order
+                            )
+                            template_exercise.save()
+                            updated_exercises.append(template_exercise)
+                        except TemplateExercise.DoesNotExist:
+                            # If template_exercise_id doesn't exist, create new one
+                            template_exercise = self._create_template_exercise(
+                                instance, exercise, exercise_data
+                            )
+                            added_exercises.append(template_exercise)
+                    else:
+                        # Check if this exercise already exists in the template
+                        existing_template_exercise = TemplateExercise.objects.filter(
+                            template=instance, exercise=exercise
+                        ).first()
+
+                        if existing_template_exercise:
+                            # Update existing exercise
+                            existing_template_exercise.sets_data = exercise_data.get(
+                                "sets_data", existing_template_exercise.sets_data
+                            )
+                            existing_template_exercise.rest_time = exercise_data.get(
+                                "rest_time", existing_template_exercise.rest_time
+                            )
+                            existing_template_exercise.notes = exercise_data.get(
+                                "notes", existing_template_exercise.notes
+                            )
+                            existing_template_exercise.order = exercise_data.get(
+                                "order", existing_template_exercise.order
+                            )
+                            existing_template_exercise.save()
+                            updated_exercises.append(existing_template_exercise)
+                        else:
+                            # Create new template exercise
+                            template_exercise = self._create_template_exercise(
+                                instance, exercise, exercise_data
+                            )
+                            added_exercises.append(template_exercise)
+
+                # Store update info for response
+                instance._update_info = {
+                    "updated_count": len(updated_exercises),
+                    "added_count": len(added_exercises),
+                    "updated_exercises": [te.exercise.name for te in updated_exercises],
+                    "added_exercises": [te.exercise.name for te in added_exercises],
+                }
+
+        return instance
+
+    def _create_template_exercise(self, template, exercise, exercise_data):
+        """Helper method to create a new template exercise"""
+        # Get the next order number
+        max_order = (
+            TemplateExercise.objects.filter(template=template).aggregate(
+                max_order=models.Max("order")
+            )["max_order"]
+            or -1
+        )
+
+        return TemplateExercise.objects.create(
+            template=template,
+            exercise=exercise,
+            sets_data=exercise_data.get("sets_data", []),
+            rest_time=exercise_data.get("rest_time"),
+            notes=exercise_data.get("notes", ""),
+            order=exercise_data.get("order", max_order + 1),
+        )

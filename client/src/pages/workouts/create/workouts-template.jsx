@@ -41,6 +41,13 @@ export function WorkoutsTemplate() {
     const hasExercises = exercisesArray.length > 0;
     const canSave = title.trim().length > 0 && hasExercises;
 
+    // Create template with exercise mutation
+    const {
+        createTemplate,
+        isCreating,
+        updateTemplate,
+        isUpdating,
+    } = useTemplates();
 
     // Populate atoms with template data when editing (only once)
     useEffect(() => {
@@ -77,7 +84,7 @@ export function WorkoutsTemplate() {
                         rest_time: templateExercise.rest_time || null,
                         notes: templateExercise.notes || '',
 
-                        // Additional metadata for editing/starting
+                        // Additional metadata for editing/starting - CRUCIAL FOR UPDATES
                         template_exercise_id: templateExercise.id,
                         order: templateExercise.order || 0,
                     };
@@ -91,7 +98,6 @@ export function WorkoutsTemplate() {
         }
     }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id]);
 
-
     // Only clear atoms when explicitly cancelled or successful save
     const clearAtoms = useCallback(() => {
         setTitle('');
@@ -100,16 +106,6 @@ export function WorkoutsTemplate() {
         setTemplateMode("create"); // Reset mode to create
         hasPopulatedAtoms.current = false;
     }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode]);
-
-
-    // Create template with exercise mutation
-    const {
-        createTemplate,
-        isCreating,
-        updateTemplate,
-        isUpdating,
-    } = useTemplates();
-
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -127,6 +123,11 @@ export function WorkoutsTemplate() {
             title: title.trim(),
             isAlternative: is_alternative,
             exercises: exercisesArray.map(exercise => ({
+                // Include template_exercise_id for existing exercises in edit mode
+                ...(isEditMode && exercise.template_exercise_id && {
+                    template_exercise_id: exercise.template_exercise_id
+                }),
+
                 name: exercise.name,
                 type: exercise.type || '',
                 muscle: exercise.muscle || '',
@@ -137,7 +138,8 @@ export function WorkoutsTemplate() {
                     { reps: null, weight: null },
                 ],
                 rest_time: exercise.rest_time || null,
-                notes: exercise.notes || ''
+                notes: exercise.notes || '',
+                order: exercise.order || 0
             }))
         };
 
@@ -146,7 +148,7 @@ export function WorkoutsTemplate() {
                 templateId: template_id,
                 templateData
             }, {
-                onSuccess: () => {
+                onSuccess: (data) => {
                     clearAtoms();
                     navigate("/workouts");
                 },
@@ -177,7 +179,10 @@ export function WorkoutsTemplate() {
     const handleRemoveExercise = useCallback((exerciseKey) => {
         setSelectedExercises(prev => {
             const newMap = new Map(prev);
+            const removedExercise = newMap.get(exerciseKey);
+
             newMap.delete(exerciseKey);
+
             return newMap;
         });
     }, [setSelectedExercises]);
@@ -198,12 +203,10 @@ export function WorkoutsTemplate() {
     };
     // ===== END EVENT HANDLERS =====
 
-
     // Determine UI text based on mode
     const pageTitle = isEditMode ? `Edit Template` : `Create Template`;
-    const buttonText = isEditMode ? (isCreating ? "Updating..." : "Update") : (isCreating ? "Saving..." : "Save");
+    const buttonText = isEditMode ? (isUpdating ? "Updating..." : "Update") : (isCreating ? "Saving..." : "Save");
     const cancelText = isEditMode ? "Cancel Template Editing?" : "Cancel Template Creation?";
-
 
     // Main View
     return (
@@ -264,8 +267,9 @@ export function WorkoutsTemplate() {
             <div className="flex flex-col gap-3">
                 {/* Debug info - remove in prod */}
                 <div className="bg-gray-100 p-2 rounded text-xs">
-                    <p><strong>Debug:</strong> Mode: {isEditMode ? 'Edit' : 'Create'} | Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
-                    <p><strong>Template ID:</strong> {template_data?.id || 'N/A'} | <strong>Populated:</strong> {hasPopulatedAtoms.current ? 'Yes' : 'No'}</p>
+                    <p><strong>Debug:</strong> Mode: {templateMode} | Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
+                    <p><strong>Template ID:</strong> {template_id} | <strong>Populated:</strong> {hasPopulatedAtoms.current ? 'Yes' : 'No'}</p>
+                    <p><strong>Exercise IDs:</strong> {exercisesArray.map(ex => `${ex.name}:${ex.template_exercise_id || 'NEW'}`).join(', ')}</p>
                 </div>
 
                 {/* Show exercises */}

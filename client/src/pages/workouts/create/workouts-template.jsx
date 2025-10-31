@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useAtom } from "jotai";
-import { templateTitleAtom } from "./template-atoms";
-import { selectedExercisesAtom, isEditingTemplateAtom } from "./template-atoms";
+import { templateTitleAtom, templateIdAtom } from "./template-atoms";
+import { selectedExercisesAtom, templateModeAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -18,33 +18,35 @@ export function WorkoutsTemplate() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Atoms
-    const [title, setTitle] = useAtom(templateTitleAtom);
-    const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
-    const [is_editing] = useAtom(isEditingTemplateAtom);
-
     // Nav states
     const is_alternative = location.state?.isAlternative || false;
     const template_data = location.state?.templateObj || null;
 
+    // Atoms
+    const [title, setTitle] = useAtom(templateTitleAtom);
+    const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
+    const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
+    const [template_id, setTemplate_id] = useAtom(templateIdAtom);
+
+    // Mode Selection
+    const isEditMode = templateMode === "edit";
+    const isCreateMode = templateMode === "create";
+    const isStartMode = templateMode === "start";
+
     // Track if we've already populated the atoms to prevent re-population
     const hasPopulatedAtoms = useRef(false);
-    const isEditMode = Boolean(is_editing && hasPopulatedAtoms);
 
     // Convert Map to Array for easier rendering
     const exercisesArray = Array.from(selectedExercises.values());
     const hasExercises = exercisesArray.length > 0;
     const canSave = title.trim().length > 0 && hasExercises;
 
-    // Create template with exercise mutation
-    const {
-        createTemplate,
-        isCreating,
-    } = useTemplates();
 
     // Populate atoms with template data when editing (only once)
     useEffect(() => {
-        if (isEditMode && template_data && !hasPopulatedAtoms.current) {
+        if ((isEditMode || isStartMode) && template_data && !hasPopulatedAtoms.current) {
+            // Set id
+            setTemplate_id(template_data.id || null);
             // Set the title
             setTitle(template_data.title || '');
 
@@ -75,7 +77,7 @@ export function WorkoutsTemplate() {
                         rest_time: templateExercise.rest_time || null,
                         notes: templateExercise.notes || '',
 
-                        // Additional metadata for editing
+                        // Additional metadata for editing/starting
                         template_exercise_id: templateExercise.id,
                         order: templateExercise.order || 0,
                     };
@@ -87,14 +89,27 @@ export function WorkoutsTemplate() {
             setSelectedExercises(exercisesMap);
             hasPopulatedAtoms.current = true; // Mark as populated
         }
-    }, [isEditMode, template_data, setTitle, setSelectedExercises]);
+    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id]);
+
 
     // Only clear atoms when explicitly cancelled or successful save
     const clearAtoms = useCallback(() => {
         setTitle('');
         setSelectedExercises(new Map());
+        setTemplate_id(null);
+        setTemplateMode("create"); // Reset mode to create
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode]);
+
+
+    // Create template with exercise mutation
+    const {
+        createTemplate,
+        isCreating,
+        updateTemplate,
+        isUpdating,
+    } = useTemplates();
+
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -127,17 +142,29 @@ export function WorkoutsTemplate() {
         };
 
         if (isEditMode) {
-            console.log("Editing existing template:", templateData);
-        } else {
-            createTemplate(templateData, {
+            updateTemplate({
+                templateId: template_id,
+                templateData
+            }, {
                 onSuccess: () => {
-                    // Clear atoms after successful creation
                     clearAtoms();
                     navigate("/workouts");
+                },
+                onError: (error) => {
+                    console.error('Update failed:', error);
+                }
+            });
+        } else if (isCreateMode) {
+            createTemplate(templateData, {
+                onSuccess: () => {
+                    clearAtoms();
+                    navigate("/workouts");
+                },
+                onError: (error) => {
+                    console.error('Create failed:', error);
                 }
             });
         }
-
     };
 
     const handleCancel = () => {
@@ -171,10 +198,12 @@ export function WorkoutsTemplate() {
     };
     // ===== END EVENT HANDLERS =====
 
+
     // Determine UI text based on mode
     const pageTitle = isEditMode ? `Edit Template` : `Create Template`;
     const buttonText = isEditMode ? (isCreating ? "Updating..." : "Update") : (isCreating ? "Saving..." : "Save");
     const cancelText = isEditMode ? "Cancel Template Editing?" : "Cancel Template Creation?";
+
 
     // Main View
     return (
@@ -217,13 +246,13 @@ export function WorkoutsTemplate() {
                         variant="ghost"
                         className="h-7 border-b-gray-700"
                         placeholder="Enter template title..."
-                        disabled={isCreating}
+                        disabled={isCreating || isUpdating}
                     />
 
                     <Button
                         type="submit"
                         className="h-7 ml-3"
-                        disabled={isCreating || !canSave}
+                        disabled={isCreating || !canSave || isUpdating}
                     >
                         <FlagTriangleRight />
                         {buttonText}
@@ -274,7 +303,7 @@ export function WorkoutsTemplate() {
                 <Button
                     className="w-full bg-white text-primary font-semibold border-2 border-dashed border-primary/30 hover:bg-primary/10"
                     onClick={handleAddExercise}
-                    disabled={isCreating}
+                    disabled={isCreating || isUpdating}
                 >
                     <Plus className="size-4 mr-1" />
                     ADD EXERCISE

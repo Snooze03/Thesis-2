@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/food/useUpdateFoodEntry";
 import { useFoodDatabase } from "@/hooks/nutrition/food/useFoodDatabase";
+import { useDietPlan } from "@/hooks/nutrition/diet-plan/useDietPlan";
 import { addFoodSchema } from "../add-food/add-food-schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -15,7 +16,7 @@ import { toast } from "react-hot-toast";
 import clsx from "clsx";
 import { Trash } from "lucide-react";
 
-export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId }) {
+export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, isDietPlan = false }) {
     const [isCustomServing, setIsCustomServing] = useState(false);
     const meal = ["breakfast", "lunch", "dinner", "snack"];
     const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
@@ -109,6 +110,14 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId }) 
         }
     });
 
+    const {
+        updateFoodItem: { mutate: updateDietPlanFoodItem },
+    } = useDietPlan({
+        onSuccess: () => {
+            onClose();
+        }
+    });
+
     // ===== FORM SUBMISSION HANDLER =====
     const onSubmit = (formData) => {
         const updateData = {
@@ -120,7 +129,11 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId }) 
             quantity: 1,
         };
 
-        updateFoodEntry({ foodEntryId: entryId, updateData });
+        if (isDietPlan) {
+            updateDietPlanFoodItem({ mealItemId: foodDatabaseId, updateData });
+        } else {
+            updateFoodEntry({ foodEntryId: entryId, updateData });
+        }
     };
     // ==== END FORM SUBMISSION HANDLER =====
 
@@ -275,15 +288,18 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId }) 
                         </div>
 
                         <DialogFooter className="flex gap-2 pt-4">
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={handleDeleteEntry}
-                                disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
-                            >
-                                <Trash className="size-4" />
-                                {isDeletingFoodEntry ? 'Deleting...' : 'Delete Food'}
-                            </Button>
+                            {/* Hide delete button when isDietPlan is true */}
+                            {!isDietPlan && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={handleDeleteEntry}
+                                    disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
+                                >
+                                    <Trash className="size-4" />
+                                    {isDeletingFoodEntry ? 'Deleting...' : 'Delete Food'}
+                                </Button>
+                            )}
                             <Button
                                 type="submit"
                                 disabled={isUpdatingFoodEntry || isDeletingFoodEntry}

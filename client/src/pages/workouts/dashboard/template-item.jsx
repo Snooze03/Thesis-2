@@ -1,50 +1,44 @@
+import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
+import { useNavigate } from "react-router-dom";
+import { useAtom } from "jotai";
+import { templateModeAtom } from "../create/template-atoms";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { useTemplates } from "@/hooks/workouts/useTemplates";
-import { useTemplateExercises } from "@/hooks/workouts/useTemplateExercises";
 
-function WorkoutTemplate({
-    id,
-    title
-}) {
+export function TemplateItem({ templateData }) {
+    const navigate = useNavigate();
+    const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
+    const templateId = templateData?.id;
+    const exercises = templateData?.template_exercises || [];
+    const title = templateData?.title || "Untitled Template";
+
     const {
         deleteTemplate,
         isDeleting,
-        navigateToEdit,
-        navigateToStart
     } = useTemplates();
 
-    const {
-        exercises,
-        isLoading: isPendingExercise,
-        isError: isErrorExercise
-    } = useTemplateExercises(id);
 
     // ===== EVENT HANDLERS =====
     const handleDelete = () => {
-        deleteTemplate(id);
+        deleteTemplate(templateId);
     };
 
     const handleEdit = () => {
-        // Pass the complete template object instead of just the ID
-        const templateObj = {
-            id,
-            title,
-        };
-        navigateToEdit(templateObj);
+        setTemplateMode("edit");
+        navigate("templates", {
+            state: {
+                templateObj: templateData,
+            }
+        });
     };
 
     const handleStartWorkout = () => {
-        const templateObj = {
-            id,
-            title,
-        };
-        navigateToStart(templateObj);
+        console.log(`Start Workout`);
+        // navigateToStart(templateObj);
     };
     // ===== END EVENT HANDLERS =====
 
@@ -58,7 +52,7 @@ function WorkoutTemplate({
     };
 
     return (
-        <AccordionItem value={`item-${id}`} className="shadow-sm rounded-lg">
+        <AccordionItem value={`item-${templateId}`} className="shadow-xs rounded-lg">
             <AccordionTrigger className="px-4">
                 {title}
                 <Badge className="text-xs">
@@ -68,13 +62,7 @@ function WorkoutTemplate({
 
             <AccordionContent className="px-5 py-4 space-y-3">
                 {/* Exercise List */}
-                {isPendingExercise ? (
-                    <LoadingSpinner message="exercises" />
-                ) : isErrorExercise ? (
-                    <div className="text-center py-4 text-red-500">
-                        <p>Error loading exercises</p>
-                    </div>
-                ) : exercises.length > 0 ? (
+                {exercises.length > 0 ? (
                     <>
                         {exercises.map((templateExercise, index) => {
                             const exercise = templateExercise.exercise;
@@ -84,13 +72,13 @@ function WorkoutTemplate({
                                     key={templateExercise.id || `exercise-${index}`}
                                 >
                                     <div className="grid place-items-center size-10 bg-primary-300 rounded-full text-sm">
-                                        <p>{templateExercise.sets || 3}x</p>
+                                        <p>{templateExercise.total_sets || 3}x</p>
                                     </div>
                                     <div className="flex flex-col justify-center">
                                         <p className="font-medium truncate">{exercise.name}</p>
                                         <div className="flex gap-2 text-sm text-gray-600">
                                             {exercise.equipment && (
-                                                <span>{exercise.equipment}</span>
+                                                <span className="capitalize">{exercise.equipment}</span>
                                             )}
                                             {exercise.equipment && exercise.muscle && (
                                                 <span>•</span>
@@ -167,5 +155,3 @@ function WorkoutTemplate({
         </AccordionItem>
     );
 }
-
-export { WorkoutTemplate }

@@ -1,24 +1,37 @@
 import { MainLayout } from "@/layouts/main-layout";
+import { useNavigate } from "react-router-dom";
+import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useAtom } from "jotai";
+import { templateModeAtom } from "../create/template-atoms";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Accordion } from "@/components/ui/accordion";
-import { WorkoutTemplate } from "./workouts-template";
+import { TemplateItem } from "./template-item";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
-import { useTemplates } from "@/hooks/workouts/useTemplates";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useScrollLock } from "@/hooks/useScrollLock";
 
 const WorkoutsDashboard = () => {
+    const navigate = useNavigate();
+    const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
+
     const {
         routines,
         alternatives,
         isLoading,
-        navigateToCreate
     } = useTemplates();
 
     useScrollLock(isLoading);
+
+    const handleCreateTemplate = (is_alternative = false) => {
+        setTemplateMode("create");
+        navigate("/workouts/templates", {
+            state: {
+                isAlternative: is_alternative,
+            }
+        });
+    }
 
     return (
         <MainLayout>
@@ -28,15 +41,15 @@ const WorkoutsDashboard = () => {
             <TemplatesList
                 title="My Routines"
                 templates={routines}
-                isPending={isLoading}
-                onCreateClick={() => navigateToCreate(false)}
+                isLoading={isLoading}
+                onCreateClick={() => handleCreateTemplate(false)}
             />
 
             <TemplatesList
                 title="Alternative Routines"
                 templates={alternatives}
-                isPending={isLoading}
-                onCreateClick={() => navigateToCreate(true)}
+                isLoading={isLoading}
+                onCreateClick={() => handleCreateTemplate(true)}
             />
 
             <WorkoutsHistory />
@@ -44,7 +57,7 @@ const WorkoutsDashboard = () => {
     );
 };
 
-function TemplatesList({ title, templates, isPending, onCreateClick }) {
+function TemplatesList({ title, templates, isLoading, onCreateClick }) {
     return (
         <>
             <div className="flex justify-between items-center border-b-2 pb-3">
@@ -58,8 +71,7 @@ function TemplatesList({ title, templates, isPending, onCreateClick }) {
                 </Button>
             </div>
 
-            {isPending ? (
-                // <LoadingSpinner message="templates" />
+            {isLoading ? (
                 <div className="space-y-3">
                     {[...Array(3)].map((_, index) => (
                         <Skeleton key={index} className="h-12 w-full rounded-md" />
@@ -68,7 +80,7 @@ function TemplatesList({ title, templates, isPending, onCreateClick }) {
             ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
                     {templates.map((item) => (
-                        <WorkoutTemplate key={item.id} id={item.id} title={item.title} />
+                        <TemplateItem key={item.id} templateData={item} />
                     ))}
                 </Accordion>
             ) : (

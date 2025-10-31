@@ -16,7 +16,10 @@ export function useDietPlan(options = {}) {
         },
         onError: (error) => {
             console.error('Error fetching diet plan:', error);
-        }
+        },
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        cacheTime: 5 * 60 * 1000, // 5 minutes
+        retry: 2,
     });
 
     const addFoodToDietPlan = useMutation({
@@ -71,9 +74,50 @@ export function useDietPlan(options = {}) {
         }
     });
 
+    const addFoodToDailyEntry = useMutation({
+        mutationFn: async ({ dailyEntryId, foodId, entryData }) => {
+            const foodEntryPayload = {
+                daily_entry: dailyEntryId,
+                food: foodId,
+                meal_type: entryData.meal_type,
+                serving_type: entryData.serving_type,
+                fatsecret_serving_id: entryData.fatsecret_serving_id,
+                custom_serving_unit: entryData.custom_serving_unit,
+                custom_serving_amount: entryData.custom_serving_amount,
+                quantity: entryData.quantity || 1,
+            };
+
+            const response = await api.post('/nutrition/food-entries/', foodEntryPayload);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            toast.success('Food added to daily entry successfully!');
+
+            queryClient.invalidateQueries({ queryKey: ['foodEntries'] });
+            queryClient.invalidateQueries({ queryKey: ['todayDailyEntry'] });
+            queryClient.invalidateQueries({ queryKey: ['dailyEntriesHistory'] });
+        }
+    });
+
+    const updateFoodItem = useMutation({
+        mutationFn: async ({ mealItemId, updateData }) => {
+            const response = await api.patch(`/nutrition/meal-items/${mealItemId}/`, updateData);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            toast.success('Meal item updated successfully!');
+            queryClient.invalidateQueries({ queryKey: ['diet-plan'] });
+            if (options.onSuccess) {
+                options.onSuccess(data);
+            }
+        }
+    })
+
     return {
         fetchDietPlan,
         addFoodToDietPlan,
         deleteMealItem,
+        addFoodToDailyEntry,
+        updateFoodItem,
     }
 }

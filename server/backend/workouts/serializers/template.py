@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from django.db import models
-from ..models import Template, TemplateExercise, Exercise
+from ..models import (
+    Template,
+    TemplateExercise,
+    Exercise,
+    TemplateHistory,
+    TemplateHistoryExercise,
+)
 from .exercise import ExerciseSerializer
 
 
@@ -84,6 +90,247 @@ class TemplateExerciseSerializer(serializers.ModelSerializer):
                 )
 
         return value
+
+
+class TemplateHistoryExerciseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for individual exercises within a completed workout
+    """
+
+    exercise = ExerciseSerializer(read_only=True)
+    formatted_sets_display = serializers.ReadOnlyField()
+    total_volume = serializers.ReadOnlyField()
+
+    class Meta:
+        model = TemplateHistoryExercise
+        fields = [
+            "id",
+            "workout_history",
+            "exercise",
+            "exercise_name",
+            "performed_sets_data",
+            "total_sets_performed",
+            "exercise_notes",
+            "order",
+            "formatted_sets_display",
+            "total_volume",
+            "created_at",
+        ]
+        extra_kwargs = {
+            "workout_history": {"read_only": True},
+        }
+
+    def validate_performed_sets_data(self, value):
+        """Validate performed sets data structure"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("performed_sets_data must be a list")
+
+        for i, set_data in enumerate(value):
+            if not isinstance(set_data, dict):
+                raise serializers.ValidationError(f"Set {i+1} must be an object")
+
+            # Validate reps
+            reps = set_data.get("reps")
+            if reps is not None and (not isinstance(reps, int) or reps < 0):
+                raise serializers.ValidationError(
+                    f"Set {i+1}: reps must be a positive integer or null"
+                )
+
+            # Validate weight
+            weight = set_data.get("weight")
+            if weight is not None and (
+                not isinstance(weight, (int, float)) or weight < 0
+            ):
+                raise serializers.ValidationError(
+                    f"Set {i+1}: weight must be a positive number or null"
+                )
+
+        return value
+
+
+class TemplateHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for completed workout sessions
+    """
+
+    performed_exercises = TemplateHistoryExerciseSerializer(many=True, read_only=True)
+    original_template = TemplateSerializer(read_only=True)
+    duration_minutes = serializers.ReadOnlyField()
+
+    class Meta:
+        model = TemplateHistory
+        fields = [
+            "id",
+            "user_id",
+            "original_template",
+            "template_title",
+            "started_at",
+            "completed_at",
+            "total_duration",
+            "duration_minutes",
+            "total_exercises",
+            "total_sets",
+            "workout_notes",
+            "performed_exercises",
+            "created_at",
+        ]
+        extra_kwargs = {
+            "user_id": {"read_only": True},
+        }
+
+
+class SaveCompletedWorkoutSerializer(serializers.Serializer):
+    """
+    Serializer for saving a completed workout to history
+    This is what the frontend will send when a workout is completed
+    """
+
+    # Template reference
+    template_id = serializers.IntegerField(required=False, allow_null=True)
+    template_title = serializers.CharField(max_length=50)
+
+    # Timing
+    started_at = serializers.DateTimeField()
+    completed_at = serializers.DateTimeField()
+
+    # Workout notes
+    workout_notes = serializers.CharField(required=False, allow_blank=True)
+
+    # Completed exercises
+    completed_exercises = serializers.ListField(
+        child=serializers.DictField(),
+        allow_empty=False,
+        help_text="List of completed exercises with their performed sets",
+    )
+
+    def validate_template_id(self, value):
+        """Validate that the template exists and belongs to the user if provided"""
+        if value is None:
+            return value
+
+        try:
+            template = Template.objects.get(id=value)
+            # Check if template belongs to the requesting user
+            request = self.context.get("request")
+            if request and template.user_id != request.user:
+                raise serializers.ValidationError("Template not found or access denied")
+            return value
+        except Template.DoesNotExist:
+            raise serializers.ValidationError("Template not found")
+
+    def validate_completed_exercises(self, value):
+        """Validate completed exercises structure"""
+        if not value:
+            raise serializers.ValidationError("At least one exercise must be completed")
+
+        for i, exercise_data in enumerate(value):
+            # Required fields
+            required_fields = ["exercise_name", "performed_sets_data"]
+            for field in required_fields:
+                if field not in exercise_data:
+                    raise serializers.ValidationError(
+                        f"Exercise {i+1}: '{field}' is required"
+                    )
+
+            # Validate performed_sets_data
+            sets_data = exercise_data.get("performed_sets_data", [])
+            if not isinstance(sets_data, list) or not sets_data:
+                raise serializers.ValidationError(
+                    f"Exercise {i+1}: performed_sets_data must be a non-empty list"
+                )
+
+            for j, set_data in enumerate(sets_data):
+                if not isinstance(set_data, dict):
+                    raise serializers.ValidationError(
+                        f"Exercise {i+1}, Set {j+1}: must be an object"
+                    )
+
+                # Validate reps and weight
+                reps = set_data.get("reps")
+                weight = set_data.get("weight")
+
+                if reps is not None and (not isinstance(reps, int) or reps < 0):
+                    raise serializers.ValidationError(
+                        f"Exercise {i+1}, Set {j+1}: reps must be a positive integer or null"
+                    )
+
+                if weight is not None and (
+                    not isinstance(weight, (int, float)) or weight < 0
+                ):
+                    raise serializers.ValidationError(
+                        f"Exercise {i+1}, Set {j+1}: weight must be a positive number or null"
+                    )
+
+        return value
+
+    def validate(self, data):
+        """Cross-field validation"""
+        started_at = data.get("started_at")
+        completed_at = data.get("completed_at")
+
+        if started_at and completed_at and completed_at <= started_at:
+            raise serializers.ValidationError("completed_at must be after started_at")
+
+        return data
+
+    def create(self, validated_data):
+        """Create a new workout history from completed workout data"""
+        from django.db import transaction
+
+        completed_exercises_data = validated_data.pop("completed_exercises")
+        request = self.context.get("request")
+
+        with transaction.atomic():
+            # Get the original template if provided
+            original_template = None
+            template_id = validated_data.get("template_id")
+            if template_id:
+                try:
+                    original_template = Template.objects.get(id=template_id)
+                except Template.DoesNotExist:
+                    pass  # Template was deleted, that's okay
+
+            # Create the workout history
+            workout_history = TemplateHistory.objects.create(
+                user_id=request.user,
+                original_template=original_template,
+                template_title=validated_data["template_title"],
+                started_at=validated_data["started_at"],
+                completed_at=validated_data["completed_at"],
+                workout_notes=validated_data.get("workout_notes", ""),
+                total_exercises=len(completed_exercises_data),
+                total_sets=sum(
+                    len(ex["performed_sets_data"]) for ex in completed_exercises_data
+                ),
+            )
+
+            # Create history exercises
+            for order, exercise_data in enumerate(completed_exercises_data):
+                # Try to find the exercise in our database
+                exercise = None
+                exercise_name = exercise_data["exercise_name"]
+
+                # Look for exercise by name (you might want to improve this matching)
+                try:
+                    exercise = Exercise.objects.filter(
+                        name__iexact=exercise_name
+                    ).first()
+                except Exercise.DoesNotExist:
+                    pass
+
+                # If exercise not found, you might want to create it or handle it differently
+                # For now, we'll store the data even without an exercise reference
+
+                TemplateHistoryExercise.objects.create(
+                    workout_history=workout_history,
+                    exercise=exercise,  # Can be None if exercise not found
+                    exercise_name=exercise_name,
+                    performed_sets_data=exercise_data["performed_sets_data"],
+                    exercise_notes=exercise_data.get("exercise_notes", ""),
+                    order=exercise_data.get("order", order),
+                )
+
+            return workout_history
 
 
 class AddExercisesToTemplateSerializer(serializers.Serializer):

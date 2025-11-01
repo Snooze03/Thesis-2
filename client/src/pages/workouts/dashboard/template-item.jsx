@@ -37,8 +37,12 @@ export function TemplateItem({ templateData }) {
     };
 
     const handleStartWorkout = () => {
-        console.log(`Start Workout`);
-        // navigateToStart(templateObj);
+        setTemplateMode("start");
+        navigate("templates", {
+            state: {
+                templateObj: templateData,
+            }
+        });
     };
     // ===== END EVENT HANDLERS =====
 

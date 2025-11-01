@@ -5,7 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from ..models import Template, TemplateExercise, Exercise
+from ..models import (
+    Template,
+    TemplateExercise,
+    Exercise,
+    TemplateHistory,
+    TemplateHistoryExercise,
+)
 from ..serializers import (
     TemplateSerializer,
     TemplateExerciseSerializer,
@@ -13,6 +19,9 @@ from ..serializers import (
     CreateTemplateWithExercisesSerializer,
     UpdateTemplateWithExercisesSerializer,
     SetManagementSerializer,
+    TemplateHistorySerializer,
+    TemplateHistoryExerciseSerializer,
+    SaveCompletedWorkoutSerializer,
 )
 
 
@@ -134,27 +143,6 @@ class TemplateViewSet(viewsets.ModelViewSet):
         """
         Create a template and add exercises to it in one operation
         URL: /workouts/templates/create_with_exercises/
-        Body: {
-            "title": "My Workout",
-            "isAlternative": false,
-            "exercises": [
-                {
-                    "name": "Push Up",
-                    "type": "strength",
-                    "muscle": "chest",
-                    "equipment": "body_only",
-                    "difficulty": "beginner",
-                    "instructions": "Do push ups...",
-                    "sets_data": [
-                        {"reps": 12, "weight": null},
-                        {"reps": 10, "weight": null},
-                        {"reps": 8, "weight": null}
-                    ],
-                    "rest_time": "60s",
-                    "notes": "Focus on form"
-                }
-            ]
-        }
         """
         serializer = CreateTemplateWithExercisesSerializer(
             data=request.data, context={"request": request}
@@ -205,20 +193,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
     def add_exercises(self, request, pk=None):
         """
         Add multiple exercises from external API to a template
-        This will:
-        1. Create Exercise records if they don't exist
-        2. Create TemplateExercise records to link them to the template
         URL: /workouts/templates/{id}/add_exercises/
-        Body: {
-            "exercises": [
-                {
-                    "name": "Push Up",
-                    "type": "strength",
-                    "muscle": "chest",
-                    "sets_data": [{"reps": 10, "weight": null}]
-                }
-            ]
-        }
         """
         template = self.get_object()
         serializer = AddExercisesToTemplateSerializer(data=request.data)
@@ -310,7 +285,6 @@ class TemplateViewSet(viewsets.ModelViewSet):
         """
         Remove an exercise from a template
         URL: /workouts/templates/{id}/remove_exercise/
-        Body: {"exercise_id": 123}
         """
         template = self.get_object()
         exercise_id = request.data.get("exercise_id")
@@ -334,6 +308,186 @@ class TemplateViewSet(viewsets.ModelViewSet):
                 {"error": "Exercise not found in this template"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+    @action(detail=False, methods=["post"])
+    def save_completed_workout(self, request):
+        """
+        Save a completed workout to history
+        URL: /workouts/templates/save_completed_workout/
+
+        Body: {
+            "template_id": 123,  // optional, can be null if template was deleted
+            "template_title": "Push Day Workout",
+            "started_at": "2024-11-01T10:00:00Z",
+            "completed_at": "2024-11-01T11:30:00Z",
+            "workout_notes": "Great workout today!",
+            "completed_exercises": [
+                {
+                    "exercise_name": "Push Up",
+                    "performed_sets_data": [
+                        {"reps": 12, "weight": null},
+                        {"reps": 10, "weight": null},
+                        {"reps": 8, "weight": null}
+                    ],
+                    "exercise_notes": "Felt strong today",
+                    "order": 0
+                },
+                {
+                    "exercise_name": "Bench Press",
+                    "performed_sets_data": [
+                        {"reps": 8, "weight": 135},
+                        {"reps": 6, "weight": 145},
+                        {"reps": 4, "weight": 155}
+                    ],
+                    "exercise_notes": "New PR!",
+                    "order": 1
+                }
+            ]
+        }
+        """
+        serializer = SaveCompletedWorkoutSerializer(
+            data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            try:
+                workout_history = serializer.save()
+
+                # Return the created workout history with all related data
+                response_serializer = TemplateHistorySerializer(workout_history)
+
+                return Response(
+                    {
+                        "workout_history": response_serializer.data,
+                        "message": f"Workout '{workout_history.template_title}' saved to history successfully",
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            except Exception as e:
+                return Response(
+                    {"error": f"Failed to save workout: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get"])
+    def workout_history(self, request):
+        """
+        Get user's workout history
+        URL: /workouts/templates/workout_history/
+
+        Query params:
+        - limit: Number of workouts to return (default: 20)
+        - offset: Pagination offset (default: 0)
+        - template_id: Filter by specific template (optional)
+        """
+        # Get query parameters
+        limit = int(request.query_params.get("limit", 20))
+        offset = int(request.query_params.get("offset", 0))
+        template_id = request.query_params.get("template_id")
+
+        # Build queryset
+        queryset = (
+            TemplateHistory.objects.filter(user_id=request.user)
+            .prefetch_related("performed_exercises__exercise", "original_template")
+            .order_by("-completed_at")
+        )
+
+        # Filter by template if specified
+        if template_id:
+            queryset = queryset.filter(original_template_id=template_id)
+
+        # Apply pagination
+        total_count = queryset.count()
+        workouts = queryset[offset : offset + limit]
+
+        # Serialize the data
+        serializer = TemplateHistorySerializer(workouts, many=True)
+
+        return Response(
+            {
+                "workouts": serializer.data,
+                "pagination": {
+                    "total_count": total_count,
+                    "limit": limit,
+                    "offset": offset,
+                    "has_next": offset + limit < total_count,
+                    "has_previous": offset > 0,
+                },
+            }
+        )
+
+    @action(detail=False, methods=["get"])
+    def workout_stats(self, request):
+        """
+        Get user's workout statistics
+        URL: /workouts/templates/workout_stats/
+
+        Returns overall workout statistics like total workouts,
+        total time worked out, etc.
+        """
+        from django.db.models import Sum, Count, Avg
+        from django.utils import timezone
+        from datetime import timedelta
+
+        user_workouts = TemplateHistory.objects.filter(user_id=request.user)
+
+        # Basic stats
+        total_workouts = user_workouts.count()
+
+        if total_workouts == 0:
+            return Response(
+                {
+                    "total_workouts": 0,
+                    "total_exercises_performed": 0,
+                    "total_sets_performed": 0,
+                    "total_time_minutes": 0,
+                    "average_workout_duration": 0,
+                    "workouts_this_week": 0,
+                    "workouts_this_month": 0,
+                }
+            )
+
+        # Aggregate stats
+        stats = user_workouts.aggregate(
+            total_exercises=Sum("total_exercises"),
+            total_sets=Sum("total_sets"),
+            avg_duration=Avg("total_duration"),
+        )
+
+        # Calculate total workout time in minutes
+        total_duration = user_workouts.aggregate(total=Sum("total_duration"))["total"]
+        total_minutes = (
+            int(total_duration.total_seconds() / 60) if total_duration else 0
+        )
+
+        # Time-based filters
+        now = timezone.now()
+        week_start = now - timedelta(days=7)
+        month_start = now - timedelta(days=30)
+
+        workouts_this_week = user_workouts.filter(completed_at__gte=week_start).count()
+        workouts_this_month = user_workouts.filter(
+            completed_at__gte=month_start
+        ).count()
+
+        # Average workout duration in minutes
+        avg_duration_minutes = 0
+        if stats["avg_duration"]:
+            avg_duration_minutes = int(stats["avg_duration"].total_seconds() / 60)
+
+        return Response(
+            {
+                "total_workouts": total_workouts,
+                "total_exercises_performed": stats["total_exercises"] or 0,
+                "total_sets_performed": stats["total_sets"] or 0,
+                "total_time_minutes": total_minutes,
+                "average_workout_duration": avg_duration_minutes,
+                "workouts_this_week": workouts_this_week,
+                "workouts_this_month": workouts_this_month,
+            }
+        )
 
 
 class TemplateExerciseViewSet(viewsets.ModelViewSet):
@@ -422,7 +576,6 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
         """
         Update exercise parameters (rest_time, notes, order) for a TemplateExercise
         URL: /workouts/template-exercises/{id}/update_exercise_params/
-        Body: {"rest_time": "90s", "notes": "Focus on form", "order": 2}
         """
         template_exercise = self.get_object()
 
@@ -445,3 +598,43 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TemplateHistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing workout history
+    Read-only because workout history should not be modified after creation
+    """
+
+    serializer_class = TemplateHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return (
+            TemplateHistory.objects.filter(user_id=self.request.user)
+            .prefetch_related("performed_exercises__exercise", "original_template")
+            .order_by("-completed_at")
+        )
+
+    @action(detail=True, methods=["get"])
+    def exercises(self, request, pk=None):
+        """
+        Get all exercises for a specific workout history
+        URL: /workouts/history/{id}/exercises/
+        """
+        workout_history = self.get_object()
+        performed_exercises = workout_history.performed_exercises.all().order_by(
+            "order"
+        )
+        serializer = TemplateHistoryExerciseSerializer(performed_exercises, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def recent(self, request):
+        """
+        Get recent workout history (last 10 workouts)
+        URL: /workouts/history/recent/
+        """
+        recent_workouts = self.get_queryset()[:10]
+        serializer = self.get_serializer(recent_workouts, many=True)
+        return Response(serializer.data)

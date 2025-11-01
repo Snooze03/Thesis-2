@@ -1,6 +1,7 @@
 from .template import (
     TemplateViewSet,
     TemplateExerciseViewSet,
+    TemplateHistoryViewSet,
 )
 
 from .exercise import (
@@ -12,6 +13,7 @@ __all__ = [
     # Template
     "TemplateViewSet",
     "TemplateExerciseViewSet",
+    "TemplateHistoryViewSet",
     # Exercise
     "ExerciseViewSet",
 ]

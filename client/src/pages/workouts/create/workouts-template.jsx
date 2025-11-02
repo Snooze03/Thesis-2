@@ -199,21 +199,41 @@ export function WorkoutsTemplate() {
         const completedTime = new Date().toISOString();
         setCompleted_at(completedTime);
 
+        // Filter exercises and sets - only include exercises with at least one completed set
+        const completedExercisesData = [];
+
+        exercisesArray.forEach((exercise, index) => {
+            // Filter only completed sets (both reps and weight are filled)
+            const completedSets = exercise.sets_data.filter(set =>
+                set.reps !== null && set.reps !== '' &&
+                set.weight !== null && set.weight !== ''
+            );
+
+            // Only include exercise if it has at least one completed set
+            if (completedSets.length > 0) {
+                completedExercisesData.push({
+                    exercise_name: exercise.name,
+                    performed_sets_data: completedSets, // Only the completed sets
+                    exercise_notes: exercise.notes || '',
+                    order: exercise.order || index
+                });
+            }
+        });
+
+        // Don't proceed if no exercises were completed
+        if (completedExercisesData.length === 0) {
+            toast.error("No completed sets found. Please complete at least one set before finishing your workout.");
+            return;
+        }
+
         // Prepare completed workout data for the backend
         const completedWorkoutData = {
             template_id: template_id,
             template_title: title.trim(),
             started_at: started_at,
-            completed_at: completed_at,
+            completed_at: completedTime,
             workout_notes: "notes",
-            completed_exercises: exercisesArray.map((exercise, index) => ({
-                exercise_name: exercise.name,
-                performed_sets_data: exercise.sets_data || [
-                    { reps: null, weight: null }
-                ],
-                exercise_notes: exercise.notes || '',
-                order: exercise.order || index
-            }))
+            completed_exercises: completedExercisesData
         };
 
         // Save the completed workout using the mutation
@@ -222,16 +242,16 @@ export function WorkoutsTemplate() {
             templateData: completedWorkoutData
         }, {
             onSuccess: () => {
+                toast.success(`Workout completed! Saved ${completedExercisesData.length} exercises with completed sets.`);
                 clearAtoms();
                 navigate("/workouts");
             },
             onError: (error) => {
                 console.error('Save workout failed:', error);
+                toast.error("Failed to save workout");
             }
         });
-
-        return;
-    }
+    };
 
     const handleCancel = () => {
         // Clear atoms and navigate back
@@ -343,7 +363,7 @@ export function WorkoutsTemplate() {
                                     className="h-7 ml-3"
                                     disabled={isCreating || !canSave || isUpdating || isSaving}
                                     onClick={(e) => {
-                                        // Check if user has completed at least one set
+                                        // Check if user has completed at least one set across all exercises
                                         const hasAtLeastOneCompletedSet = exercisesArray.some(exercise =>
                                             exercise.sets_data.some(set =>
                                                 set.reps !== null && set.reps !== '' &&
@@ -372,6 +392,25 @@ export function WorkoutsTemplate() {
                                     <AlertDialogDescription>
                                         Are you ready to finish your workout? This will save your progress and end the current session.
                                     </AlertDialogDescription>
+                                    {/* Show summary of what will be saved */}
+                                    <div className="mt-2 text-sm text-gray-600">
+                                        {(() => {
+                                            const completedExercises = exercisesArray.filter(exercise =>
+                                                exercise.sets_data.some(set =>
+                                                    set.reps !== null && set.reps !== '' &&
+                                                    set.weight !== null && set.weight !== ''
+                                                )
+                                            );
+                                            const totalCompletedSets = completedExercises.reduce((total, exercise) =>
+                                                total + exercise.sets_data.filter(set =>
+                                                    set.reps !== null && set.reps !== '' &&
+                                                    set.weight !== null && set.weight !== ''
+                                                ).length, 0
+                                            );
+
+                                            return `${completedExercises.length} exercises with ${totalCompletedSets} completed sets will be saved.`;
+                                        })()}
+                                    </div>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Continue Workout</AlertDialogCancel>

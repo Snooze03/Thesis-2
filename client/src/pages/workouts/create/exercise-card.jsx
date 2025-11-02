@@ -7,6 +7,7 @@ import { KebabMenu } from "@/components/ui/kebab-menu";
 import { Plus, Trash2, AlarmClock, Replace, Minus, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
+import toast from "react-hot-toast";
 
 function ExerciseCard({
     exercise,
@@ -80,11 +81,37 @@ function ExerciseCard({
             [field]: value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value))
         };
         setSetsData(newSetsData);
+
+        // Check if the set is now incomplete after the change
+        const updatedSet = newSetsData[setIndex];
+        const isIncomplete = updatedSet.reps === null || updatedSet.reps === '' ||
+            updatedSet.weight === null || updatedSet.weight === '';
+
+        // If set becomes incomplete, remove it from completed sets
+        if (isIncomplete) {
+            setCompletedSets(prev => {
+                const newCompletedSets = new Set(prev);
+                newCompletedSets.delete(setIndex);
+                return newCompletedSets;
+            });
+        }
+
         // Call onUpdate immediately when individual set changes
         onUpdate?.({ sets_data: newSetsData });
     }, [setsData, onUpdate]);
 
     const handleCompletedSet = useCallback((setIndex) => {
+        const currentSet = setsData[setIndex];
+
+        // Check if both reps and weight are filled
+        const hasCompleteData = currentSet.reps !== null && currentSet.reps !== '' &&
+            currentSet.weight !== null && currentSet.weight !== '';
+
+        if (!hasCompleteData) {
+            toast.error("Please fill in both reps and weight before marking this set as complete.");
+            return;
+        }
+
         setCompletedSets(prev => {
             const newCompletedSets = new Set(prev);
             if (newCompletedSets.has(setIndex)) {
@@ -96,7 +123,7 @@ function ExerciseCard({
             }
             return newCompletedSets;
         });
-    }, []);
+    }, [setsData]);
 
     // Filter menu items based on mode
     const getMenuItems = () => {
@@ -215,10 +242,12 @@ function ExerciseCard({
                                         "w-7 h-5 py-1",
                                         {
                                             "bg-green-500 hover:bg-green-600": isCompleted,
-                                            "hover:bg-red-50": !isCompleted,
+                                            "hover:bg-green-50": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                            "opacity-50 cursor-not-allowed": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
                                         }
                                     )}
                                     variant={isCompleted ? "default" : "ghost"}
+                                    disabled={!(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== '')}
                                     onClick={() => handleCompletedSet(index)}
                                 >
                                     <Check
@@ -226,7 +255,8 @@ function ExerciseCard({
                                             "size-4",
                                             {
                                                 "stroke-white": isCompleted,
-                                                "stroke-green-400": !isCompleted,
+                                                "stroke-green-400": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                                "stroke-gray-400": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
                                             }
                                         )}
                                     />

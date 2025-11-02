@@ -5,7 +5,7 @@ import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateAction
 import { useAtom } from "jotai";
 import { templateTitleAtom, templateIdAtom } from "./template-atoms";
 import { selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom } from "./template-atoms";
-import { X, FlagTriangleRight, Plus } from "lucide-react";
+import { X, FlagTriangleRight, Plus, CircleX } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { EmptyItems } from "@/components/empty-items";
+import toast from "react-hot-toast";
 
 // Component for Creating/Editing/Starting a workout routine
 export function WorkoutsTemplate() {
@@ -142,45 +143,6 @@ export function WorkoutsTemplate() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (isStartMode) {
-            // Set completion time when finishing workout
-            const completedTime = new Date().toISOString();
-            setCompleted_at(completedTime);
-
-            // Prepare completed workout data for the backend
-            const completedWorkoutData = {
-                template_id: template_id,
-                template_title: title.trim(),
-                started_at: started_at,
-                completed_at: completed_at,
-                workout_notes: "notes",
-                completed_exercises: exercisesArray.map((exercise, index) => ({
-                    exercise_name: exercise.name,
-                    performed_sets_data: exercise.sets_data || [
-                        { reps: null, weight: null }
-                    ],
-                    exercise_notes: exercise.notes || '',
-                    order: exercise.order || index
-                }))
-            };
-
-            // Save the completed workout using the mutation
-            saveTemplate({
-                templateId: template_id,
-                templateData: completedWorkoutData
-            }, {
-                onSuccess: () => {
-                    clearAtoms();
-                    navigate("/workouts");
-                },
-                onError: (error) => {
-                    console.error('Save workout failed:', error);
-                }
-            });
-
-            return;
-        }
-
         // Template creation/editing data structure
         const templateData = {
             title: title.trim(),
@@ -232,6 +194,45 @@ export function WorkoutsTemplate() {
         }
     };
 
+    const handleFinishWorkout = () => {
+        // Set completion time when finishing workout
+        const completedTime = new Date().toISOString();
+        setCompleted_at(completedTime);
+
+        // Prepare completed workout data for the backend
+        const completedWorkoutData = {
+            template_id: template_id,
+            template_title: title.trim(),
+            started_at: started_at,
+            completed_at: completed_at,
+            workout_notes: "notes",
+            completed_exercises: exercisesArray.map((exercise, index) => ({
+                exercise_name: exercise.name,
+                performed_sets_data: exercise.sets_data || [
+                    { reps: null, weight: null }
+                ],
+                exercise_notes: exercise.notes || '',
+                order: exercise.order || index
+            }))
+        };
+
+        // Save the completed workout using the mutation
+        saveTemplate({
+            templateId: template_id,
+            templateData: completedWorkoutData
+        }, {
+            onSuccess: () => {
+                clearAtoms();
+                navigate("/workouts");
+            },
+            onError: (error) => {
+                console.error('Save workout failed:', error);
+            }
+        });
+
+        return;
+    }
+
     const handleCancel = () => {
         // Clear atoms and navigate back
         clearAtoms();
@@ -268,6 +269,11 @@ export function WorkoutsTemplate() {
     const handleWorkoutNotesChange = (e) => {
         // setWorkoutNotes(e.target.value);
     };
+
+    const handleCancelWorkout = () => {
+        clearAtoms();
+        navigate(-1, { replace: true });
+    }
     // ===== END EVENT HANDLERS =====
 
     // Determine UI text based on mode
@@ -329,14 +335,66 @@ export function WorkoutsTemplate() {
                         disabled={isCreating || isUpdating || isSaving || isStartMode}
                     />
 
-                    <Button
-                        type="submit"
-                        className="h-7 ml-3"
-                        disabled={isCreating || !canSave || isUpdating || isSaving}
-                    >
-                        <FlagTriangleRight />
-                        {buttonText}
-                    </Button>
+                    {isStartMode ? (
+                        // Finish Workout Confirmation Dialog
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    className="h-7 ml-3"
+                                    disabled={isCreating || !canSave || isUpdating || isSaving}
+                                    onClick={(e) => {
+                                        // Check if user has completed at least one set
+                                        const hasAtLeastOneCompletedSet = exercisesArray.some(exercise =>
+                                            exercise.sets_data.some(set =>
+                                                set.reps !== null && set.reps !== '' &&
+                                                set.weight !== null && set.weight !== ''
+                                            )
+                                        );
+
+                                        if (!hasAtLeastOneCompletedSet) {
+                                            e.preventDefault(); // Prevent dialog from opening
+                                            e.stopPropagation(); // Stop event propagation
+                                            toast.error("Please complete at least one set before finishing your workout.");
+                                            return;
+                                        }
+                                        // If validation passes, the dialog will open automatically
+                                    }}
+                                >
+                                    <FlagTriangleRight />
+                                    {isSaving ? "Finishing..." : "Finish Workout"}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        Finish Workout Session?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Are you ready to finish your workout? This will save your progress and end the current session.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Continue Workout</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleFinishWorkout}
+                                        className={buttonVariants({ variant: "default" })}
+                                    >
+                                        Finish Workout
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    ) : (
+                        // Regular Submit Button for create/edit modes
+                        <Button
+                            type="submit"
+                            className="h-7 ml-3"
+                            disabled={isCreating || !canSave || isUpdating || isSaving}
+                        >
+                            <FlagTriangleRight />
+                            {buttonText}
+                        </Button>
+                    )}
                 </form>
             </div>
 
@@ -392,6 +450,38 @@ export function WorkoutsTemplate() {
                         <Plus className="size-4 mr-1" />
                         ADD EXERCISE
                     </Button>
+                )}
+
+                {isStartMode && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                className="w-full bg-white text-destructive font-semibold border-2 border-dashed border-destructive/30 hover:bg-destructive/10"
+                            >
+                                <CircleX className="size-4" />
+                                CANCEL WORKOUT
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    Cancel Workout Session?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to cancel this workout? All your progress will be lost and cannot be recovered.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Keep Working Out</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleCancelWorkout}
+                                    className={buttonVariants({ variant: "destructive" })}
+                                >
+                                    Cancel Workout
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
             </div>
         </SubLayout>

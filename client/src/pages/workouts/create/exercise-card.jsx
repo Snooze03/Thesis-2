@@ -1,18 +1,20 @@
 import { React } from "react";
+import { useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
-import { Plus, Trash2, AlarmClock, Replace, Minus, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { Plus, Trash2, AlarmClock, Replace, Minus, Lock, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function ExerciseCard({
     exercise,
-    isEditing = true,
+    templateMode,
     onRemove,
     onUpdate
 }) {
     const navigate = useNavigate();
+    const canInputData = (templateMode === "start") ? false : true;
 
     // Local state for sets_data
     const [setsData, setSetsData] = useState(
@@ -22,10 +24,6 @@ function ExerciseCard({
     );
 
     // ===== EVENT HANDLERS =====
-    const handleRemoveExercise = () => {
-        onRemove?.();
-    };
-
     const handleAddSet = useCallback(() => {
         const newSetsData = [...setsData, { reps: null, weight: null }];
         setSetsData(newSetsData);
@@ -42,12 +40,16 @@ function ExerciseCard({
         }
     }, [setsData, onUpdate]);
 
+    const handleRestTimer = () => {
+        console.log("Rest timer functionality coming soon");
+    };
+
     const handleReplace = () => {
         navigate("/workouts/templates");
     };
 
-    const handleRestTimer = () => {
-        console.log("Rest timer functionality coming soon");
+    const handleRemoveExercise = () => {
+        onRemove?.();
     };
 
     const handleSetChange = useCallback((setIndex, field, value) => {
@@ -60,6 +62,10 @@ function ExerciseCard({
         // Call onUpdate immediately when individual set changes
         onUpdate?.({ sets_data: newSetsData });
     }, [setsData, onUpdate]);
+
+    const handleCompletedSet = () => {
+        console.log("Set marked as completed");
+    };
 
     const menuItems = [
         {
@@ -129,7 +135,7 @@ function ExerciseCard({
                         className="size-5 w-full px-2 text-center"
                         type="number"
                         step="0.5"
-                        disabled={isEditing}
+                        disabled={canInputData}
                         placeholder="0"
                         value={set.weight || ''}
                         onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
@@ -137,15 +143,17 @@ function ExerciseCard({
                     <Input
                         className="size-5 w-full px-2 text-center"
                         type="number"
-                        disabled={isEditing}
+                        disabled={canInputData}
                         placeholder="0"
                         value={set.reps || ''}
                         onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
                     />
-                    {isEditing ? (
+                    {canInputData ? (
                         <Lock className="text-gray-600 size-4" />
                     ) : (
-                        <div className="size-4" />
+                        <Button className="w-min h-min py-1 active:bg-green-400" variant="ghost" onClick={handleCompletedSet}>
+                            <Check className="stroke-green-400 size-4 active:stroke-white" />
+                        </Button>
                     )}
                 </div>
             ))}

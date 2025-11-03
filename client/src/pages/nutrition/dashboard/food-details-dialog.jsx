@@ -123,13 +123,14 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
         const updateData = {
             meal_type: formData.selectedMeal,
             serving_type: "fatsecret",
-            fatsecret_serving_id: formData.selectedServingId || (servings[0] ? servings[0].serving_id : null),
+            fatsecret_serving_id: formData.selectedServingId,
             custom_serving_unit: formData.customUnit || null,
             custom_serving_amount: formData.customAmount || null,
             quantity: 1,
         };
 
         if (isDietPlan) {
+            console.log(`ID: ${foodDatabaseId}`);
             updateDietPlanFoodItem({ mealItemId: foodDatabaseId, updateData });
         } else {
             updateFoodEntry({ foodEntryId: entryId, updateData });
@@ -213,7 +214,12 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                                             key={serving.serving_id || index}
                                             value={serving.serving_id || index.toString()}
                                         >
-                                            {serving.metric_serving_amount} {serving.metric_serving_unit}
+                                            {/* {serving.metric_serving_amount} {serving.metric_serving_unit} */}
+                                            {serving.serving_description.length > 5 ? (
+                                                <span>{serving.serving_description} • ({serving.metric_serving_amount} {serving.metric_serving_unit})</span>
+                                            ) : (
+                                                <span>{serving.metric_serving_amount} {serving.metric_serving_unit}</span>
+                                            )}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

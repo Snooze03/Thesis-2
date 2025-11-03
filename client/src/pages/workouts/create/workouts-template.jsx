@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useAtom } from "jotai";
-import { templateTitleAtom, templateIdAtom } from "./template-atoms";
-import { selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom } from "./template-atoms";
+import { templateTitleAtom, templateIdAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus, CircleX } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -32,6 +31,8 @@ export function WorkoutsTemplate() {
     // Workout timing atoms
     const [started_at, setStarted_at] = useAtom(startedAtAtom);
     const [completed_at, setCompleted_at] = useAtom(completedAtAtom);
+    // Rest time atom
+    const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
     // ===== END ATOMS =====
 
     // Mode Selection
@@ -67,7 +68,6 @@ export function WorkoutsTemplate() {
         if (isStartMode && !started_at) {
             const startTime = new Date().toISOString();
             setStarted_at(startTime);
-            console.log('Workout started at:', startTime);
         }
     }, [isStartMode, started_at, setStarted_at]);
 
@@ -81,6 +81,7 @@ export function WorkoutsTemplate() {
 
             // Convert template exercises to the format expected by selectedExercises atom
             const exercisesMap = new Map();
+            const restTimesMap = new Map();
 
             if (template_data.template_exercises && template_data.template_exercises.length > 0) {
                 template_data.template_exercises.forEach((templateExercise) => {
@@ -88,6 +89,14 @@ export function WorkoutsTemplate() {
 
                     // Create the exercise key (same format used in search)
                     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+
+                    // Convert rest_time from HH:MM:SS to seconds if it exists
+                    let restTimeInSeconds = null;
+                    if (templateExercise.rest_time) {
+                        const [hours, minutes, seconds] = templateExercise.rest_time.split(':').map(Number);
+                        restTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
+                        restTimesMap.set(exerciseKey, restTimeInSeconds);
+                    }
 
                     // Create the exercise object with all necessary data
                     const exerciseData = {
@@ -103,7 +112,7 @@ export function WorkoutsTemplate() {
                         sets_data: templateExercise.sets_data || [
                             { reps: null, weight: null }
                         ],
-                        rest_time: templateExercise.rest_time || null,
+                        rest_time: restTimeInSeconds,
                         notes: templateExercise.notes || '',
 
                         // Additional metadata for editing/starting - CRUCIAL FOR UPDATES
@@ -116,9 +125,10 @@ export function WorkoutsTemplate() {
             }
 
             setSelectedExercises(exercisesMap);
+            setExerciseRestTimes(restTimesMap); // Set rest times
             hasPopulatedAtoms.current = true; // Mark as populated
         }
-    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id]);
+    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes]);
     // ===== END EFFECTS =====
 
     // Utility function to clear all atoms
@@ -126,11 +136,12 @@ export function WorkoutsTemplate() {
         setTitle('');
         setSelectedExercises(new Map());
         setTemplate_id(null);
-        setTemplateMode("create"); // Reset mode to create
+        setTemplateMode("create");
         setStarted_at(null);
         setCompleted_at(null);
+        setExerciseRestTimes(new Map());
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes]);
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -147,25 +158,31 @@ export function WorkoutsTemplate() {
         const templateData = {
             title: title.trim(),
             isAlternative: is_alternative,
-            exercises: exercisesArray.map(exercise => ({
-                // Include template_exercise_id for existing exercises in edit mode
-                ...(isEditMode && exercise.template_exercise_id && {
-                    template_exercise_id: exercise.template_exercise_id
-                }),
+            exercises: exercisesArray.map(exercise => {
+                // Generate exercise key to get rest time
+                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                const restTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time;
 
-                name: exercise.name,
-                type: exercise.type || '',
-                muscle: exercise.muscle || '',
-                equipment: exercise.equipment || '',
-                difficulty: exercise.difficulty || '',
-                instructions: exercise.instructions || '',
-                sets_data: exercise.sets_data || [
-                    { reps: null, weight: null },
-                ],
-                rest_time: exercise.rest_time || null,
-                notes: exercise.notes || '',
-                order: exercise.order || 0
-            }))
+                return {
+                    // Include template_exercise_id for existing exercises in edit mode
+                    ...(isEditMode && exercise.template_exercise_id && {
+                        template_exercise_id: exercise.template_exercise_id
+                    }),
+
+                    name: exercise.name,
+                    type: exercise.type || '',
+                    muscle: exercise.muscle || '',
+                    equipment: exercise.equipment || '',
+                    difficulty: exercise.difficulty || '',
+                    instructions: exercise.instructions || '',
+                    sets_data: exercise.sets_data || [
+                        { reps: null, weight: null },
+                    ],
+                    rest_time: restTime, // Include rest time from atom or exercise data
+                    notes: exercise.notes || '',
+                    order: exercise.order || 0
+                };
+            })
         };
 
         if (isEditMode) {

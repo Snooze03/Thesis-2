@@ -1,5 +1,3 @@
-"use client"
-
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { useState } from "react";
@@ -56,7 +54,7 @@ export const MultiStepForm = () => {
                 food_allergies: data.food_allergies || "", // Ensure empty string if null/undefined
             };
 
-            console.log("Sending to backend:", transformedData);
+            // console.log("Sending to backend:", transformedData);
 
             const response = await api.post("accounts/signup/", transformedData);
             return { ...data, ...response.data };
@@ -110,7 +108,7 @@ export const MultiStepForm = () => {
 
     // Submit handler
     const onSubmit = (data) => {
-        console.log("Form data before submission:", data);
+        // console.log("Form data before submission:", data);
         mutate(data);
     };
 

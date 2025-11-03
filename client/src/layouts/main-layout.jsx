@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb";
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/useMobile"
 import { useLocation, Link } from "react-router-dom"; // Added Link import
 
 // Layout for the app sections: profile, workouts, history, etc

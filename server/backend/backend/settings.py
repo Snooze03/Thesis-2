@@ -48,7 +48,12 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
 }
 
-# Application definition
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -60,9 +65,12 @@ INSTALLED_APPS = [
     # Packages
     "rest_framework",
     "corsheaders",
+    "django_filters",
     # My Apps
     "accounts",
     "workouts",
+    "assistant",
+    "nutrition",
 ]
 
 MIDDLEWARE = [
@@ -139,12 +147,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Manila"
 
 USE_I18N = True
 
 USE_TZ = True
 
+# Media Files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/

@@ -1,16 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from './constants';
 import { jwtDecode } from 'jwt-decode';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from './api';
 import { Login } from './pages/login/login-form';
 import { MultiStepForm } from './pages/sign-up/multi-step-form';
-import { NutritionDashboard } from "@/pages/nutrition/nutrition-dashboard";
-import { ChatDashboard } from './pages/chat/chat-dashboard';
+import { ChatRoutes } from './pages/chat/chat-routes';
 import { ResourcesDashboard } from './pages/resources/resources-dashboard';
 import { WorkoutsRoutes } from './pages/workouts/workouts-routes';
-import { LoadingSpinner } from './components/ui/loading-spinner';
 import { ProfileRoutes } from './pages/profile/profile-routes';
+import { NutritionRoutes } from './pages/nutrition/nutrition-routes';
 
 function NotFound() {
     return (
@@ -22,7 +21,11 @@ function NotFound() {
 }
 
 function Logout() {
+    const queryClient = useQueryClient();
+
     localStorage.clear();
+    queryClient.clear();
+
     return <Navigate to="/login" />
 }
 
@@ -84,7 +87,7 @@ function ProtectedRoutes() {
         staleTime: 5 * 60 * 1000,
     });
 
-    if (isPending) return <LoadingSpinner message="Authenticating..." />
+    // if (isPending) return <LoadingSpinner message="Authenticating..." />
     return isError ? <Navigate to="/login" replace /> : <Outlet />;
 }
 // ===== END AUTHENTICATOR =====
@@ -101,8 +104,8 @@ const Router = () => {
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoutes />}>
                     <Route path="/profile/*" element={<ProfileRoutes />} />
-                    <Route path="/nutrition" element={<NutritionDashboard />} />
-                    <Route path="/chat" element={<ChatDashboard />} />
+                    <Route path="/nutrition/*" element={<NutritionRoutes />} />
+                    <Route path="/chat/*" element={<ChatRoutes />} />
                     <Route path="/workouts/*" element={<WorkoutsRoutes />} />
                     <Route path="/resources" element={<ResourcesDashboard />} />
 

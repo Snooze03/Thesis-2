@@ -1,17 +1,19 @@
 import { Route, Routes } from "react-router-dom";
-import { WorkoutsDashboard } from "./workouts-dashboard";
-import { CreateTemplate } from "./workouts-create";
-import { SearchExercise } from "./workouts-search";
+import { WorkoutsDashboard } from "./dashboard/workouts-dashboard";
+import { WorkoutsTemplate } from "./create/workouts-template";
+import { SearchExercise } from "./create/workouts-search";
 import { NotFound } from "@/routes";
+import { Provider } from "jotai";
 
 export function WorkoutsRoutes() {
     return (
-        <Routes>
-            <Route index element={<WorkoutsDashboard />} />
-            <Route path="templates/create" element={<CreateTemplate />} />
-            <Route path="templates/:template_id/edit" element={<CreateTemplate />} />
-            <Route path="templates/:template_id/search" element={<SearchExercise />} />
-            <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Provider>
+            <Routes>
+                <Route index element={<WorkoutsDashboard />} />
+                <Route path="templates" element={<WorkoutsTemplate />} />
+                <Route path="templates/search" element={<SearchExercise />} />
+                <Route path="*" element={<NotFound />} />
+            </Routes>
+        </Provider>
     );
 }

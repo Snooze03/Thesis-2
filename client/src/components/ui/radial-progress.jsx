@@ -22,7 +22,8 @@ const RadialProgress = React.forwardRef(
         // Allow any value, don't clamp to max
         const normalizedValue = Math.max(value, 0); // Only prevent negative values
         const remaining = Math.max(0, max - normalizedValue); // Remaining can't be negative
-        const percentage = max > 0 ? (remaining / max) * 100 : 0; // Prevent division by zero
+        // const percentage = max > 0 ? (remaining / max) * 100 : 0; // Prevent division by zero
+        const percentage = max > 0 ? (normalizedValue / max) * 100 : 0;
 
         // Calculate dimensions based on size
         const sizeMap = {

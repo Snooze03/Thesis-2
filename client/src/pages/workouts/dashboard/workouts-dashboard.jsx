@@ -1,18 +1,20 @@
 import { MainLayout } from "@/layouts/main-layout";
 import { useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
+import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useAtom } from "jotai";
 import { templateModeAtom } from "../create/template-atoms";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
 import { TemplateItem } from "./template-item";
+import { HistoryItem } from "./history-item";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EmptyItems } from "@/components/empty-items";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const WorkoutsDashboard = () => {
+export const WorkoutsDashboard = () => {
     const navigate = useNavigate();
     const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
 
@@ -93,18 +95,48 @@ function TemplatesList({ title, templates, isLoading, onCreateClick }) {
     );
 }
 
+
 function WorkoutsHistory() {
+    const {
+        workoutHistory,
+        isFetchingHistory
+    } = useTemplateActions();
+
+    if (isFetchingHistory) {
+        return (
+            <div className="mt-7">
+                <SectionSubTitle className="border-b-2 pb-3">
+                    History
+                </SectionSubTitle>
+                <div className="space-y-3 mt-3">
+                    {[...Array(3)].map((_, index) => (
+                        <Skeleton key={index} className="h-20 w-full rounded-md" />
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    const hasWorkouts = workoutHistory && workoutHistory.length > 0;
+
     return (
-        <>
-            <SectionSubTitle className="border-b-2 pb-3 mt-7">
-                History
+        <div className="mt-7">
+            <SectionSubTitle className="border-b-2 pb-3">
+                History ({hasWorkouts ? workoutHistory.length : 0})
             </SectionSubTitle>
-            <EmptyItems
-                title="No workouts done"
-                description="perform any workouts from routines or alternatives"
-            />
-        </>
+
+            {hasWorkouts ? (
+                <div className="space-y-3 mt-4">
+                    {workoutHistory.map((workout) => (
+                        <HistoryItem key={workout.id} workout={workout} />
+                    ))}
+                </div>
+            ) : (
+                <EmptyItems
+                    title="No workouts done"
+                    description="Perform any workouts from routines or alternatives"
+                />
+            )}
+        </div>
     );
 }
-
-export { WorkoutsDashboard };

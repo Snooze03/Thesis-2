@@ -10,5 +10,11 @@ export const templateTitleAtom = atom("");
 export const exerciseConfigsAtom = atom(new Map());
 
 // Template Edit state
-export const isEditingTemplateAtom = atom(false);
 export const templateModeAtom = atom("create"); // "create" / "edit" / "start"
+
+// Start Template atom
+export const startedAtAtom = atom(null);
+export const completedAtAtom = atom(null);
+
+// Rest time ato
+export const exerciseRestTimesAtom = atom(new Map());

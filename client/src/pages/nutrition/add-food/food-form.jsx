@@ -1,7 +1,6 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
-import { useFatSecretSearch } from "@/hooks/nutrition/useFatSecretSearch";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -110,7 +109,7 @@ const AddFoodForm = ({
             quantity: formData.quantity || 1
         };
 
-        console.log(`Entry Data: ${entryData.quantity}`);
+        // console.log(`Entry Data: ${entryData.quantity}`);
 
         onSubmit({ foodData, entryData, formData });
     };
@@ -151,6 +150,8 @@ const AddFoodForm = ({
     if (isError) {
         return <div className="text-red-500">Error loading food details: {isError.message}</div>;
     }
+
+    // console.log(`Food Details:`, { ...foodDetails });
 
     return (
         <AddFoodFormContext.Provider value={contextValue}>
@@ -267,7 +268,12 @@ const AddFoodFormServings = () => {
                             key={serving.serving_id || index}
                             value={serving.serving_id || index.toString()}
                         >
-                            {serving.metric_serving_amount} {serving.metric_serving_unit}
+                            {serving.serving_description.length > 5 ? (
+                                <span>{serving.serving_description} • ({serving.metric_serving_amount} {serving.metric_serving_unit})</span>
+                            ) : (
+                                <span>{serving.metric_serving_amount} {serving.metric_serving_unit}</span>
+                            )}
+
                         </SelectItem>
                     ))}
                 </SelectContent>

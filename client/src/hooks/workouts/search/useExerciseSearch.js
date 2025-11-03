@@ -73,8 +73,6 @@ export function useExerciseSearch(searchTerm) {
             notes: exercise.notes || ""
         }));
 
-        console.log('Selected exercises to add:', exercisesToAdd);
-
         // Navigate back to create page
         navigate("/workouts/templates");
     };

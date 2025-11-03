@@ -102,7 +102,6 @@ function DietPlan({ is_alternative = false }) {
     }
 
     const handleEditFood = (foodEntry) => {
-        // console.log(`Daily entry id: ${todayDailyEntryID.id}, Food Entry id: ${foodEntry.id}`);
         setFoodDatabaseId(foodEntry.id);
         setDialogOpen(true);
     }
@@ -114,6 +113,8 @@ function DietPlan({ is_alternative = false }) {
     // Component to render individual food items
     const renderFoodItem = (foodEntry) => {
         const selectedServing = getSelectedServing(foodEntry);
+
+        console.log(selectedServing);
 
         const menuItems = [
             { icon: Plus, label: "Add to Daily Entry", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
@@ -146,6 +147,11 @@ function DietPlan({ is_alternative = false }) {
                                 `${Number(selectedServing.amount).toFixed(2)} ${selectedServing.unit}` :
                                 selectedServing.description
                             } •
+                            {/* {selectedServing.serving_description.length > 5 ? (
+                                <span>{selectedServing.serving_description} • ({selectedServing.metric_serving_amount} {selectedServing.metric_serving_unit})</span>
+                            ) : (
+                                <span>{selectedServing.metric_serving_amount} {selectedServing.metric_serving_unit}</span>
+                            )} */}
                         </p>
                         <p className="text-sm text-gray-600">
                             {foodEntry.quantity}x | Calories: {foodEntry.calories}

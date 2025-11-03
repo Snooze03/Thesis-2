@@ -14,10 +14,10 @@ export const useAddFoodToDailyEntry = (options = {}) => {
                 const importResponse = await api.post('/nutrition/foods-db/import_from_fatsecret/', {
                     food_id: foodData.food_id,
                     food_name: foodData.food_name,
-                    food_type: foodData.food_type || '',
-                    brand_name: foodData.brand_name || '',
-                    food_description: foodData.food_description || '',
-                    fatsecret_servings: foodData.servings || []
+                    food_type: foodData.food_type ? foodData.food_type : 'Generic',
+                    brand_name: foodData.brand_name ? foodData.brand_name : '',
+                    food_description: foodData.food_description ? foodData.food_description : '',
+                    fatsecret_servings: foodData.servings
                 });
 
                 // console.log('Step 1 Response:', importResponse.data);

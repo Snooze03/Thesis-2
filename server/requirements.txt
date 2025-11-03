@@ -17,3 +17,8 @@ schedule
 django-celery-results
 pillow
 django-json-field
+psycopg2
+dj-database-url
+whitenoise
+gunicorn
+uvicorn

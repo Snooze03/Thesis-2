@@ -1,17 +1,20 @@
 import api from "@/api";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 /**
  * Hook for saving a completed workout and fetching workout history
  */
 export function useTemplateActions() {
+    const queryClient = useQueryClient();
+
     const saveTemplate = useMutation({
         mutationFn: async ({ templateData }) => {
             const response = await api.post("workouts/templates/save_completed_workout/", templateData);
             return response.data;
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["workoutHistory"] });
             toast.success("Workout Completed!")
         },
         onError: (error) => {

@@ -7,13 +7,19 @@ import base64
 import time
 from django.core.cache import cache
 
-load_dotenv()
-
 
 class FatSecretService:
     def __init__(self):
-        self.consumer_client = os.getenv("FATSECRET_CLIENT")
-        self.consumer_secret = os.getenv("FATSECRET_CLIENT_SECRET")
+        # Only load .env in development
+        if os.getenv("RENDER") is None:
+            load_dotenv()
+        
+        self.consumer_client = os.getenv("FATSECRET_CLIENT") or os.environ.get("FATSECRET_CLIENT")
+        self.consumer_secret = os.getenv("FATSECRET_CLIENT_SECRET") or os.environ.get("FATSECRET_CLIENT_SECRET")
+        
+        if not self.consumer_client or not self.consumer_secret:
+            raise ValueError("FatSecret credentials (FATSECRET_CLIENT, FATSECRET_CLIENT_SECRET) are not set in environment variables")
+        
         self.token_url = "https://oauth.fatsecret.com/connect/token"
         self.search_url = "https://platform.fatsecret.com/rest/foods/search/v1"
         self.food_url = "https://platform.fatsecret.com/rest/food/v4"

@@ -41,3 +41,6 @@ DATABASES = {
         conn_max_age=600,
     )
 }
+
+CORS_ALLOW_ALL_ORIGINS = False  # Allow all origins for development
+CORS_ALLOWS_CREDENTIALS = False  # set to 'False' in development otherwise it will not work with allow all origins

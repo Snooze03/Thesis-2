@@ -12,7 +12,7 @@ import os
 from django.core.asgi import get_asgi_application
 
 settings_module = (
-    "backend.deployment_settings.py"
+    "backend.deployment_settings"
     if "RENDER_EXTERNAL_HOSTNAME" in os.environ
     else "backend.settings"
 )

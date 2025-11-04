@@ -259,11 +259,11 @@ export function WorkoutsTemplate() {
             templateData: completedWorkoutData
         }, {
             onSuccess: () => {
-                toast.success(`Workout completed! Saved ${completedExercisesData.length} exercises with completed sets.`);
                 clearAtoms();
                 navigate("/workouts");
             },
             onError: (error) => {
+                clearAtoms();
                 console.error('Save workout failed:', error);
                 toast.error("Failed to save workout");
             }
@@ -301,10 +301,6 @@ export function WorkoutsTemplate() {
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
-    };
-
-    const handleWorkoutNotesChange = (e) => {
-        // setWorkoutNotes(e.target.value);
     };
 
     const handleCancelWorkout = () => {

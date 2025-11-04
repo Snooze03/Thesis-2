@@ -1,0 +1,33 @@
+{
+      "id": "nutrition-article-1",
+      "title": "The Role of Protein in Muscle Growth and Recovery",
+      "author": {
+        "name": "Dr. Emily Carter",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 7,
+      "description": "Protein plays a vital role in building and repairing muscle tissue. This article explores how much protein you need, the best sources, and timing for optimal results.",
+      "content": {
+        "sections": [
+          {
+            "id": "importance-of-protein",
+            "title": "Why Protein Matters",
+            "content": "Protein is essential for repairing muscle fibers that are broken down during exercise. Without adequate protein, muscle recovery and growth can be limited."
+          },
+          {
+            "id": "protein-sources",
+            "title": "Best Protein Sources",
+            "content": "High-quality sources include lean meats, fish, dairy, legumes, and plant-based proteins like tofu and tempeh. Whey protein supplements can also be useful."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "Protein and Muscle Health",
+          "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6723445/",
+          "author": "National Center for Biotechnology Information"
+        }
+      ],
+      "publishedAt": "January 10, 2025",
+      "tags": ["Nutrition", "Protein", "Muscle Growth", "Recovery"]
+    }

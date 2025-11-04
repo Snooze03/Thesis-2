@@ -1,0 +1,33 @@
+        {
+            "id": "fitness-2",
+            "title": "Strength Training for Beginners: A Complete Guide",
+            "author": {
+                "name": "Emily Carter",
+                "avatar": "/placeholder.svg?height=40&width=40"
+            },
+            "readTime": 9,
+            "description": "A step-by-step guide to strength training for beginners, covering exercises, safety tips, and progressive overload techniques.",
+            "content": {
+                "sections": [
+                    {
+                        "id": "why-strength-training",
+                        "title": "Why Strength Training?",
+                        "content": "Strength training not only builds muscle but also improves bone density, metabolism, and overall health. It’s an essential part of any balanced fitness routine."
+                    },
+                    {
+                        "id": "beginner-workouts",
+                        "title": "Beginner-Friendly Workouts",
+                        "content": "Start with compound movements like squats, push-ups, and deadlifts. Focus on correct form before adding weight. Use progressive overload by gradually increasing resistance over time."
+                    }
+                ]
+            },
+            "sources": [
+                {
+                    "title": "Mayo Clinic: Weight Training",
+                    "url": "https://www.mayoclinic.org/healthy-lifestyle/fitness/in-depth/strength-training/art-20046670",
+                    "author": "Mayo Clinic Staff"
+                }
+            ],
+            "publishedAt": "February 10, 2025",
+            "tags": ["Fitness", "Strength Training", "Beginners", "Health"]
+        }

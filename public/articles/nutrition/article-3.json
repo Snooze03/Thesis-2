@@ -1,0 +1,33 @@
+{
+      "id": "nutrition-article-2",
+      "title": "Hydration and Performance: How Water Impacts Your Workouts",
+      "author": {
+        "name": "James Rodriguez, RD",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 6,
+      "description": "Water is more than just a thirst quencher—it plays a direct role in exercise performance. Learn how to stay properly hydrated for better strength, endurance, and recovery.",
+      "content": {
+        "sections": [
+          {
+            "id": "hydration-basics",
+            "title": "Why Hydration Is Crucial",
+            "content": "Water regulates body temperature, lubricates joints, and helps transport nutrients. Even mild dehydration can impair performance and cause fatigue."
+          },
+          {
+            "id": "hydration-strategies",
+            "title": "Hydration Strategies for Athletes",
+            "content": "Drink water consistently throughout the day, not just before workouts. For long or intense sessions, electrolyte drinks can help replace lost sodium and potassium."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "Fluid Replacement and Exercise",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK279028/",
+          "author": "Institute of Medicine"
+        }
+      ],
+      "publishedAt": "February 2, 2025",
+      "tags": ["Nutrition", "Hydration", "Performance", "Recovery"]
+    }

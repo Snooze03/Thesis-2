@@ -1,0 +1,49 @@
+{
+    "id": "5",
+    "title": "Performance Optimization Techniques for React Apps",
+    "author": {
+        "name": "Lisa Wang",
+        "avatar": "/placeholder.svg?height=40&width=40"
+    },
+    "readTime": 9,
+    "description": "Optimize your React applications for better performance. Learn about code splitting, memoization, lazy loading, and profiling techniques.",
+    "content": {
+        "sections": [
+            {
+                "id": "performance-fundamentals",
+                "title": "React Performance Fundamentals",
+                "content": "React performance optimization focuses on **minimizing unnecessary re-renders** and **reducing bundle size**. Key concepts include:\n\n• Understanding the React rendering cycle\n• Identifying performance bottlenecks\n• Measuring performance improvements\n• Balancing optimization with code readability"
+            },
+            {
+                "id": "memoization-techniques",
+                "title": "Memoization with React.memo and useMemo",
+                "content": "Memoization prevents unnecessary recalculations and re-renders:\n\n**React.memo**: Prevents component re-renders when props haven't changed\n**useMemo**: Memoizes expensive calculations\n**useCallback**: Memoizes function references\n\nUse these tools judiciously—premature optimization can hurt performance!"
+            },
+            {
+                "id": "code-splitting",
+                "title": "Code Splitting and Lazy Loading",
+                "content": "Reduce initial bundle size with code splitting:\n\n```javascript\nconst LazyComponent = React.lazy(() => import('./LazyComponent'));\n\nfunction App() {\n  return (\n    <Suspense fallback={<div>Loading...</div>}>\n      <LazyComponent />\n    </Suspense>\n  );\n}\n```\n\nThis loads components only when needed, improving initial page load times."
+            }
+        ]
+    },
+    "sources": [
+        {
+            "title": "React Performance",
+            "url": "https://react.dev/learn/render-and-commit",
+            "author": "React Team"
+        },
+        {
+            "title": "Web.dev Performance",
+            "url": "https://web.dev/performance/",
+            "author": "Google"
+        }
+    ],
+    "publishedAt": "December 5, 2024",
+    "tags": [
+        "React",
+        "Performance",
+        "Optimization",
+        "Code Splitting",
+        "Memoization"
+    ]
+}

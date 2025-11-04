@@ -1,0 +1,49 @@
+{
+    "id": "article-1",
+    "title": "Building Modern Web Applications with React and JavaScript",
+    "author": {
+        "name": "Sarah Johnson",
+        "avatar": "/placeholder.svg?height=40&width=40"
+    },
+    "readTime": 8,
+    "description": "Learn how to build scalable and maintainable web applications using React and modern JavaScript. This comprehensive guide covers best practices, common patterns, and advanced techniques.",
+    "content": {
+        "sections": [
+            {
+                "id": "introduction",
+                "title": "Introduction",
+                "content": "Modern web development has evolved significantly over the past decade. React and modern JavaScript have emerged as powerful tools that enable developers to build robust, scalable applications with confidence.\n\nIn this article, we'll explore the power of React with modern JavaScript, and how they can help you create better web applications. We'll cover everything from basic setup to advanced patterns and best practices."
+            },
+            {
+                "id": "getting-started",
+                "title": "Getting Started with React and Modern JavaScript",
+                "content": "Setting up a React project with modern JavaScript is straightforward with modern tooling. Create React App, Vite, and Next.js all provide excellent JavaScript support out of the box.\n\nThe key benefits of using modern JavaScript with React include:\n• Better developer experience with ES6+ features\n• Improved code readability and maintainability\n• Enhanced debugging capabilities\n• Access to the latest JavaScript features\n\nLet's dive into the practical aspects of combining these technologies."
+            },
+            {
+                "id": "component-patterns",
+                "title": "Component Patterns and Best Practices",
+                "content": "When building React components with JavaScript, there are several patterns that can help you write more maintainable code:\n\n1. **Proper Props Handling**: Always validate and provide default values for props\n2. **Functional Components**: Use hooks for state and lifecycle management\n3. **Component Composition**: Build reusable components through composition\n4. **Event Handlers**: Handle events efficiently and prevent memory leaks\n\nThese patterns ensure your components are both reliable and reusable across your application."
+            }
+        ]
+    },
+    "sources": [
+        {
+            "title": "React Documentation",
+            "url": "https://react.dev/",
+            "author": "React Team"
+        },
+        {
+            "title": "MDN JavaScript Guide",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+            "author": "Mozilla"
+        }
+    ],
+    "publishedAt": "December 15, 2024",
+    "tags": [
+        "React",
+        "JavaScript",
+        "Web Development",
+        "Frontend",
+        "ES6"
+    ]
+}

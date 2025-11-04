@@ -1,0 +1,35 @@
+{
+      "id": "6",
+      "title": "11 Expert-Recommended Foods for Running Energy & Recovery",
+      "author": {
+        "name": "Verywell Health",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 6,
+      "description": "Key foods like bananas, berries, peanut butter and eggs improve energy and muscle recovery for runners.",
+      "content": {
+        "sections": [
+          {
+            "id": "energy-recovery-foods",
+            "title": "Top Foods for Energy & Recovery",
+            "content": "Runners benefit from a mix of carbohydrates, healthy fats, and protein. Some top choices include:\n - Peanut Butter: high in fat, protein, and fiber—delays fatigue.\n - Eggs: high-quality protein and choline for muscle strength.\n- Bananas: rich in carbs and potassium to prevent cramps.\n - Berries: antioxidants reduce inflammation.\n …and more nutritious options for post-run recovery." 
+          },
+          {
+            "id": "takeaway",
+            "title": "Key Takeaways",
+            "content": "Incorporating a variety of these foods into your post-run meals can boost energy, aid muscle repair, and prevent cramps."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "Verywell Health: 11 Expert-Recommended Foods Runners Should Eat",
+          "url": "https://www.verywellhealth.com/best-foods-for-runners-11755571",
+          "author": "Verywell Health"
+        }
+      ],
+      "publishedAt": "August 19, 2025",
+      "tags": ["Running", "Recovery", "Nutrition", "Endurance"]
+    }
+
+

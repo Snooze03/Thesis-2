@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "tw-animate-css";
+
+@theme {
+    /* Break Points */
+    --breakpoint-xs: 370px;
+    --breakpoint-2xs: 330px;
+    --breakpoint-3xs: 10rem;
+
+    /* Font-size */
+    --text-2xs: .6rem;
+
+    /* Colors */
+    --color-primary-100: #d9f4f5;
+    --color-primary-200: #ccf0f2;
+    --color-primary-300: #c0ecef;
+    --color-primary-400: #b3e8eb;
+    --color-primary-500: #a6e4e8;
+    --color-primary-600: #99e1e5;
+    --color-primary-700: #8ddde1;
+    --color-primary-800: #80d9de;
+}

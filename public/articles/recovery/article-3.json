@@ -1,0 +1,33 @@
+{
+      "id": "article-3",
+      "title": "Timing Your Post-Exercise Supplements for Faster Fatigue Recovery",
+      "author": {
+        "name": "Frontiers in Nutrition",
+        "avatar": "/placeholder.svg?height=40&width=40"
+      },
+      "readTime": 7,
+      "description": "Meta-analysis shows that taking protein and carbs immediately post-workout speeds up muscle and glycogen recovery compared to delayed intake.",
+      "content": {
+        "sections": [
+          {
+            "id": "supplement-timing",
+            "title": "Immediate vs Delayed Supplementation",
+            "content": "A recent systematic review concludes that taking protein and carbohydrates right after exercise significantly enhances muscle recovery, glycogen replenishment, and reduces fatigue more than delayed supplementation—especially after intense training." 
+          },
+          {
+            "id": "practical-tip",
+            "title": "Practical Tip",
+            "content": "For optimal recovery, aim to consume a mix of carbs and protein within 30–60 minutes post-workout."
+          }
+        ]
+      },
+      "sources": [
+        {
+          "title": "Frontiers in Nutrition: Nutritional Supplement Timing and Recovery",
+          "url": "https://www.frontiersin.org/journals/nutrition/articles/10.3389/fnut.2025.1567438/full",
+          "author": "Cheng et al., Frontiers in Nutrition"
+        }
+      ],
+      "publishedAt": "May 2025",
+      "tags": ["Nutrition", "Recovery", "Timing", "Supplements"]
+    }

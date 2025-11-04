@@ -6,8 +6,16 @@ from .models import Chat
 
 class LLMService:
     def __init__(self):
-        load_dotenv()
-        self.client = OpenAI(api_key=os.getenv("ASSISTANT_API_KEY"))
+        # Only load .env in development
+        if os.getenv("RENDER") is None:
+            load_dotenv()
+        
+        api_key = os.getenv("ASSISTANT_API_KEY") or os.environ.get("ASSISTANT_API_KEY")
+        if not api_key:
+            raise ValueError("ASSISTANT_API_KEY environment variable is not set")
+        
+        self.client = OpenAI(api_key=api_key)
+        self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get("ASSISTANT_MODEL", "gpt-4")
 
     def get_system_prompt(self, user_profile=None, nutrition_profile=None):
         try:
@@ -116,7 +124,7 @@ class LLMService:
             messages.append({"role": "user", "content": user_message})
 
             response = self.client.chat.completions.create(
-                model=os.getenv("ASSISTANT_MODEL"),
+                model=self.model,
                 messages=messages,
                 max_tokens=500,
                 temperature=0.7,

@@ -22,9 +22,9 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
 ]
 
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:5173",
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "https://react-js-frontend-uymm.onrender.com",
+]
 
 STORAGES = {
     "default": {

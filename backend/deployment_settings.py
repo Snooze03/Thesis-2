@@ -26,6 +26,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
     "https://react-js-frontend-uymm.onrender.com",
+    "https://prime-dfit.com",
 ]
 
 STORAGES = {

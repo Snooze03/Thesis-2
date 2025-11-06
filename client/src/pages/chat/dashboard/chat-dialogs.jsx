@@ -4,6 +4,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 /**
  * Reusable dialogs for chat operations (rename and delete)
@@ -127,12 +128,11 @@ export const ChatDialogs = ({
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
                             disabled={isDeletingChat}
-                            className="bg-red-600 hover:bg-red-700"
+                            className={buttonVariants({ variant: "destructive" })}
                         >
                             {isDeletingChat ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : null}
-                            Delete
+                                "Deleting..."
+                            ) : "Delete"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

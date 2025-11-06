@@ -8,9 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Trash2, AlarmClock, Minus, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { exerciseRestTimesAtom } from "./template-atoms";
+import { exerciseRestTimesAtom, restTimerAtom } from "./template-atoms";
 import clsx from "clsx";
-import toast from "react-hot-toast";
 
 function ExerciseCard({
     exercise,
@@ -31,6 +30,8 @@ function ExerciseCard({
     const [completedSets, setCompletedSets] = useState(new Set());
     const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
+    const [restTimer, setRestTimer] = useAtom(restTimerAtom);
+
     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
     const currentRestTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time || null;
 
@@ -150,7 +151,6 @@ function ExerciseCard({
             currentSet.weight !== null && currentSet.weight !== '';
 
         if (!hasCompleteData) {
-            toast.error("Please fill in both reps and weight before marking this set as complete.");
             return;
         }
 
@@ -162,10 +162,23 @@ function ExerciseCard({
             } else {
                 // If not completed, add it (toggle on)
                 newCompletedSets.add(setIndex);
+
+                // Start rest timer in start mode (always start timer when set is completed)
+                if (isStartMode) {
+                    if (currentRestTime && currentRestTime > 0) {
+                        setRestTimer({
+                            isActive: true,
+                            remainingSeconds: currentRestTime,
+                            exerciseName: exercise.name,
+                            exerciseMuscle: exercise.muscle,
+                            totalSeconds: currentRestTime
+                        });
+                    }
+                }
             }
             return newCompletedSets;
         });
-    }, [setsData]);
+    }, [setsData, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
 
     // Filter menu items based on mode
     const getMenuItems = () => {

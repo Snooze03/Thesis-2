@@ -1,13 +1,12 @@
 import { React } from "react";
-import { useNavigate } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { useAtom } from "jotai";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { X, Plus, Trash2, AlarmClock, Replace, Minus, Lock, Check } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { X, Plus, Trash2, AlarmClock, Minus, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exerciseRestTimesAtom } from "./template-atoms";
 import clsx from "clsx";
@@ -19,7 +18,6 @@ function ExerciseCard({
     onRemove,
     onUpdate
 }) {
-    const navigate = useNavigate();
     const canInputData = (templateMode === "start") ? false : true;
     const isStartMode = templateMode === "start";
 
@@ -71,19 +69,6 @@ function ExerciseCard({
         toast.success(`Rest time set to ${Math.floor(timeInSeconds / 60)}:${(timeInSeconds % 60).toString().padStart(2, '0')}`);
     }, [exerciseKey, setExerciseRestTimes, onUpdate]);
 
-    // Clear rest time
-    const handleClearRestTime = useCallback(() => {
-        setExerciseRestTimes(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(exerciseKey);
-            return newMap;
-        });
-
-        // Update the exercise data
-        onUpdate?.({ rest_time: null });
-
-        toast.success("Rest time cleared");
-    }, [exerciseKey, setExerciseRestTimes, onUpdate]);
 
     // ===== EVENT HANDLERS =====
     const handleAddSet = useCallback(() => {
@@ -121,10 +106,6 @@ function ExerciseCard({
     const handleRestTimer = () => {
         // Trigger the hidden AlertDialog
         document.getElementById(`rest-timer-trigger-${exerciseKey}`)?.click();
-    };
-
-    const handleReplace = () => {
-        navigate("/workouts/templates");
     };
 
     const handleRemoveExercise = () => {
@@ -193,7 +174,6 @@ function ExerciseCard({
             {
                 icon: Trash2,
                 label: "Delete Set",
-                variant: "destructive",
                 action: handleDeleteSet,
                 disabled: setsData.length <= 1
             },
@@ -212,11 +192,6 @@ function ExerciseCard({
         // In edit/create mode, show all actions
         return [
             ...baseItems,
-            {
-                icon: Replace,
-                label: "Replace Exercise",
-                action: handleReplace,
-            },
             {
                 icon: Minus,
                 label: "Remove Exercise",

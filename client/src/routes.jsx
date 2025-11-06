@@ -34,6 +34,27 @@ function SignupAndLogout() {
     return <MultiStepForm />
 }
 
+// Root redirect component
+function RootRedirect() {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+
+    if (token) {
+        try {
+            const decoded = jwtDecode(token);
+            const isExpired = decoded.exp < Date.now() / 1000;
+
+            if (!isExpired) {
+                return <Navigate to="/profile" replace />;
+            }
+        } catch (error) {
+            // Invalid token, redirect to login
+            return <Navigate to="/login" replace />;
+        }
+    }
+
+    return <Navigate to="/login" replace />;
+}
+
 // ===== AUTHENTICATOR =====
 function ProtectedRoutes() {
     // Refresh token handler
@@ -96,6 +117,9 @@ const Router = () => {
     return (
         <BrowserRouter>
             <Routes>
+                {/* Root Route - Redirects based on auth state */}
+                <Route path="/" element={<RootRedirect />} />
+
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignupAndLogout />} />

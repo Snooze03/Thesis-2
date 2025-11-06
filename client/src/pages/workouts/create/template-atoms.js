@@ -19,3 +19,12 @@ export const completedAtAtom = atom(null);
 
 // Rest time ato
 export const exerciseRestTimesAtom = atom(new Map());
+
+// Rest timer countdown atom
+export const restTimerAtom = atom({
+    isActive: false,
+    remainingSeconds: 0,
+    exerciseName: null,
+    exerciseMuscle: null,
+    totalSeconds: 0
+});

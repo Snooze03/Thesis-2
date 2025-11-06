@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useAtom } from "jotai";
-import { templateTitleAtom, templateIdAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom } from "./template-atoms";
+import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus, CircleX } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -20,12 +20,12 @@ export function WorkoutsTemplate() {
     const navigate = useNavigate();
 
     // Nav states
-    const is_alternative = location.state?.isAlternative || false;
     const template_data = location.state?.templateObj || null;
 
     // ===== ATOMS =====
     const [title, setTitle] = useAtom(templateTitleAtom);
     const [selectedExercises, setSelectedExercises] = useAtom(selectedExercisesAtom);
+    const [isAlternative, setIsAlternative] = useAtom(isAlternativeAtom);
     const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
     const [template_id, setTemplate_id] = useAtom(templateIdAtom);
     // Workout timing atoms
@@ -134,6 +134,7 @@ export function WorkoutsTemplate() {
     // Utility function to clear all atoms
     const clearAtoms = useCallback(() => {
         setTitle('');
+        setIsAlternative(false);
         setSelectedExercises(new Map());
         setTemplate_id(null);
         setTemplateMode("create");
@@ -157,7 +158,7 @@ export function WorkoutsTemplate() {
         // Template creation/editing data structure
         const templateData = {
             title: title.trim(),
-            isAlternative: is_alternative,
+            isAlternative: isAlternative,
             exercises: exercisesArray.map(exercise => {
                 // Generate exercise key to get rest time
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;

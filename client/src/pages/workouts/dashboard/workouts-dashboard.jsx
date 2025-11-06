@@ -4,7 +4,7 @@ import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useAtom } from "jotai";
-import { templateModeAtom } from "../create/template-atoms";
+import { templateModeAtom, isAlternativeAtom } from "../create/template-atoms";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Accordion } from "@/components/ui/accordion";
 import { TemplateItem } from "./template-item";
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const WorkoutsDashboard = () => {
     const navigate = useNavigate();
     const [templateMode, setTemplateMode] = useAtom(templateModeAtom);
+    const [isAlternative, setIsAlternative] = useAtom(isAlternativeAtom);
 
     const {
         routines,
@@ -26,13 +27,10 @@ export const WorkoutsDashboard = () => {
 
     useScrollLock(isLoading);
 
-    const handleCreateTemplate = (is_alternative = false) => {
+    const handleCreateTemplate = (is_alternative) => {
         setTemplateMode("create");
-        navigate("/workouts/templates", {
-            state: {
-                isAlternative: is_alternative,
-            }
-        });
+        setIsAlternative(is_alternative);
+        navigate("/workouts/templates");
     }
 
     return (
@@ -44,7 +42,7 @@ export const WorkoutsDashboard = () => {
                 title="My Routines"
                 templates={routines}
                 isLoading={isLoading}
-                onCreateClick={() => handleCreateTemplate(false)}
+                onCreateClick={() => handleCreateTemplate()}
             />
 
             <TemplatesList

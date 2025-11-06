@@ -6,6 +6,7 @@ export const selectedExercisesAtom = atom(new Map());
 
 // Template Atoms
 export const templateIdAtom = atom(null);
+export const isAlternativeAtom = atom(false);
 export const templateTitleAtom = atom("");
 export const exerciseConfigsAtom = atom(new Map());
 

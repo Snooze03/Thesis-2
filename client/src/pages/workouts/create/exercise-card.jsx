@@ -1,12 +1,12 @@
 import { React } from "react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAtom } from "jotai";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { X, Plus, Trash2, AlarmClock, Minus, Lock, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Trash2, AlarmClock, Minus, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exerciseRestTimesAtom } from "./template-atoms";
 import clsx from "clsx";
@@ -28,16 +28,10 @@ function ExerciseCard({
         ]
     );
 
-    // State to track completed sets (index-based)
     const [completedSets, setCompletedSets] = useState(new Set());
-
-    // Rest time atom
+    const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
-
-    // Generate exercise key for rest time tracking
     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
-
-    // Get current rest time for this exercise
     const currentRestTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time || null;
 
     // Generate time options from 0:05 to 6:00 in 5-second intervals
@@ -66,9 +60,20 @@ function ExerciseCard({
         // Update the exercise data
         onUpdate?.({ rest_time: timeInSeconds });
 
-        toast.success(`Rest time set to ${Math.floor(timeInSeconds / 60)}:${(timeInSeconds % 60).toString().padStart(2, '0')}`);
+        setIsRestTimerOpen(false);
     }, [exerciseKey, setExerciseRestTimes, onUpdate]);
 
+    // Effect to scroll to selected time when dialog opens
+    useEffect(() => {
+        if (isRestTimerOpen && currentRestTime) {
+            setTimeout(() => {
+                const selectedButton = document.querySelector(`[data-time-value="${currentRestTime}"]`);
+                if (selectedButton) {
+                    selectedButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+    }, [isRestTimerOpen, currentRestTime]);
 
     // ===== EVENT HANDLERS =====
     const handleAddSet = useCallback(() => {
@@ -104,8 +109,7 @@ function ExerciseCard({
     }, [setsData, onUpdate]);
 
     const handleRestTimer = () => {
-        // Trigger the hidden AlertDialog
-        document.getElementById(`rest-timer-trigger-${exerciseKey}`)?.click();
+        setIsRestTimerOpen(true);
     };
 
     const handleRemoveExercise = () => {
@@ -231,7 +235,7 @@ function ExerciseCard({
                         <p className="text-sm text-gray-600">Previous</p>
                         <p className="text-sm text-gray-600">Weight</p>
                         <p className="text-sm text-gray-600">Reps</p>
-                        <div className={clsx("w-4", { "w-7": isStartMode })}></div> {/* Spacer for button column */}
+                        <div className={clsx("w-4", { "w-7": isStartMode })}></div>
                     </div>
 
                     {/* Sets Data */}
@@ -327,54 +331,48 @@ function ExerciseCard({
             </Card>
 
             {/* Rest Timer Selection Dialog */}
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <div className="hidden" id={`rest-timer-trigger-${exerciseKey}`} />
-                </AlertDialogTrigger>
-                <AlertDialogContent className="w-2xs">
-                    <AlertDialogHeader className="gap-0">
-                        <AlertDialogTitle className="flex justify-between items-center text-base">
+            <Dialog open={isRestTimerOpen} onOpenChange={setIsRestTimerOpen}>
+                <DialogContent className="w-2xs">
+                    <DialogHeader className="gap-0">
+                        <DialogTitle className="flex justify-between items-center text-base">
                             Set Rest Timer
-                            <AlertDialogCancel className="h-6 w-6 p-0 rounded-full hover:bg-gray-100">
-                                <X className="h-4 w-4" />
-                            </AlertDialogCancel>
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {/* Select a rest time for this exercise. */}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
+                        </DialogTitle>
+                        <DialogDescription>
+                            {currentRestTime
+                                ? `Current: ${Math.floor(currentRestTime / 60)}:${(currentRestTime % 60).toString().padStart(2, '0')}`
+                                : 'Select a rest time for this exercise'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
 
                     <div className="py-2">
-                        <ScrollArea className="h-24 w-full">
+                        <ScrollArea className="h-48 w-full">
                             <div className="space-y-0 px-1">
-                                {timeOptions.map((option, index) => {
+                                {timeOptions.map((option) => {
                                     const isSelected = currentRestTime === option.value;
-                                    const isMiddleOption = index === Math.floor(timeOptions.length / 2);
 
                                     return (
-                                        <div key={option.value}>
-                                            <button
-                                                onClick={() => {
-                                                    handleRestTimeSelect(option.value);
-                                                }}
-                                                className={clsx(
-                                                    "w-full text-center px-3 py-2 transition-colors font-medium",
-                                                    {
-                                                        "text-black text-lg": isSelected || isMiddleOption,
-                                                        "text-gray-400": !isSelected && !isMiddleOption,
-                                                    }
-                                                )}
-                                            >
-                                                {option.display}
-                                            </button>
-                                        </div>
+                                        <button
+                                            key={option.value}
+                                            data-time-value={option.value}
+                                            onClick={() => handleRestTimeSelect(option.value)}
+                                            className={clsx(
+                                                "w-full text-center px-3 py-2.5 transition-all font-medium rounded-md",
+                                                {
+                                                    "bg-primary text-white": isSelected,
+                                                    "hover:bg-gray-100 text-gray-700": !isSelected,
+                                                }
+                                            )}
+                                        >
+                                            {option.display}
+                                        </button>
                                     );
                                 })}
                             </div>
                         </ScrollArea>
                     </div>
-                </AlertDialogContent>
-            </AlertDialog>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

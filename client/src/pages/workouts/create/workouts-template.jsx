@@ -554,24 +554,24 @@ export function WorkoutsTemplate() {
                                     <DialogContent className="w-auto min-w-60 gap-4">
                                         <DialogHeader className="gap-4">
                                             <DialogTitle className="text-center">Resting</DialogTitle>
-                                            <DialogDescription>
-                                                <div className="flex justify-center items-center">
-                                                    <RadialProgress
-                                                        value={restTimer.remainingSeconds}
-                                                        max={restTimer.totalSeconds}
-                                                        size="xl"
-                                                        showValue={false}
-                                                        className="[&_circle:first-child]:text-green-100 [&_circle:last-child]:text-green-300"
-                                                    >
-                                                        <div className="flex flex-col items-center">
-                                                            <span className="text-3xl font-bold text-green-300 tabular-nums">
-                                                                {formatTime(restTimer.remainingSeconds)}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground mt-1">remaining</span>
-                                                        </div>
-                                                    </RadialProgress>
-                                                </div>
-                                            </DialogDescription>
+                                            <DialogDescription />
+
+                                            <div className="flex justify-center items-center">
+                                                <RadialProgress
+                                                    value={restTimer.remainingSeconds}
+                                                    max={restTimer.totalSeconds}
+                                                    size="xl"
+                                                    showValue={false}
+                                                    className="[&_circle:first-child]:text-green-100 [&_circle:last-child]:text-green-300"
+                                                >
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-3xl font-bold text-green-300 tabular-nums">
+                                                            {formatTime(restTimer.remainingSeconds)}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground mt-1">remaining</span>
+                                                    </div>
+                                                </RadialProgress>
+                                            </div>
                                         </DialogHeader>
                                         <div className="flex gap-3 justify-center">
                                             <Button

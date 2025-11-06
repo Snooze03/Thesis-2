@@ -162,22 +162,22 @@ function ExerciseCard({
             } else {
                 // If not completed, add it (toggle on)
                 newCompletedSets.add(setIndex);
-
-                // Start rest timer in start mode (always start timer when set is completed)
-                if (isStartMode) {
-                    if (currentRestTime && currentRestTime > 0) {
-                        setRestTimer({
-                            isActive: true,
-                            remainingSeconds: currentRestTime,
-                            exerciseName: exercise.name,
-                            exerciseMuscle: exercise.muscle,
-                            totalSeconds: currentRestTime
-                        });
-                    }
-                }
             }
             return newCompletedSets;
         });
+
+        if (isStartMode && currentRestTime && currentRestTime > 0) {
+            // Use setTimeout to defer the state update to after the current render
+            setTimeout(() => {
+                setRestTimer({
+                    isActive: true,
+                    remainingSeconds: currentRestTime,
+                    exerciseName: exercise.name,
+                    exerciseMuscle: exercise.muscle,
+                    totalSeconds: currentRestTime
+                });
+            }, 0);
+        }
     }, [setsData, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
 
     // Filter menu items based on mode

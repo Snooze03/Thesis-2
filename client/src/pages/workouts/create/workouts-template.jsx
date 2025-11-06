@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useAtom } from "jotai";
-import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom } from "./template-atoms";
-import { X, FlagTriangleRight, Plus, CircleX } from "lucide-react";
+import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom } from "./template-atoms";
+import { X, FlagTriangleRight, Plus, CircleX, AlarmClock } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RadialProgress } from "@/components/ui/radial-progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { EmptyItems } from "@/components/empty-items";
 import toast from "react-hot-toast";
+import clsx from "clsx";
 
 // Component for Creating/Editing/Starting a workout routine
 export function WorkoutsTemplate() {
@@ -33,6 +36,10 @@ export function WorkoutsTemplate() {
     const [completed_at, setCompleted_at] = useAtom(completedAtAtom);
     // Rest time atom
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
+    // Rest timer countdown atom
+    const [restTimer, setRestTimer] = useAtom(restTimerAtom);
+    // Rest timer dialog state
+    const [isRestDialogOpen, setIsRestDialogOpen] = useState(false);
     // ===== END ATOMS =====
 
     // Mode Selection
@@ -61,6 +68,68 @@ export function WorkoutsTemplate() {
         isSaving,
     } = useTemplateActions();
     // ===== END HOOKS =====
+
+    // ===== REST TIMER COUNTDOWN EFFECT =====
+    useEffect(() => {
+        let intervalId;
+
+        if (restTimer.isActive && restTimer.remainingSeconds > 0) {
+            intervalId = setInterval(() => {
+                setRestTimer(prev => {
+                    const newRemaining = prev.remainingSeconds - 1;
+
+                    if (newRemaining <= 0) {
+                        return {
+                            isActive: false,
+                            remainingSeconds: 0,
+                            exerciseName: null,
+                            exerciseMuscle: null,
+                            totalSeconds: 0
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        remainingSeconds: newRemaining
+                    };
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [restTimer.isActive, restTimer.remainingSeconds, setRestTimer]);
+
+
+    // Format time for display (MM:SS)
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Skip rest timer
+    const skipRestTimer = useCallback(() => {
+        setRestTimer({
+            isActive: false,
+            remainingSeconds: 0,
+            exerciseName: null,
+            exerciseMuscle: null,
+            totalSeconds: 0
+        });
+    }, [setRestTimer]);
+
+    // Add 15 seconds to timer
+    const addTimeToTimer = useCallback(() => {
+        setRestTimer(prev => ({
+            ...prev,
+            remainingSeconds: prev.remainingSeconds + 15
+        }));
+    }, [setRestTimer]);
+    // ===== END REST TIMER EFFECTS =====
 
     // ===== EFFECTS =====
     useEffect(() => {
@@ -141,8 +210,15 @@ export function WorkoutsTemplate() {
         setStarted_at(null);
         setCompleted_at(null);
         setExerciseRestTimes(new Map());
+        setRestTimer({
+            isActive: false,
+            remainingSeconds: 0,
+            exerciseName: null,
+            exerciseMuscle: null,
+            totalSeconds: 0
+        });
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setRestTimer]);
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -326,35 +402,40 @@ export function WorkoutsTemplate() {
     return (
         <SubLayout>
             {/* Header */}
-            <div className="grid grid-cols-[auto_1fr] items-center gap-2">
+            <div className={clsx(
+                "grid items-center gap-2",
+                { "grid-cols-[2fr_auto]": isStartMode, "grid-cols-[auto_1fr]": !isStartMode },
+            )}>
                 {/* Alert Dialog for closing/cancelling */}
-                <AlertDialog>
-                    <AlertDialogTrigger>
-                        <X />
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                {cancelText}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {isStartMode ?
-                                    "Are you sure you want to cancel this workout? Your progress will be lost." :
-                                    "Are you absolutely sure? Any unsaved changes will be lost."
-                                }
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={handleCancel}
-                                className={buttonVariants({ variant: "destructive" })}
-                            >
-                                Continue
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                {(isCreateMode || isEditMode) && (
+                    <AlertDialog>
+                        <AlertDialogTrigger>
+                            <X />
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    {cancelText}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {isStartMode ?
+                                        "Are you sure you want to cancel this workout? Your progress will be lost." :
+                                        "Are you absolutely sure? Any unsaved changes will be lost."
+                                    }
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleCancel}
+                                    className={buttonVariants({ variant: "destructive" })}
+                                >
+                                    Continue
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-[1fr_auto] gap-2">
                     {/* Template title input */}
@@ -453,15 +534,6 @@ export function WorkoutsTemplate() {
 
             {/* Body */}
             <div className="flex flex-col gap-3">
-                {/* Debug info - remove in prod */}
-                {/* <div className="bg-gray-100 p-2 rounded text-xs">
-                    <p><strong>Debug:</strong> Mode: {templateMode} | Title: "{title}" | Exercises: {exercisesArray.length} | Can Save: {canSave ? 'Yes' : 'No'}</p>
-                    <p><strong>Template ID:</strong> {template_id} | <strong>Populated:</strong> {hasPopulatedAtoms.current ? 'Yes' : 'No'}</p>
-                    {isStartMode && (
-                        <p><strong>Started:</strong> {started_at ? new Date(started_at).toLocaleTimeString() : 'Not set'} | <strong>Duration:</strong> {workoutDuration} min</p>
-                    )}
-                </div> */}
-
                 {/* Show exercises */}
                 {hasExercises ? (
                     <div className="flex flex-col gap-2">
@@ -469,6 +541,58 @@ export function WorkoutsTemplate() {
                             <h3 className="font-semibold text-sm text-gray-700">
                                 Exercises ({exercisesArray.length})
                             </h3>
+
+                            {/* Rest timer dialog */}
+                            {isStartMode && restTimer.isActive && (
+                                <Dialog open={isRestDialogOpen} onOpenChange={setIsRestDialogOpen}>
+                                    <DialogTrigger>
+                                        <div className="px-3 py-1 flex items-center gap-2 bg-green-100 rounded-full text-green-700">
+                                            <AlarmClock className="size-4" />
+                                            <p className="text-sm">{formatTime(restTimer.remainingSeconds)}</p>
+                                        </div>
+                                    </DialogTrigger>
+                                    <DialogContent className="w-auto min-w-60 gap-4">
+                                        <DialogHeader className="gap-4">
+                                            <DialogTitle className="text-center">Resting</DialogTitle>
+                                            <DialogDescription>
+                                                <div className="flex justify-center items-center">
+                                                    <RadialProgress
+                                                        value={restTimer.remainingSeconds}
+                                                        max={restTimer.totalSeconds}
+                                                        size="xl"
+                                                        showValue={false}
+                                                        className="[&_circle:first-child]:text-green-100 [&_circle:last-child]:text-green-300"
+                                                    >
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-3xl font-bold text-green-300 tabular-nums">
+                                                                {formatTime(restTimer.remainingSeconds)}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground mt-1">remaining</span>
+                                                        </div>
+                                                    </RadialProgress>
+                                                </div>
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="flex gap-3 justify-center">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={addTimeToTimer}
+                                            >
+                                                +15s
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={skipRestTimer}
+                                            >
+                                                Skip Rest
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+
                         </div>
                         <div className="space-y-4">
                             {exercisesArray.map((exercise, index) => {
@@ -493,7 +617,7 @@ export function WorkoutsTemplate() {
                     />
                 )}
 
-                {/* Add Exercise Button - Hide in start mode */}
+                {/* Add Exercise Button */}
                 {!isStartMode && (
                     <Button
                         className="w-full bg-white text-primary font-semibold border-2 border-dashed border-primary/30 hover:bg-primary/10"
@@ -505,6 +629,7 @@ export function WorkoutsTemplate() {
                     </Button>
                 )}
 
+                {/* Cancel Workout Button */}
                 {isStartMode && (
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -536,7 +661,8 @@ export function WorkoutsTemplate() {
                         </AlertDialogContent>
                     </AlertDialog>
                 )}
+
             </div>
-        </SubLayout>
+        </SubLayout >
     );
 }

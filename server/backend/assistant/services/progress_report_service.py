@@ -4,6 +4,7 @@ from datetime import datetime
 from django.utils import timezone
 from ..models.progress_report import ProgressReport
 from ..data_collection_service import DataCollectionService
+from .rule_based_analyzer import RuleBasedAnalyzer
 
 
 class ReportGenerationService:
@@ -32,6 +33,9 @@ class ReportGenerationService:
         # Get system prompt file
         self.base_prompt = self._get_system_prompt()
 
+        # Initialize rule-based analyzer
+        self.rule_analyzer = RuleBasedAnalyzer()
+
     def _get_system_prompt(self):
         prompt_file = os.path.join(
             os.path.dirname(__file__),
@@ -59,6 +63,12 @@ class ReportGenerationService:
         Returns:
             ProgressReport: The generated progress report instance
         """
+        # Ensure datetimes are timezone-aware
+        if timezone.is_naive(period_start):
+            period_start = timezone.make_aware(period_start)
+        if timezone.is_naive(period_end):
+            period_end = timezone.make_aware(period_end)
+
         # Create progress report instance with pending status
         report = ProgressReport.objects.create(
             user=user,
@@ -82,6 +92,13 @@ class ReportGenerationService:
                 report.generation_error = "Insufficient data: No nutrition or workout data found for this period"
                 report.save()
                 return report
+
+            # Apply rule-based analysis WITH period information
+            rule_analyzer = RuleBasedAnalyzer(
+                period_start=period_start, period_end=period_end
+            )
+            rule_based_insights = rule_analyzer.analyze_all(collected_data)
+            collected_data["rule_based_insights"] = rule_based_insights
 
             # Generate report sections using AI
             report_content = self._generate_report_content(collected_data, report_type)
@@ -165,6 +182,7 @@ class ReportGenerationService:
         nutrition_data = collected_data["nutrition_data"]
         workout_data = collected_data["workout_data"]
         user_profile = collected_data["user_profile"]
+        rule_based_insights = collected_data.get("rule_based_insights", {})
 
         prompt_parts = []
 
@@ -268,8 +286,31 @@ class ReportGenerationService:
             prompt_parts.append(f"No workout data available: {workout_data['message']}")
 
         prompt_parts.append("")
+
+        # RULE-BASED ANALYSIS SECTION
+        if rule_based_insights:
+            prompt_parts.append("=" * 60)
+            prompt_parts.append("=== RULE-BASED ANALYSIS ===")
+            prompt_parts.append("=" * 60)
+
+            insights_summary = self.rule_analyzer.get_summary_insights(
+                rule_based_insights
+            )
+            prompt_parts.append(insights_summary)
+
+            prompt_parts.append("\n" + "=" * 60)
+            prompt_parts.append("IMPORTANT: Use the rule-based analysis above to:")
+            prompt_parts.append("1. Validate your assessments with concrete metrics")
+            prompt_parts.append(
+                "2. Incorporate specific recommendations into your feedback"
+            )
+            prompt_parts.append(
+                "3. Ensure your advice aligns with the identified priorities"
+            )
+            prompt_parts.append("=" * 60)
+
         prompt_parts.append(
-            "Please analyze this data and provide a comprehensive progress report."
+            "\nPlease analyze this data and provide a comprehensive progress report."
         )
 
         return "\n".join(prompt_parts)

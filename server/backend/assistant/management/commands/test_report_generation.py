@@ -5,7 +5,6 @@ from ...services.progress_report_service import ReportGenerationService
 from ...data_collection_service import DataCollectionService
 from ...services.rule_based_analyzer import RuleBasedAnalyzer
 from datetime import timedelta
-import json
 
 User = get_user_model()
 
@@ -328,14 +327,6 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING("  ⚠ Recommendation keywords not found")
                 )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\n{'='*80}\n"
-                "Note: AI may paraphrase insights rather than use exact wording.\n"
-                "Review the report content to verify insights are incorporated meaningfully."
-            )
-        )
 
     def _get_insight_icon(self, insight_type):
         """Get emoji icon for insight type"""

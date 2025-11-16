@@ -1,5 +1,5 @@
 import os
-from openai import OpenAI
+from openai import OpenAI  # type: ignore
 from datetime import datetime
 from django.utils import timezone
 from ..models.progress_report import ProgressReport

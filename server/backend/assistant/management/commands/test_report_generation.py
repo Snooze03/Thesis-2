@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from assistant.progress_report_service import ReportGenerationService
+from ...services.progress_report_service import ReportGenerationService
 from datetime import datetime, timedelta
 
 User = get_user_model()

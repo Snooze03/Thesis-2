@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from ..models import Chat, Message
 from ..serializers import ChatSerializer, MessageSerializer
-from ..llm_service import LLMService
+from ..services.llm_service import LLMService
 
 
 class ChatViewSet(viewsets.ModelViewSet):

@@ -1,7 +1,7 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from .models import Chat
+from ..models import Chat
 
 
 class LLMService:
@@ -15,23 +15,24 @@ class LLMService:
             raise ValueError("ASSISTANT_API_KEY environment variable is not set")
 
         self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get(
-            "ASSISTANT_MODEL", "gpt-4"
-        )
+
+        self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get("ASSISTANT_MODEL")
+        if not self.model:
+            raise ValueError("ASSISTANT_MODEL not found in environment variables")
 
     def get_system_prompt(self, user_profile=None, nutrition_profile=None):
         try:
             # Use absolute path relative to the app directory
-            instructions_path = os.path.join(
-                os.path.dirname(__file__), "instructions.txt"
+            prompt_file = os.path.join(
+                os.path.dirname(__file__),
+                os.pardir,
+                "prompts",
+                "assistant_prompt.txt",
             )
-            with open(instructions_path, "r", encoding="utf-8") as f:
+            with open(prompt_file, "r", encoding="utf-8") as f:
                 base_prompt = f.read().strip()
         except FileNotFoundError:
-            # Fallback prompt if file doesn't exist
-            base_prompt = """You are PrimeFit Assistant, a knowledgeable fitness and nutrition expert.
-            You help users with workout planning, nutrition advice, exercise form, and general fitness guidance.
-            Always provide evidence-based recommendations and encourage users to consult healthcare professionals for medical concerns."""
+            raise FileNotFoundError(f"System prompt file not found at {prompt_file}")
 
         context_parts = []
 

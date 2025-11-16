@@ -23,16 +23,13 @@ class LLMService:
     def get_system_prompt(self, user_profile=None, nutrition_profile=None):
         try:
             # Use absolute path relative to the app directory
-            instructions_path = os.path.join(
-                os.path.dirname(__file__), "instructions.txt"
+            prompt_file = os.path.join(
+                os.path.dirname(__file__), "prompts", "assistant_prompt.txt"
             )
-            with open(instructions_path, "r", encoding="utf-8") as f:
+            with open(prompt_file, "r", encoding="utf-8") as f:
                 base_prompt = f.read().strip()
         except FileNotFoundError:
-            # Fallback prompt if file doesn't exist
-            base_prompt = """You are PrimeFit Assistant, a knowledgeable fitness and nutrition expert.
-            You help users with workout planning, nutrition advice, exercise form, and general fitness guidance.
-            Always provide evidence-based recommendations and encourage users to consult healthcare professionals for medical concerns."""
+            raise FileNotFoundError(f"System prompt file not found at {prompt_file}")
 
         context_parts = []
 

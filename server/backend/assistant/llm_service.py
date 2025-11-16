@@ -15,9 +15,10 @@ class LLMService:
             raise ValueError("ASSISTANT_API_KEY environment variable is not set")
 
         self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get(
-            "ASSISTANT_MODEL", "gpt-4"
-        )
+
+        self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get("ASSISTANT_MODEL")
+        if not self.model:
+            raise ValueError("ASSISTANT_MODEL not found in environment variables")
 
     def get_system_prompt(self, user_profile=None, nutrition_profile=None):
         try:

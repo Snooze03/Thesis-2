@@ -1,7 +1,7 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from .models import Chat
+from ..models import Chat
 
 
 class LLMService:
@@ -24,7 +24,10 @@ class LLMService:
         try:
             # Use absolute path relative to the app directory
             prompt_file = os.path.join(
-                os.path.dirname(__file__), "prompts", "assistant_prompt.txt"
+                os.path.dirname(__file__),
+                os.pardir,
+                "prompts",
+                "assistant_prompt.txt",
             )
             with open(prompt_file, "r", encoding="utf-8") as f:
                 base_prompt = f.read().strip()

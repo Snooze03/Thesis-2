@@ -2,8 +2,8 @@ import os
 from openai import OpenAI
 from datetime import datetime
 from django.utils import timezone
-from .models.progress_report import ProgressReport
-from .data_collection_service import DataCollectionService
+from ..models.progress_report import ProgressReport
+from ..data_collection_service import DataCollectionService
 
 
 class ReportGenerationService:
@@ -34,7 +34,10 @@ class ReportGenerationService:
 
     def _get_system_prompt(self):
         prompt_file = os.path.join(
-            os.path.dirname(__file__), "prompts", "progress_report_prompt.txt"
+            os.path.dirname(__file__),
+            os.pardir,
+            "prompts",
+            "progress_report_prompt.txt",
         )
 
         try:

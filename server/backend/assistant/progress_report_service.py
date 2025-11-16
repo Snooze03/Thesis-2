@@ -9,7 +9,6 @@ from .data_collection_service import DataCollectionService
 class ReportGenerationService:
     """
     Service to generate AI-powered progress reports for users.
-    Uses OpenAI API to analyze user data and provide personalized feedback.
     """
 
     def __init__(self):
@@ -29,6 +28,20 @@ class ReportGenerationService:
         self.model = os.getenv("ASSISTANT_MODEL") or os.environ.get("ASSISTANT_MODEL")
         if not self.model:
             raise ValueError("ASSISTANT_MODEL not found in environment variables")
+
+        # Get system prompt file
+        self.base_prompt = self._get_system_prompt()
+
+    def _get_system_prompt(self):
+        prompt_file = os.path.join(
+            os.path.dirname(__file__), "prompts", "progress_report_prompt.txt"
+        )
+
+        try:
+            with open(prompt_file, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            raise FileNotFoundError(f"System prompt file not found at {prompt_file}")
 
     def generate_report(self, user, period_start, period_end, report_type="short"):
         """
@@ -134,32 +147,7 @@ class ReportGenerationService:
             else "Provide detailed analysis and comprehensive feedback (around 1000-1500 words total)."
         )
 
-        return f"""You are a professional fitness coach and nutritionist providing personalized progress reports.
-
-Your role is to:
-1. Analyze the user's workout and nutrition data objectively
-2. Provide constructive feedback and encouragement
-3. Identify patterns, strengths, and areas for improvement
-4. Offer specific, actionable recommendations
-5. Maintain a supportive and motivating tone
-
-{length_instruction}
-
-Structure your response in the following format:
-
-===PROGRESS_SUMMARY===
-[Overall assessment of progress towards fitness goals]
-
-===WORKOUT_FEEDBACK===
-[Analysis of workout consistency, performance, and recommendations]
-
-===NUTRITION_FEEDBACK===
-[Analysis of nutrition adherence, patterns, and recommendations]
-
-===KEY_TAKEAWAYS===
-[3-5 bullet points with main insights and action items]
-
-Be honest but encouraging. Focus on progress and improvements, not just shortcomings."""
+        return self.base_prompt.replace("{LENGTH_INSTRUCTION}", length_instruction)
 
     def _build_user_prompt(self, collected_data):
         """

@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { MarkdownRenderer } from '@/components/markdown-renderer';
 import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
-import { useChatAssistant } from '@/hooks/useChatAssistant';
+import { useChatAssistant } from '@/hooks/assistant/useChatAssistant';
 import { Dumbbell } from 'lucide-react';
 
 const ChatConversation = () => {

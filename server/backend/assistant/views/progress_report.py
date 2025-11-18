@@ -8,6 +8,7 @@ from ..models.progress_report import ProgressReport, ProgressReportSettings
 from ..serializers.progress_report import (
     ProgressReportSerializer,
     ProgressReportListSerializer,
+    ProgressReportDetailSerializer,
     ProgressReportSettingsSerializer,
 )
 
@@ -26,26 +27,54 @@ class ProgressReportViewSet(viewsets.ReadOnlyModelViewSet):
         return ProgressReport.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
-        """Use list serializer for list action, detail serializer for retrieve"""
+        """Use appropriate serializer based on action"""
         if self.action == "list":
             return ProgressReportListSerializer
+        elif self.action in ["retrieve", "latest_full", "get_full_report"]:
+            return ProgressReportDetailSerializer
         return ProgressReportSerializer
 
     def list(self, request, *args, **kwargs):
-        """List all progress reports for the user"""
+        """List all progress reports for the user (summary only)"""
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        """Get a specific progress report"""
+        """Get a specific progress report with full details by ID"""
         instance = self.get_object()
+
+        # Mark as read when retrieved
+        if not instance.is_read:
+            instance.mark_as_read()
+
         serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="full/(?P<report_id>[^/.]+)")
+    def get_full_report(self, request, report_id=None):
+        """
+        Get full report details by report ID.
+        URL: /api/assistant/progress-reports/full/{report_id}/
+        """
+        try:
+            report = self.get_queryset().get(id=report_id)
+        except ProgressReport.DoesNotExist:
+            return Response(
+                {"detail": "Progress report not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Mark as read when retrieved
+        if not report.is_read:
+            report.mark_as_read()
+
+        serializer = ProgressReportDetailSerializer(report)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def latest(self, request):
-        """Get the most recent progress report"""
+        """Get the most recent progress report (summary only)"""
         latest_report = self.get_queryset().first()
 
         if not latest_report:
@@ -54,8 +83,33 @@ class ProgressReportViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = self.get_serializer(latest_report)
+        serializer = ProgressReportListSerializer(latest_report)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def latest_full(self, request):
+        """Get the most recent progress report with full details"""
+        latest_report = self.get_queryset().first()
+
+        if not latest_report:
+            return Response(
+                {"detail": "No progress reports found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Mark as read when retrieved
+        if not latest_report.is_read:
+            latest_report.mark_as_read()
+
+        serializer = ProgressReportDetailSerializer(latest_report)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def unread(self, request):
+        """Get all unread progress reports"""
+        unread_reports = self.get_queryset().filter(is_read=False)
+        serializer = ProgressReportListSerializer(unread_reports, many=True)
+        return Response({"count": unread_reports.count(), "reports": serializer.data})
 
     @action(detail=False, methods=["get"])
     def pending(self, request):
@@ -63,6 +117,49 @@ class ProgressReportViewSet(viewsets.ReadOnlyModelViewSet):
         pending_reports = self.get_queryset().filter(status="pending")
         serializer = ProgressReportListSerializer(pending_reports, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"])
+    def mark_read(self, request, pk=None):
+        """Mark a specific report as read"""
+        report = self.get_object()
+        report.mark_as_read()
+        serializer = self.get_serializer(report)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def mark_all_read(self, request):
+        """Mark all reports as read"""
+        updated_count = self.get_queryset().filter(is_read=False).update(is_read=True)
+        return Response(
+            {
+                "detail": f"Marked {updated_count} reports as read.",
+                "count": updated_count,
+            }
+        )
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """Get statistics about user's progress reports"""
+        queryset = self.get_queryset()
+
+        total_reports = queryset.count()
+        generated_reports = queryset.filter(status="generated").count()
+        failed_reports = queryset.filter(status="failed").count()
+        pending_reports = queryset.filter(status="pending").count()
+        unread_reports = queryset.filter(is_read=False, status="generated").count()
+        auto_generated = queryset.filter(auto_generated=True).count()
+
+        return Response(
+            {
+                "total_reports": total_reports,
+                "generated": generated_reports,
+                "failed": failed_reports,
+                "pending": pending_reports,
+                "unread": unread_reports,
+                "auto_generated": auto_generated,
+                "manually_generated": total_reports - auto_generated,
+            }
+        )
 
 
 class ProgressReportSettingsViewSet(viewsets.ModelViewSet):
@@ -84,6 +181,9 @@ class ProgressReportSettingsViewSet(viewsets.ModelViewSet):
         settings, created = ProgressReportSettings.objects.get_or_create(
             user=self.request.user
         )
+        # Initialize next_generation_date if not set
+        if created or not settings.next_generation_date:
+            settings.update_next_generation_date()
         return settings
 
     def list(self, request, *args, **kwargs):
@@ -99,6 +199,11 @@ class ProgressReportSettingsViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Update next generation date if day_interval changed
+        if "day_interval" in request.data:
+            instance.update_next_generation_date()
+
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
@@ -114,3 +219,26 @@ class ProgressReportSettingsViewSet(viewsets.ModelViewSet):
         settings.save()
         serializer = self.get_serializer(settings)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def status(self, request):
+        """Get detailed status of report generation settings"""
+        settings = self.get_object()
+        serializer = self.get_serializer(settings)
+
+        # Additional computed fields
+        from django.utils import timezone
+
+        days_until_next = None
+        if settings.next_generation_date:
+            days_until_next = (
+                settings.next_generation_date - timezone.now().date()
+            ).days
+
+        return Response(
+            {
+                **serializer.data,
+                "days_until_next_report": days_until_next,
+                "is_due_for_generation": settings.is_due_for_generation(),
+            }
+        )

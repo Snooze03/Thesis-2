@@ -1,10 +1,23 @@
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
-export const ReportCard = ({ number, date, description }) => {
+export const ReportCard = ({ data }) => {
+    const navigate = useNavigate();
+
+    // Report values
+    const number = data.id;
+    const date = data.period_display;
+    const description = data.preview_text;
+
+    const handleOpen = () => {
+        navigate(`progress-report`, { state: { reportId: data.id } });
+    }
+
     return (
-        <Card className="gap-2 hover:shadow-lg transition-shadow">
+        <Card className="gap-2 hover:shadow-lg transition-shadow" onClick={handleOpen}>
             <CardHeader className="grid grid-cols-2 grid-rows-2 gap-1 content-center">
                 <CardTitle>Report #{number}</CardTitle>
                 <CardAction className="self-start">

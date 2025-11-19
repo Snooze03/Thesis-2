@@ -63,6 +63,7 @@ class ProgressReportListSerializer(serializers.ModelSerializer):
             "status_display",
             "created_at",
             "is_read",
+            "auto_generated",
         ]
         read_only_fields = fields
 
@@ -102,9 +103,19 @@ class ProgressReportDetailSerializer(serializers.ModelSerializer):
             "period_display",
             "period_duration_days",
             "progress_summary",
+            # Workout fields
             "workout_feedback",
+            "workout_frequency",
+            "workout_duration",
+            "workout_recommendations",
+            # Nutrition fields
             "nutrition_feedback",
+            "nutrition_adherence",
+            "nutrition_intake",
+            "nutrition_recommendations",
+            # Key takeaways
             "key_takeaways",
+            # Metadata
             "report_type",
             "status",
             "status_display",
@@ -112,6 +123,7 @@ class ProgressReportDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "created_at_display",
             "is_read",
+            "auto_generated",
         ]
         read_only_fields = fields
 
@@ -148,13 +160,20 @@ class ProgressReportSerializer(serializers.ModelSerializer):
             "period_duration_days",
             "progress_summary",
             "workout_feedback",
+            "workout_frequency",
+            "workout_duration",
+            "workout_recommendations",
             "nutrition_feedback",
+            "nutrition_adherence",
+            "nutrition_intake",
+            "nutrition_recommendations",
             "key_takeaways",
             "report_type",
             "status",
             "generation_error",
             "created_at",
             "is_read",
+            "auto_generated",
         ]
         read_only_fields = [
             "id",

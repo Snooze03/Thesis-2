@@ -39,7 +39,7 @@ class DataCollectionService:
 
     def collect_all_data(self):
         """
-        Collect all data needed for progress report generation.
+        Collect all data needed for progress report generation and chat context.
 
         Returns:
             dict: Dictionary containing nutrition and workout data

@@ -34,5 +34,4 @@ Structure your response in the following format:
 [Recommendations 2-3 max]
 
 ===KEY_TAKEAWAYS===
-[motivate the client]
-[3-5 bullet points with main insights and actionable feedback]
+[3-5 bullet points with main insights]

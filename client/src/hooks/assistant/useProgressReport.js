@@ -35,7 +35,7 @@ export function fetchProgressReportDetails(reportId) {
     });
 
     return {
-        progressReportDetails: progressReportDetails.data,
+        data: progressReportDetails.data,
         isLoading: progressReportDetails.isLoading,
         isError: progressReportDetails.isError,
     }

@@ -55,7 +55,7 @@ class Command(BaseCommand):
         show_insights = options.get("show_insights")
         insights_only = options.get("insights_only")
 
-        # Get user
+        # Get user FIRST
         try:
             if user_id:
                 user = User.objects.get(id=user_id)
@@ -95,9 +95,14 @@ class Command(BaseCommand):
             data_service = DataCollectionService(user, period_start, period_end)
             collected_data = data_service.collect_all_data()
 
+            # Display user profile data
+            self._display_user_profile(collected_data.get("user_profile", {}))
+
             # Run rule-based analysis
             self.stdout.write(self.style.WARNING("Running rule-based analysis...\n"))
-            analyzer = RuleBasedAnalyzer()
+            analyzer = RuleBasedAnalyzer(
+                period_start=period_start, period_end=period_end
+            )
             rule_based_insights = analyzer.analyze_all(collected_data)
 
             # Display rule-based insights
@@ -157,6 +162,50 @@ class Command(BaseCommand):
             import traceback
 
             traceback.print_exc()
+
+    def _display_user_profile(self, user_profile):
+        """Display user profile data"""
+        self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
+        self.stdout.write(self.style.SUCCESS("USER PROFILE DATA"))
+        self.stdout.write(self.style.SUCCESS(f"{'='*80}"))
+
+        if user_profile and "user_profile" in user_profile:
+            up = user_profile["user_profile"]
+            self.stdout.write("\n👤 User Profile:")
+            if up.get("body_goal"):
+                self.stdout.write(f"  - Body Goal: {up['body_goal']}")
+            if up.get("activity_level"):
+                self.stdout.write(f"  - Activity Level: {up['activity_level']}")
+            if up.get("age"):
+                self.stdout.write(f"  - Age: {up['age']}")
+            if up.get("starting_weight"):
+                self.stdout.write(f"  - Starting Weight: {up['starting_weight']}kg")
+            if up.get("current_weight"):
+                self.stdout.write(f"  - Current Weight: {up['current_weight']}kg")
+            if up.get("goal_weight"):
+                self.stdout.write(f"  - Goal Weight: {up['goal_weight']}kg")
+            if up.get("workout_frequency"):
+                self.stdout.write(
+                    f"  - Target Workouts: {up['workout_frequency']}/week"
+                )
+        else:
+            self.stdout.write("\n⚠️ No user profile data found")
+
+        if user_profile and "nutrition_profile" in user_profile:
+            np = user_profile["nutrition_profile"]
+            self.stdout.write("\n🥗 Nutrition Profile:")
+            if np.get("bmi"):
+                self.stdout.write(
+                    f"  - BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
+                )
+            if np.get("bmr"):
+                self.stdout.write(f"  - BMR: {np['bmr']} kcal/day")
+            if np.get("tdee"):
+                self.stdout.write(f"  - TDEE: {np['tdee']} kcal/day")
+        else:
+            self.stdout.write("\n⚠️ No nutrition profile data found")
+
+        self.stdout.write("")
 
     def _display_rule_based_insights(self, insights):
         """Display rule-based insights in a formatted way"""
@@ -249,9 +298,34 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("\n💪 WORKOUT FEEDBACK:"))
             self.stdout.write(report.workout_feedback)
 
+        if report.workout_frequency:
+            self.stdout.write(self.style.WARNING("\n📊 WORKOUT FREQUENCY:"))
+            self.stdout.write(report.workout_frequency)
+
+        if report.workout_duration:
+            self.stdout.write(self.style.WARNING("\n⏱️ WORKOUT DURATION:"))
+            self.stdout.write(report.workout_duration)
+
+        if report.workout_recommendations:
+            self.stdout.write(self.style.WARNING("\n💡 WORKOUT RECOMMENDATIONS:"))
+            self.stdout.write(report.workout_recommendations)
+
         if report.nutrition_feedback:
             self.stdout.write(self.style.WARNING("\n🥗 NUTRITION FEEDBACK:"))
             self.stdout.write(report.nutrition_feedback)
+
+        # NEW FIELDS
+        if report.nutrition_adherence:
+            self.stdout.write(self.style.WARNING("\n📈 NUTRITION ADHERENCE:"))
+            self.stdout.write(report.nutrition_adherence)
+
+        if report.nutrition_intake:
+            self.stdout.write(self.style.WARNING("\n🍽️ NUTRITION INTAKE:"))
+            self.stdout.write(report.nutrition_intake)
+
+        if report.nutrition_recommendations:
+            self.stdout.write(self.style.WARNING("\n💡 NUTRITION RECOMMENDATIONS:"))
+            self.stdout.write(report.nutrition_recommendations)
 
         if report.key_takeaways:
             self.stdout.write(self.style.WARNING("\n🎯 KEY TAKEAWAYS:"))
@@ -327,6 +401,14 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING("  ⚠ Recommendation keywords not found")
                 )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\n{'='*80}\n"
+                "Note: AI may paraphrase insights rather than use exact wording.\n"
+                "Review the report content to verify insights are incorporated meaningfully."
+            )
+        )
 
     def _get_insight_icon(self, insight_type):
         """Get emoji icon for insight type"""

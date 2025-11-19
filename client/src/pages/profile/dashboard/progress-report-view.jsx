@@ -4,9 +4,11 @@ import { SubLayout } from "@/layouts/sub-layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SectionTitle } from "@/components/ui/section-title";
-import { ChevronLeft, ChevronRight, Calendar, ArrowLeft, TrendingUp, Dumbbell, Drumstick, Check } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { Calendar, ArrowLeft, TrendingUp, Dumbbell, Drumstick, Lightbulb } from "lucide-react";
+import { formatValueWithBold } from "../utils/formatValueWithBold";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { RecommendationsList } from "../utils/recommendationLists";
+import { parseBulletList } from "../utils/parseBulletLists";
 
 
 export function ProgressReportView() {
@@ -20,7 +22,6 @@ export function ProgressReportView() {
         isError
     } = fetchProgressReportDetails(reportId);
 
-
     if (isLoading) {
         return <div>Loading...</div>;
     }
@@ -28,6 +29,9 @@ export function ProgressReportView() {
     if (isError) {
         return <div>Error loading report</div>;
     }
+
+    // Parse key takeaways into array
+    const keyTakeaways = parseBulletList(data?.key_takeaways);
 
     console.log("Progress Report Details:", data);
 
@@ -48,20 +52,20 @@ export function ProgressReportView() {
             </Card>
 
             {/* Progress Summary */}
-            <Card className="gap-2">
-                <CardHeader >
+            <Card className="gap-2 bg-green-100/60 shadow-none border-none">
+                <CardHeader>
                     <CardTitle>
-                        <TrendingUp className="size-4 inline mr-2 stroke-purple-500" />
+                        <TrendingUp className="size-4 inline mr-2 stroke-green-500" />
                         Progress Summary
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ReactMarkdown>{data?.progress_summary}</ReactMarkdown>
+                    <MarkdownRenderer content={data?.progress_summary || ""} className="text-gray-800" />
                 </CardContent>
             </Card>
 
             {/* Workout Feedback */}
-            <Card className="gap-2">
+            <Card className="gap-2 bg-orange-100/60 shadow-none border-none">
                 <CardHeader>
                     <CardTitle>
                         <Dumbbell className="size-4 inline mr-2 stroke-orange-500" />
@@ -69,28 +73,28 @@ export function ProgressReportView() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <MarkdownRenderer content={data?.workout_feedback || ""} />
+                    <MarkdownRenderer content={data?.workout_feedback || ""} className="text-gray-800" />
 
                     <div className="grid grid-cols-2 gap-4 place-items-center">
-                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg shadow-lg bg-gray-100 text-sm">
+                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg bg-orange-200/80 text-sm text-gray-800">
                             <p className="font-medium">Current Frequency</p>
-                            <p>{data?.workout_frequency}</p>
+                            <p>{formatValueWithBold(data?.workout_frequency)}</p>
                         </div>
-                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg shadow-lg bg-gray-100 text-sm">
+                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg bg-orange-200/80 text-sm text-gray-800">
                             <p className="font-medium">Average Duration</p>
-                            <p>{data?.workout_duration}</p>
+                            <p>{formatValueWithBold(data?.workout_duration)}</p>
                         </div>
                     </div>
 
                     <div>
                         <p className="text-sm font-semibold mb-2">Recommendations:</p>
-                        <MarkdownRenderer content={data?.workout_recommendations || ""} />
+                        <RecommendationsList content={data?.workout_recommendations} variant="orange" />
                     </div>
                 </CardContent>
             </Card>
 
             {/* Nutrition Feedback */}
-            <Card className="gap-2">
+            <Card className="gap-2 bg-sky-100/60 shadow-none border-none">
                 <CardHeader>
                     <CardTitle>
                         <Drumstick className="size-4 inline mr-2 stroke-sky-500" />
@@ -98,38 +102,44 @@ export function ProgressReportView() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <MarkdownRenderer content={data?.nutrition_feedback || ""} />
+                    <MarkdownRenderer content={data?.nutrition_feedback || ""} className="text-gray-800" />
 
-                    <div className="flex gap-4 place-items-center">
-                        <div className="px-4 py-2 rounded-lg shadow-lg bg-gray-100 text-sm">
-                            <p className="font-medium mb-1">Adherence</p>
-                            <p>{data?.nutrition_adherence}</p>
+                    <div className="grid grid-cols-2 gap-4 place-items-center">
+                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg bg-sky-200/80 text-sm text-gray-800">
+                            <p className="font-medium">Adherence</p>
+                            <p>{formatValueWithBold(data?.nutrition_adherence)}</p>
                         </div>
-                        <div className="px-4 py-2 rounded-lg shadow-lg bg-gray-100 text-sm">
-                            <p className="font-medium mb-1">Avg Intake</p>
-                            <p>{data?.nutrition_intake}</p>
+                        <div className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg bg-sky-200/80 text-sm text-gray-800">
+                            <p className="font-medium">Average Intake</p>
+                            <p>{formatValueWithBold(data?.nutrition_intake)}</p>
                         </div>
                     </div>
 
                     <div>
                         <p className="text-sm font-semibold mb-2">Recommendations:</p>
-                        <MarkdownRenderer content={data?.nutrition_recommendations || ""} />
+                        <RecommendationsList content={data?.nutrition_recommendations} variant="sky" />
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="gap-2">
+            <Card className="gap-2 bg-purple-100/60 shadow-none border-none">
                 <CardHeader>
                     <CardTitle>
-                        <Drumstick className="size-4 inline mr-2 stroke-sky-500" />
+                        <Lightbulb className="size-4 inline mr-2 stroke-purple-500" />
                         Key Takeaways
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <MarkdownRenderer content={data?.key_takeaways || ""} />
+                <CardContent>
+                    <div className="grid auto-cols-[.5fr] grid-cols-1 gap-3">
+                        {keyTakeaways.map((takeaway, index) => (
+                            <div key={index} className="w-full h-full flex flex-col justify-center gap-1 px-4 py-2 rounded-lg bg-purple-200/80 text-sm text-gray-800">
+                                <MarkdownRenderer content={takeaway} className="text-gray-800 text-sm" />
+                            </div>
+
+                        ))}
+                    </div>
                 </CardContent>
             </Card>
-
 
         </SubLayout>
     );

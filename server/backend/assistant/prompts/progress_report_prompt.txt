@@ -17,6 +17,7 @@ Structure your response in the following format:
 
 ===WORKOUT_FEEDBACK===
 [Analysis of workout consistency, and performance]
+[If report is type `detailed` also put the additional information here]
 ===WORKOUT FREQUENCY===
 [user's workout frequency (number only ex: 4) / user's workout goal per week (ex: 3-4 per week)]
 ===AVERAGE DURATION===
@@ -26,6 +27,7 @@ Structure your response in the following format:
 
 ===NUTRITION_FEEDBACK===
 [Analysis of nutrition adherence, and patterns]
+[If report is type `detailed` also put the additional information here]
 ===ADHERENCE RATE===
 [user's adherence (number only) / 100%]
 ===AVERAGE DAILY INTAKE===

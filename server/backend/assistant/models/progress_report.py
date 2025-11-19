@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -16,9 +18,6 @@ class ProgressReportSettings(models.Model):
     day_interval = models.PositiveIntegerField(
         default=7, help_text="Days between reports"
     )
-    report_time = models.TimeField(
-        default="09:00:00", help_text="Time to generate report"
-    )
     report_type = models.CharField(
         max_length=10, choices=REPORT_TYPE_CHOICES, default="short"
     )
@@ -32,6 +31,29 @@ class ProgressReportSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.user.username} - Every {self.day_interval} days"
+
+    def update_next_generation_date(self):
+        """Update the next generation date based on day_interval"""
+        if self.last_generated_at:
+            next_date = self.last_generated_at.date() + timedelta(
+                days=self.day_interval
+            )
+        else:
+            # First time - schedule for tomorrow
+            next_date = timezone.now().date() + timedelta(days=1)
+
+        self.next_generation_date = next_date
+        self.save(update_fields=["next_generation_date"])
+
+    def is_due_for_generation(self):
+        """Check if report is due for generation"""
+        if not self.is_enabled:
+            return False
+
+        if not self.next_generation_date:
+            return True  # First time generation
+
+        return timezone.now().date() >= self.next_generation_date
 
 
 class ProgressReport(models.Model):
@@ -51,12 +73,36 @@ class ProgressReport(models.Model):
     progress_summary = models.TextField(
         blank=True, help_text="Overall progress towards fitness goals"
     )
+
+    # Workout Section
     workout_feedback = models.TextField(
         blank=True, help_text="Workout consistency and performance feedback"
     )
+    workout_frequency = models.TextField(
+        blank=True, help_text="Workout frequency analysis"
+    )
+    workout_duration = models.TextField(
+        blank=True, help_text="Average workout duration analysis"
+    )
+    workout_recommendations = models.TextField(
+        blank=True, help_text="Workout recommendations"
+    )
+
+    # Nutrition Section
     nutrition_feedback = models.TextField(
         blank=True, help_text="Nutrition adherence and quality feedback"
     )
+    nutrition_adherence = models.TextField(
+        blank=True, help_text="Adherence rate analysis"
+    )
+    nutrition_intake = models.TextField(
+        blank=True, help_text="Average daily intake analysis"
+    )
+    nutrition_recommendations = models.TextField(
+        blank=True, help_text="Nutrition recommendations"
+    )
+
+    # Key Takeaways
     key_takeaways = models.TextField(
         blank=True, help_text="Main insights and action items"
     )
@@ -67,6 +113,9 @@ class ProgressReport(models.Model):
     generation_error = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    auto_generated = models.BooleanField(
+        default=False, help_text="Was this report auto-generated?"
+    )
 
     class Meta:
         ordering = ["-created_at"]

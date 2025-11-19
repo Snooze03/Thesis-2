@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { fetchSettings, useUpdateSettings } from "@/hooks/assistant/useProgressReportSettings";
 import { clsx } from "clsx";
 import { SubLayout } from "@/layouts/sub-layout";
 import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
-import { Card, CardContent, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardAction, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Minus, StickyNote, NotepadText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProfileSettings() {
     const navigate = useNavigate();
@@ -30,55 +29,108 @@ export function ProfileSettings() {
 }
 
 const ReportSettings = () => {
-    const isShort = true;
-    const [reportType, setReportType] = useState(isShort);
+    const [isShort, setIsShort] = useState(true);
+    const [daysInterval, setDaysInterval] = useState(7);
+
+    const {
+        settings,
+        isLoading,
+        isError
+    } = fetchSettings();
+
+    const {
+        updateSettings,
+        isLoading: isUpdating,
+        isError: isUpdateError
+    } = useUpdateSettings();
+
+    // Initialize state with fetched settings
+    useEffect(() => {
+        if (settings) {
+            setIsShort(settings.report_type === 'short');
+            setDaysInterval(settings.report_interval || 7);
+        }
+    }, [settings]);
+
+    // ===== EVENT HANDLERS =====
+    const handleIncreaseInterval = () => {
+        setDaysInterval((prev) => prev + 1);
+    };
+
+    const handleDecreaseInterval = () => {
+        if (daysInterval > 7) {
+            setDaysInterval((prev) => prev - 1);
+        }
+    };
+
+    const handleSaveSettings = () => {
+        const settingsData = {
+            report_type: isShort ? 'short' : 'detailed',
+            report_interval: daysInterval,
+        };
+        console.log(`Settings Data`, settingsData);
+        updateSettings(settingsData);
+    };
+    // ===== END EVENT HANDLERS =====
+
+    if (isLoading) {
+        return (
+            <>
+                <SectionSubTitle>Progress Report</SectionSubTitle>
+                <Card>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-4 w-32" />
+                    </CardContent>
+                </Card>
+            </>
+        );
+    }
+
+    if (isError) {
+        return (
+            <>
+                <SectionSubTitle>Progress Report</SectionSubTitle>
+                <Card>
+                    <CardContent className="py-8">
+                        <p className="text-center text-red-500">Failed to load settings. Please try again.</p>
+                    </CardContent>
+                </Card>
+            </>
+        );
+    }
 
     return (
         <>
             <SectionSubTitle>Progress Report</SectionSubTitle>
             <Card>
                 <CardContent className="space-y-4">
-                    {/* Days Inteval */}
-                    <Label htmlFor="report-interval">Generate Report Every</Label>
-                    <div className="grid grid-cols-3 gap-3 max-xs:grid-cols-5 max-2xs:grid-cols-6">
-                        <div className="relative w-full block col-span-2 max-xs:col-span-3">
-                            <Calendar className={cn(
-                                "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
-                                "max-2xs:size-4"
-                            )} />
-                            <Input id="report-interval" type="number" placeholder="22" className="pl-10" />
+                    {/* Days Interval */}
+                    <Label htmlFor="report-interval">Report Interval</Label>
+                    <div className="flex gap-5 place-items-center px-15 py-3 bg-gray-100 rounded-lg shadow-inner ">
+                        <Button
+                            size="icon"
+                            className="h-8 w-8 shrink-0 rounded-full bg-white shadow-md"
+                            onClick={handleDecreaseInterval}
+                            disabled={daysInterval <= 7 || isUpdating}
+                        >
+                            <Minus className="stroke-black" />
+                        </Button>
+                        <div className="flex-1 text-center">
+                            <div className="text-5xl font-bold tracking-tighter">
+                                {daysInterval}
+                            </div>
+                            <div className="text-muted-foreground text-[0.70rem] uppercase">
+                                Day/s
+                            </div>
                         </div>
-                        <Select>
-                            <SelectTrigger className="w-full max-xs:col-span-2 max-2xs:col-span-3">
-                                <SelectValue placeholder="Days" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="days">Days</SelectItem>
-                                <SelectItem value="weeks">Weeks</SelectItem>
-                                <SelectItem value="months">Months</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Time */}
-                    <Label htmlFor="report-time-interval">Time</Label>
-                    <div className="grid grid-cols-3 gap-3 max-xs:grid-cols-5 max-2xs:grid-cols-6">
-                        <div className="relative w-full block col-start-1 col-end-3 max-xs:col-span-3">
-                            <Clock className={cn(
-                                "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none",
-                                "max-2xs:size-4",
-                            )} />
-                            <Input id="report-time-interval" type="number" placeholder="10:30" className="pl-10" />
-                        </div>
-                        <Select>
-                            <SelectTrigger className="w-full max-xs:col-span-2 max-2xs:col-span-3">
-                                <SelectValue placeholder="A.M" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="am">A.M</SelectItem>
-                                <SelectItem value="pm">P.M</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Button
+                            size="icon"
+                            className="h-8 w-8 shrink-0 rounded-full bg-white shadow-md"
+                            onClick={handleIncreaseInterval}
+                            disabled={isUpdating}
+                        >
+                            <Plus className="stroke-black" />
+                        </Button>
                     </div>
 
                     {/* Report Type */}
@@ -86,30 +138,46 @@ const ReportSettings = () => {
                     <div className="grid grid-cols-2 gap-3">
 
                         {/* sets report type to short */}
-                        <Card onClick={() => setReportType(isShort)}
+                        <Card onClick={() => !isUpdating && setIsShort(true)}
                             className={clsx(
                                 "px-1 py-2 text-sm cursor-pointer hover:bg-gray-100 hover:shadow-lg transition delay-50 duration-200 ease-in-out",
-                                { "border-1 border-primary bg-primary-500 hover:bg-primary-400": reportType })}>
+                                { "border-1 border-primary bg-primary-500 hover:bg-primary-400": isShort },
+                                { "cursor-not-allowed opacity-50": isUpdating }
+                            )}>
                             <CardContent className="px-2.5 py-1 space-y-2">
-                                <CardTitle className="font-normal">Short</CardTitle>
+                                <CardTitle className="font-normal">
+                                    <StickyNote className="inline mr-1 size-4" />
+                                    Short
+                                </CardTitle>
                                 <CardDescription className="text-start max-xs:text-xs">Brief overview of your progress</CardDescription>
                             </CardContent>
                         </Card>
 
                         {/* sets report type to detailed */}
-                        <Card onClick={() => setReportType(!isShort)}
+                        <Card onClick={() => !isUpdating && setIsShort(false)}
                             className={clsx(
                                 "px-1 py-2 text-sm cursor-pointer hover:bg-gray-100 hover:shadow-lg transition delay-50 duration-200 ease-in-out max-2xs:px-0",
-                                { "border-1 border-primary bg-primary-500 hover:bg-primary-400": !reportType })}>
+                                { "border-1 border-primary bg-primary-500 hover:bg-primary-400": !isShort },
+                                { "cursor-not-allowed opacity-50": isUpdating }
+                            )}>
                             <CardContent className="px-2.5 py-1 space-y-2">
-                                <CardTitle className="font-normal">Detailed</CardTitle>
+                                <CardTitle className="font-normal">
+                                    <NotepadText className="inline mr-1 size-4" />
+                                    Detailed
+                                </CardTitle>
                                 <CardDescription className="text-start max-xs:text-xs">In-depth analysis with personalized feedback</CardDescription>
                             </CardContent>
                         </Card>
                     </div>
 
                     <CardAction className="w-full mt-5">
-                        <Button className="w-full">Save Settings</Button>
+                        <Button
+                            className="w-full"
+                            onClick={handleSaveSettings}
+                            disabled={isUpdating}
+                        >
+                            {isUpdating ? "Saving..." : "Save Settings"}
+                        </Button>
                     </CardAction>
                 </CardContent>
             </Card>

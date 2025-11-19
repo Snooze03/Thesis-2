@@ -197,34 +197,42 @@ class ReportGenerationService:
         prompt_parts = []
 
         # User Profile Section
-        if user_profile:
-            prompt_parts.append("=== USER PROFILE ===")
+        prompt_parts.append("=== USER PROFILE ===")
 
-            if "user_profile" in user_profile:
-                up = user_profile["user_profile"]
-                if up.get("body_goal"):
-                    prompt_parts.append(f"Body Goal: {up['body_goal']}")
-                if up.get("activity_level"):
-                    prompt_parts.append(f"Activity Level: {up['activity_level']}")
-                if up.get("current_weight") and up.get("goal_weight"):
-                    prompt_parts.append(
-                        f"Weight: {up['current_weight']}kg (Goal: {up['goal_weight']}kg)"
-                    )
-                if up.get("workout_frequency"):
-                    prompt_parts.append(
-                        f"Target Workout Frequency: {up['workout_frequency']} times/week"
-                    )
+        if user_profile and "user_profile" in user_profile:
+            up = user_profile["user_profile"]
+            if up.get("body_goal"):
+                prompt_parts.append(f"Body Goal: {up['body_goal']}")
+            if up.get("activity_level"):
+                prompt_parts.append(f"Activity Level: {up['activity_level']}")
+            if up.get("age"):
+                prompt_parts.append(f"Age: {up['age']}")
+            if up.get("starting_weight"):
+                prompt_parts.append(f"Starting Weight: {up['starting_weight']}kg")
+            if up.get("current_weight"):
+                prompt_parts.append(f"Current Weight: {up['current_weight']}kg")
+            if up.get("goal_weight"):
+                prompt_parts.append(f"Goal Weight: {up['goal_weight']}kg")
+            if up.get("workout_frequency"):
+                prompt_parts.append(
+                    f"Target Workout Frequency: {up['workout_frequency']} times/week"
+                )
+        else:
+            prompt_parts.append("No user profile data available")
 
-            if "nutrition_profile" in user_profile:
-                np = user_profile["nutrition_profile"]
-                if np.get("bmi"):
-                    prompt_parts.append(
-                        f"BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
-                    )
-                if np.get("tdee"):
-                    prompt_parts.append(f"TDEE: {np['tdee']} kcal/day")
+        if user_profile and "nutrition_profile" in user_profile:
+            np = user_profile["nutrition_profile"]
+            prompt_parts.append("\nNutrition Profile:")
+            if np.get("bmi"):
+                prompt_parts.append(
+                    f"- BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
+                )
+            if np.get("bmr"):
+                prompt_parts.append(f"- BMR: {np['bmr']} kcal/day")
+            if np.get("tdee"):
+                prompt_parts.append(f"- TDEE: {np['tdee']} kcal/day")
 
-            prompt_parts.append("")
+        prompt_parts.append("")
 
         # Nutrition Data Section
         prompt_parts.append("=== NUTRITION DATA ===")
@@ -320,7 +328,7 @@ class ReportGenerationService:
             prompt_parts.append("=" * 60)
 
         prompt_parts.append(
-            "\nPlease analyze this data and provide a comprehensive progress report."
+            "\nPlease analyze this data and provide a comprehensive progress report that aligns with the user's body goal."
         )
 
         return "\n".join(prompt_parts)

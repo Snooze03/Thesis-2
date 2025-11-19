@@ -3,7 +3,7 @@ from openai import OpenAI  # type: ignore
 from datetime import datetime
 from django.utils import timezone
 from ..models.progress_report import ProgressReport
-from ..data_collection_service import DataCollectionService
+from .data_collection_service import DataCollectionService
 from .rule_based_analyzer import RuleBasedAnalyzer
 
 

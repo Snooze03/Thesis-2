@@ -11,6 +11,7 @@ import { MarkdownRenderer } from '@/components/markdown-renderer';
 import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
 import { useChatAssistant } from '@/hooks/assistant/useChatAssistant';
 import { Dumbbell } from 'lucide-react';
+import { formatDate } from '@/utils/formatDate';
 
 const ChatConversation = () => {
     const [inputMessage, setInputMessage] = useState('');
@@ -148,7 +149,7 @@ const ChatConversation = () => {
                                                 )}
 
                                                 <span className="text-xs opacity-70 block mt-1">
-                                                    {new Date(message.timestamp).toLocaleTimeString()}
+                                                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                 </span>
                                             </div>
                                         </div>
@@ -188,11 +189,7 @@ const ChatConversation = () => {
                                 type="submit"
                                 disabled={isSendingMessage || !inputMessage.trim() || !currentChat}
                             >
-                                {isSendingMessage ? (
-                                    <LoadingSpinner className="h-4 w-4" />
-                                ) : (
-                                    <Send className="h-4 w-4" />
-                                )}
+                                <Send size="4" />
                             </Button>
                         </form>
                     </div>

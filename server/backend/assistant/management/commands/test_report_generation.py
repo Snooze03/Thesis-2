@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from ...services.progress_report_service import ReportGenerationService
-from ...data_collection_service import DataCollectionService
+from ...services.data_collection_service import DataCollectionService
 from ...services.rule_based_analyzer import RuleBasedAnalyzer
 from datetime import timedelta
 

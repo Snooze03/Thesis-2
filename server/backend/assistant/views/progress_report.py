@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-
+from django.http import FileResponse
 from ..models.progress_report import ProgressReport, ProgressReportSettings
 from ..serializers.progress_report import (
     ProgressReportSerializer,
@@ -11,6 +11,7 @@ from ..serializers.progress_report import (
     ProgressReportDetailSerializer,
     ProgressReportSettingsSerializer,
 )
+from ..services.pdf_export_service import ProgressReportPDFExporter
 
 
 class ProgressReportViewSet(viewsets.ReadOnlyModelViewSet):
@@ -160,6 +161,50 @@ class ProgressReportViewSet(viewsets.ReadOnlyModelViewSet):
                 "manually_generated": total_reports - auto_generated,
             }
         )
+
+    @action(detail=True, methods=["get"], url_path="export-pdf")
+    def export_pdf(self, request, pk=None):
+        """
+        Export a specific progress report as PDF.
+        URL: /api/assistant/progress-reports/{id}/export-pdf/
+        """
+        report = self.get_object()
+
+        # Check if report is generated
+        if report.status != "generated":
+            return Response(
+                {"detail": "Report must be generated before exporting."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Generate PDF
+            pdf_exporter = ProgressReportPDFExporter()
+            pdf_buffer = pdf_exporter.export_report(report)
+
+            # Create filename
+            filename = f"progress_report_{report.id}_{report.period_start.strftime('%Y%m%d')}.pdf"
+
+            # Return PDF as file response
+            response = FileResponse(
+                pdf_buffer,
+                as_attachment=True,
+                filename=filename,
+                content_type="application/pdf",
+            )
+            return response
+
+        except Exception as e:
+            # Log the error for debugging
+            import traceback
+
+            print(f"PDF Export Error: {str(e)}")
+            print(traceback.format_exc())
+
+            return Response(
+                {"detail": f"Error generating PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ProgressReportSettingsViewSet(viewsets.ModelViewSet):

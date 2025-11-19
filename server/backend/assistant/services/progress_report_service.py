@@ -106,7 +106,17 @@ class ReportGenerationService:
             # Update report with generated content
             report.progress_summary = report_content.get("progress_summary", "")
             report.workout_feedback = report_content.get("workout_feedback", "")
+            report.workout_frequency = report_content.get("workout_frequency", "")
+            report.workout_duration = report_content.get("workout_duration", "")
+            report.workout_recommendations = report_content.get(
+                "workout_recommendations", ""
+            )
             report.nutrition_feedback = report_content.get("nutrition_feedback", "")
+            report.nutrition_adherence = report_content.get("nutrition_adherence", "")
+            report.nutrition_intake = report_content.get("nutrition_intake", "")
+            report.nutrition_recommendations = report_content.get(
+                "nutrition_recommendations", ""
+            )
             report.key_takeaways = report_content.get("key_takeaways", "")
             report.status = "generated"
             report.save()
@@ -328,7 +338,13 @@ class ReportGenerationService:
         sections = {
             "progress_summary": "",
             "workout_feedback": "",
+            "workout_frequency": "",
+            "workout_duration": "",
+            "workout_recommendations": "",
             "nutrition_feedback": "",
+            "nutrition_adherence": "",
+            "nutrition_intake": "",
+            "nutrition_recommendations": "",
             "key_takeaways": "",
         }
 
@@ -337,16 +353,38 @@ class ReportGenerationService:
             parts = ai_response.split("===")
 
             for i in range(1, len(parts), 2):
-                section_name = parts[i].strip().lower().replace("_", "_")
+                section_name = parts[i].strip().lower().replace(" ", "_")
                 section_content = parts[i + 1].strip() if i + 1 < len(parts) else ""
 
-                if "progress" in section_name and "summary" in section_name:
+                # Match sections
+                if "progress_summary" in section_name or "progress" in section_name:
                     sections["progress_summary"] = section_content
-                elif "workout" in section_name:
+                elif "workout_feedback" in section_name:
                     sections["workout_feedback"] = section_content
-                elif "nutrition" in section_name:
+                elif "workout_frequency" in section_name:
+                    sections["workout_frequency"] = section_content
+                elif (
+                    "average_duration" in section_name
+                    or "workout_duration" in section_name
+                ):
+                    sections["workout_duration"] = section_content
+                elif "workout_recommendations" in section_name:
+                    sections["workout_recommendations"] = section_content
+                elif "nutrition_feedback" in section_name:
                     sections["nutrition_feedback"] = section_content
-                elif "key" in section_name and "takeaway" in section_name:
+                elif (
+                    "adherence_rate" in section_name
+                    or "nutrition_adherence" in section_name
+                ):
+                    sections["nutrition_adherence"] = section_content
+                elif (
+                    "average_daily_intake" in section_name
+                    or "nutrition_intake" in section_name
+                ):
+                    sections["nutrition_intake"] = section_content
+                elif "nutrition_recommendations" in section_name:
+                    sections["nutrition_recommendations"] = section_content
+                elif "key_takeaway" in section_name or "takeaway" in section_name:
                     sections["key_takeaways"] = section_content
 
         except Exception as e:

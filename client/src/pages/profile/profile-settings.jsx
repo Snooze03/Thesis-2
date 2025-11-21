@@ -48,7 +48,7 @@ const ReportSettings = () => {
     useEffect(() => {
         if (settings) {
             setIsShort(settings.report_type === 'short');
-            setDaysInterval(settings.report_interval || 7);
+            setDaysInterval(settings.day_interval || 7);
         }
     }, [settings]);
 
@@ -64,12 +64,12 @@ const ReportSettings = () => {
     };
 
     const handleSaveSettings = () => {
-        const settingsData = {
+        const updateData = {
+            id: settings.id,
+            day_interval: daysInterval,
             report_type: isShort ? 'short' : 'detailed',
-            report_interval: daysInterval,
         };
-        console.log(`Settings Data`, settingsData);
-        updateSettings(settingsData);
+        updateSettings(updateData);
     };
     // ===== END EVENT HANDLERS =====
 
@@ -77,24 +77,7 @@ const ReportSettings = () => {
         return (
             <>
                 <SectionSubTitle>Progress Report</SectionSubTitle>
-                <Card>
-                    <CardContent className="space-y-4">
-                        <Skeleton className="h-4 w-32" />
-                    </CardContent>
-                </Card>
-            </>
-        );
-    }
-
-    if (isError) {
-        return (
-            <>
-                <SectionSubTitle>Progress Report</SectionSubTitle>
-                <Card>
-                    <CardContent className="py-8">
-                        <p className="text-center text-red-500">Failed to load settings. Please try again.</p>
-                    </CardContent>
-                </Card>
+                <Skeleton className="h-80 w-full" />
             </>
         );
     }

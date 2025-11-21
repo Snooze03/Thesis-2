@@ -26,8 +26,15 @@ export function useUpdateSettings() {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (settingsData) => {
-            const response = await api.patch(`/assistant/progress-report-settings/`, settingsData);
+        mutationFn: async (updateData) => {
+            const id = updateData.id;
+
+            const payload = {
+                day_interval: updateData.day_interval,
+                report_type: updateData.report_type,
+            };
+
+            const response = await api.patch(`/assistant/progress-report-settings/${id}/`, payload);
             return response.data;
         },
         onSuccess: () => {

@@ -28,19 +28,14 @@ export function useUpdateSettings() {
     const mutation = useMutation({
         mutationFn: async (updateData) => {
             const id = updateData.id;
-
-            const payload = {
-                day_interval: updateData.day_interval,
-                report_type: updateData.report_type,
-            };
-
-            const response = await api.patch(`/assistant/progress-report-settings/${id}/`, payload);
+            const response = await api.patch(`/assistant/progress-report-settings/${id}/`, updateData);
             return response.data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             // Invalidate and refetch settings
             queryClient.invalidateQueries({ queryKey: ['progressReportSettings'] });
             toast.success("Settings updated successfully!");
+            // console.log("Settings updated successfully", { ...data });
         },
         onError: (error) => {
             console.error("Error updating settings:", error);

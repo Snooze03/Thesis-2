@@ -2,7 +2,7 @@ import os
 from openai import OpenAI  # type: ignore
 from datetime import datetime
 from django.utils import timezone
-from ..models.progress_report import ProgressReport
+from ..models.progress_report import ProgressReport, ProgressReportSettings
 from .data_collection_service import DataCollectionService
 from .rule_based_analyzer import RuleBasedAnalyzer
 
@@ -120,6 +120,23 @@ class ReportGenerationService:
             report.key_takeaways = report_content.get("key_takeaways", "")
             report.status = "generated"
             report.save()
+
+            # Update user's progress report settings
+            settings, created = ProgressReportSettings.objects.get_or_create(
+                user=user,
+                defaults={
+                    "day_interval": 7,
+                    "report_type": "short",
+                    "is_enabled": True,
+                },
+            )
+            # Set last_generated_at to current datetime
+            current_time = timezone.now()
+            settings.last_generated_at = current_time
+            settings.save(update_fields=["last_generated_at"])
+
+            # Update next generation date (converts datetime to date automatically)
+            settings.update_next_generation_date()
 
             return report
 

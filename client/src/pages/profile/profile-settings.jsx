@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchSettings, useUpdateSettings } from "@/hooks/assistant/useProgressReportSettings";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { clsx } from "clsx";
 import { SubLayout } from "@/layouts/sub-layout";
-import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
+import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";
 import { Card, CardContent, CardAction, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Minus, StickyNote, NotepadText } from "lucide-react";
+import { ArrowLeft, Plus, Minus, StickyNote, NotepadText, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProfileSettings() {
@@ -31,6 +32,8 @@ export function ProfileSettings() {
 const ReportSettings = () => {
     const [isShort, setIsShort] = useState(true);
     const [daysInterval, setDaysInterval] = useState(7);
+    const [lastGeneratedAt, setLastGeneratedAt] = useState(null);
+    const [nextReportDate, setNextReportDate] = useState(null);
 
     const {
         settings,
@@ -49,6 +52,8 @@ const ReportSettings = () => {
         if (settings) {
             setIsShort(settings.report_type === 'short');
             setDaysInterval(settings.day_interval || 7);
+            setLastGeneratedAt(settings.last_generated_display);
+            setNextReportDate(settings.next_generation_display);
         }
     }, [settings]);
 
@@ -72,6 +77,8 @@ const ReportSettings = () => {
         updateSettings(updateData);
     };
     // ===== END EVENT HANDLERS =====
+
+    useScrollLock(isLoading);
 
     if (isLoading) {
         return (
@@ -162,6 +169,32 @@ const ReportSettings = () => {
                             {isUpdating ? "Saving..." : "Save Settings"}
                         </Button>
                     </CardAction>
+                </CardContent>
+            </Card>
+
+            <SectionSubTitle>Report Dates</SectionSubTitle>
+            <Card>
+                <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                            <Calendar className="size-4 text-gray-700 mt-1" />
+                            <div>
+                                <p className="text-sm text-gray-600">Last generated</p>
+                                <p className="text-gray-600 font-semibold">
+                                    {lastGeneratedAt ? lastGeneratedAt.split("a")[0] : "Never"}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-200">
+                            <Calendar className="size-4 text-sky-700 mt-1" />
+                            <div>
+                                <p className="text-sm text-sky-600">Next generation</p>
+                                <p className="text-sky-600 font-semibold">
+                                    {nextReportDate || "Not scheduled"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </>

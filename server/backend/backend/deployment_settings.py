@@ -44,3 +44,75 @@ DATABASES = {
         conn_max_age=600,
     )
 }
+
+# ==========================================
+# CELERY CONFIGURATION (Production - PostgreSQL)
+# ==========================================
+# Convert postgresql:// to sqla+postgresql:// for Celery broker
+DATABASE_URL = os.environ.get("DATABASE_URL")
+CELERY_BROKER_URL = DATABASE_URL.replace("postgresql://", "sqla+postgresql://", 1)
+
+# Celery Result Backend
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
+
+# Celery Serialization
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
+# Celery Timezone
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat Scheduler
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Task Execution Settings
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes hard limit
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes soft limit
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Result Backend Settings
+CELERY_RESULT_EXTENDED = True
+CELERY_RESULT_BACKEND_ALWAYS_RETRY = True
+CELERY_RESULT_BACKEND_MAX_RETRIES = 10
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
+
+# Worker Settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Logging Configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "assistant": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

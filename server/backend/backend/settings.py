@@ -66,9 +66,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_filters",
-    "django_celery_beat",
-    "django_celery_results",
-    # "kombu.transport.django",
     # My Apps
     "accounts",
     "workouts",
@@ -178,29 +175,3 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 CORS_ALLOWS_CREDENTIALS = False  # set to 'False' in development otherwise it will not work with allow all origins
-
-# ==========================================
-# CELERY CONFIGURATION (Development - SQLite)
-# ==========================================
-# Use SQLAlchemy broker with SQLite
-CELERY_BROKER_URL = f'sqla+sqlite:///{BASE_DIR / "db.sqlite3"}'
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_CACHE_BACKEND = "django-cache"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_RESULT_EXTENDED = True
-CELERY_RESULT_BACKEND_ALWAYS_RETRY = True
-CELERY_RESULT_BACKEND_MAX_RETRIES = 10
-CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1
-CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
-# CELERY_BROKER_TRANSPORT_OPTIONS = {
-#     "visibility_timeout": 3600,  # 1 hour
-# }

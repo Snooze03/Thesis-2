@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useChatAssistant } from "@/hooks/useChatAssistant";
+import { useChatAssistant } from "@/hooks/assistant/useChatAssistant";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/layouts/main-layout";
 import { SectionTitle, SectionSubTitle, SectionSubText } from "@/components/ui/section-title";

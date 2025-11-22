@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from assistant.data_collection_service import DataCollectionService
+from services.data_collection_service import DataCollectionService
 from datetime import timedelta
 import json
 

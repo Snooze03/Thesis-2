@@ -3,6 +3,7 @@ import { Profile } from "./dashboard/profile-dashboard";
 import { ProfileSettings } from "./profile-settings";
 import { ProfileEdit } from "./edit/profile-edit";
 import { WeightAllEntries } from "./dashboard/weight-all-entries";
+import { ProgressReportView } from "./dashboard/progress-report-view";
 import { NotFound } from "@/routes";
 
 export function ProfileRoutes() {
@@ -12,6 +13,7 @@ export function ProfileRoutes() {
             <Route path="edit" element={<ProfileEdit />} />
             <Route path="settings" element={<ProfileSettings />} />
             <Route path="weight-entries" element={<WeightAllEntries />} />
+            <Route path="progress-report" element={<ProgressReportView />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

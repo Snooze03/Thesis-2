@@ -2,8 +2,8 @@ import os
 from openai import OpenAI  # type: ignore
 from datetime import datetime
 from django.utils import timezone
-from ..models.progress_report import ProgressReport
-from ..data_collection_service import DataCollectionService
+from ..models.progress_report import ProgressReport, ProgressReportSettings
+from .data_collection_service import DataCollectionService
 from .rule_based_analyzer import RuleBasedAnalyzer
 
 
@@ -106,10 +106,37 @@ class ReportGenerationService:
             # Update report with generated content
             report.progress_summary = report_content.get("progress_summary", "")
             report.workout_feedback = report_content.get("workout_feedback", "")
+            report.workout_frequency = report_content.get("workout_frequency", "")
+            report.workout_duration = report_content.get("workout_duration", "")
+            report.workout_recommendations = report_content.get(
+                "workout_recommendations", ""
+            )
             report.nutrition_feedback = report_content.get("nutrition_feedback", "")
+            report.nutrition_adherence = report_content.get("nutrition_adherence", "")
+            report.nutrition_intake = report_content.get("nutrition_intake", "")
+            report.nutrition_recommendations = report_content.get(
+                "nutrition_recommendations", ""
+            )
             report.key_takeaways = report_content.get("key_takeaways", "")
             report.status = "generated"
             report.save()
+
+            # Update user's progress report settings
+            settings, created = ProgressReportSettings.objects.get_or_create(
+                user=user,
+                defaults={
+                    "day_interval": 7,
+                    "report_type": "short",
+                    "is_enabled": True,
+                },
+            )
+            # Set last_generated_at to current datetime
+            current_time = timezone.now()
+            settings.last_generated_at = current_time
+            settings.save(update_fields=["last_generated_at"])
+
+            # Update next generation date (converts datetime to date automatically)
+            settings.update_next_generation_date()
 
             return report
 
@@ -187,34 +214,42 @@ class ReportGenerationService:
         prompt_parts = []
 
         # User Profile Section
-        if user_profile:
-            prompt_parts.append("=== USER PROFILE ===")
+        prompt_parts.append("=== USER PROFILE ===")
 
-            if "user_profile" in user_profile:
-                up = user_profile["user_profile"]
-                if up.get("body_goal"):
-                    prompt_parts.append(f"Body Goal: {up['body_goal']}")
-                if up.get("activity_level"):
-                    prompt_parts.append(f"Activity Level: {up['activity_level']}")
-                if up.get("current_weight") and up.get("goal_weight"):
-                    prompt_parts.append(
-                        f"Weight: {up['current_weight']}kg (Goal: {up['goal_weight']}kg)"
-                    )
-                if up.get("workout_frequency"):
-                    prompt_parts.append(
-                        f"Target Workout Frequency: {up['workout_frequency']} times/week"
-                    )
+        if user_profile and "user_profile" in user_profile:
+            up = user_profile["user_profile"]
+            if up.get("body_goal"):
+                prompt_parts.append(f"Body Goal: {up['body_goal']}")
+            if up.get("activity_level"):
+                prompt_parts.append(f"Activity Level: {up['activity_level']}")
+            if up.get("age"):
+                prompt_parts.append(f"Age: {up['age']}")
+            if up.get("starting_weight"):
+                prompt_parts.append(f"Starting Weight: {up['starting_weight']}kg")
+            if up.get("current_weight"):
+                prompt_parts.append(f"Current Weight: {up['current_weight']}kg")
+            if up.get("goal_weight"):
+                prompt_parts.append(f"Goal Weight: {up['goal_weight']}kg")
+            if up.get("workout_frequency"):
+                prompt_parts.append(
+                    f"Target Workout Frequency: {up['workout_frequency']} times/week"
+                )
+        else:
+            prompt_parts.append("No user profile data available")
 
-            if "nutrition_profile" in user_profile:
-                np = user_profile["nutrition_profile"]
-                if np.get("bmi"):
-                    prompt_parts.append(
-                        f"BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
-                    )
-                if np.get("tdee"):
-                    prompt_parts.append(f"TDEE: {np['tdee']} kcal/day")
+        if user_profile and "nutrition_profile" in user_profile:
+            np = user_profile["nutrition_profile"]
+            prompt_parts.append("\nNutrition Profile:")
+            if np.get("bmi"):
+                prompt_parts.append(
+                    f"- BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
+                )
+            if np.get("bmr"):
+                prompt_parts.append(f"- BMR: {np['bmr']} kcal/day")
+            if np.get("tdee"):
+                prompt_parts.append(f"- TDEE: {np['tdee']} kcal/day")
 
-            prompt_parts.append("")
+        prompt_parts.append("")
 
         # Nutrition Data Section
         prompt_parts.append("=== NUTRITION DATA ===")
@@ -310,7 +345,7 @@ class ReportGenerationService:
             prompt_parts.append("=" * 60)
 
         prompt_parts.append(
-            "\nPlease analyze this data and provide a comprehensive progress report."
+            "\nPlease analyze this data and provide a comprehensive progress report that aligns with the user's body goal."
         )
 
         return "\n".join(prompt_parts)
@@ -328,7 +363,13 @@ class ReportGenerationService:
         sections = {
             "progress_summary": "",
             "workout_feedback": "",
+            "workout_frequency": "",
+            "workout_duration": "",
+            "workout_recommendations": "",
             "nutrition_feedback": "",
+            "nutrition_adherence": "",
+            "nutrition_intake": "",
+            "nutrition_recommendations": "",
             "key_takeaways": "",
         }
 
@@ -337,16 +378,38 @@ class ReportGenerationService:
             parts = ai_response.split("===")
 
             for i in range(1, len(parts), 2):
-                section_name = parts[i].strip().lower().replace("_", "_")
+                section_name = parts[i].strip().lower().replace(" ", "_")
                 section_content = parts[i + 1].strip() if i + 1 < len(parts) else ""
 
-                if "progress" in section_name and "summary" in section_name:
+                # Match sections
+                if "progress_summary" in section_name or "progress" in section_name:
                     sections["progress_summary"] = section_content
-                elif "workout" in section_name:
+                elif "workout_feedback" in section_name:
                     sections["workout_feedback"] = section_content
-                elif "nutrition" in section_name:
+                elif "workout_frequency" in section_name:
+                    sections["workout_frequency"] = section_content
+                elif (
+                    "average_duration" in section_name
+                    or "workout_duration" in section_name
+                ):
+                    sections["workout_duration"] = section_content
+                elif "workout_recommendations" in section_name:
+                    sections["workout_recommendations"] = section_content
+                elif "nutrition_feedback" in section_name:
                     sections["nutrition_feedback"] = section_content
-                elif "key" in section_name and "takeaway" in section_name:
+                elif (
+                    "adherence_rate" in section_name
+                    or "nutrition_adherence" in section_name
+                ):
+                    sections["nutrition_adherence"] = section_content
+                elif (
+                    "average_daily_intake" in section_name
+                    or "nutrition_intake" in section_name
+                ):
+                    sections["nutrition_intake"] = section_content
+                elif "nutrition_recommendations" in section_name:
+                    sections["nutrition_recommendations"] = section_content
+                elif "key_takeaway" in section_name or "takeaway" in section_name:
                     sections["key_takeaways"] = section_content
 
         except Exception as e:

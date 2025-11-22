@@ -42,34 +42,15 @@ DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,
-        conn_health_checks=True,
     )
 }
-
-# Print for debugging (remove after fixing)
-print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
-print(f"Using database: {DATABASES['default']}")
 
 # ==========================================
 # CELERY CONFIGURATION (Production - PostgreSQL)
 # ==========================================
-# Parse DATABASE_URL to get PostgreSQL connection string for Celery
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
-# Convert postgres:// to postgresql:// (required by SQLAlchemy)
-# Then convert to sqla+postgresql:// for Celery broker
-if DATABASE_URL:
-    # Handle both postgres:// and postgresql:// formats
-    celery_db_url = DATABASE_URL
-    if celery_db_url.startswith("postgres://"):
-        celery_db_url = celery_db_url.replace("postgres://", "postgresql://", 1)
-    if celery_db_url.startswith("postgresql://"):
-        celery_db_url = celery_db_url.replace("postgresql://", "sqla+postgresql://", 1)
-
-    CELERY_BROKER_URL = celery_db_url
-else:
-    # Fallback (shouldn't happen in production)
-    CELERY_BROKER_URL = f'sqla+sqlite:///{BASE_DIR / "db.sqlite3"}'
+# Convert postgresql:// to sqla+postgresql:// for Celery broker
+DATABASE_URL = os.environ.get("DATABASE_URL")
+CELERY_BROKER_URL = DATABASE_URL.replace("postgresql://", "sqla+postgresql://", 1)
 
 # Celery Result Backend
 CELERY_RESULT_BACKEND = "django-db"
@@ -102,7 +83,7 @@ CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
-# Logging Configuration (helps with debugging on Render)
+# Logging Configuration
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

@@ -8,6 +8,7 @@ import { BeforeAndAfterPicture } from "./before-and-after-picture";
 import { ReportCard } from "./progress-reports";
 import { SectionTitle, SectionSubTitle } from "@/components/ui/section-title";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyItems } from "@/components/empty-items";
 
 const Profile = () => {
     const {

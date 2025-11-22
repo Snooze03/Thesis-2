@@ -42,8 +42,13 @@ DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+
+# Print for debugging (remove after fixing)
+print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
+print(f"Using database: {DATABASES['default']}")
 
 # ==========================================
 # CELERY CONFIGURATION (Production - PostgreSQL)

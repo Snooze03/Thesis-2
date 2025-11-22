@@ -97,11 +97,6 @@ CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
-# Broker Transport Options
-# CELERY_BROKER_TRANSPORT_OPTIONS = {
-#     "visibility_timeout": 3600,  # 1 hour
-# }
-
 # Logging Configuration (helps with debugging on Render)
 LOGGING = {
     "version": 1,

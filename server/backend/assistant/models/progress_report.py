@@ -39,8 +39,8 @@ class ProgressReportSettings(models.Model):
                 days=self.day_interval
             )
         else:
-            # First time - schedule for tomorrow
-            next_date = timezone.now().date() + timedelta(days=1)
+            # First time - current date + interval
+            next_date = timezone.now().date() + timedelta(days=self.day_interval)
 
         self.next_generation_date = next_date
         self.save(update_fields=["next_generation_date"])

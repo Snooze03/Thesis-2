@@ -2,8 +2,15 @@ import os
 from celery import Celery
 from celery.schedules import crontab
 
+# Detect if we're in production
+settings_module = (
+    "backend.deployment_settings"
+    if "RENDER_EXTERNAL_HOSTNAME" in os.environ
+    else "backend.settings"
+)
+
 # Set Django settings module
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_module)
 
 app = Celery("backend")
 

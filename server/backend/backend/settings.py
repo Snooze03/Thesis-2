@@ -66,9 +66,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_filters",
-    "django_celery_beat",
-    "django_celery_results",
-    # "kombu.transport.django",
     # My Apps
     "accounts",
     "workouts",

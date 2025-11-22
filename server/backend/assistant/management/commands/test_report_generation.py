@@ -1,10 +1,11 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from ...models.progress_report import ProgressReportSettings
 from ...services.progress_report_service import ReportGenerationService
 from ...services.data_collection_service import DataCollectionService
 from ...services.rule_based_analyzer import RuleBasedAnalyzer
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 
 User = get_user_model()
 
@@ -80,14 +81,29 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"{'='*80}\n"))
         self.stdout.write(f"User: {user.email} (ID: {user.id})")
 
-        # Generate period with timezone-aware datetimes
-        period_end = timezone.now()
-        period_start = period_end - timedelta(days=days)
+        # Use progress report settings for start and end dates
+        try:
+            settings = ProgressReportSettings.objects.get(user=user)
+            # Convert date to datetime at end of day for period_end
+            period_end_date = settings.next_generation_date
+            period_end = timezone.make_aware(
+                datetime.combine(period_end_date, time(23, 59, 59))
+            )
 
-        self.stdout.write(
-            f"Period: {period_start.strftime('%Y-%m-%d %H:%M')} to {period_end.strftime('%Y-%m-%d %H:%M')}"
-        )
-        self.stdout.write(f"Report Type: {report_type}\n")
+            # Use last_generated_at if available, otherwise calculate from period_end
+            if settings.last_generated_at:
+                period_start = settings.last_generated_at
+            else:
+                period_start = period_end - timedelta(days=days)
+        except ProgressReportSettings.DoesNotExist:
+            period_end = timezone.now()
+            period_start = period_end - timedelta(days=days)
+
+        self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
+        self.stdout.write(self.style.SUCCESS(f"Report Date Parameters"))
+        self.stdout.write(self.style.SUCCESS(f"{'='*80}\n"))
+        self.stdout.write(f"Start: {period_start}")
+        self.stdout.write(f"End: {period_end}")
 
         try:
             # Collect data and run rule-based analysis

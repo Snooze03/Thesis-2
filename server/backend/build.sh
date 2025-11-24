@@ -8,7 +8,8 @@ python manage.py migrate --no-input
 
 if [[$CREATE_SUPERUSER]]; 
 then
-    python manage.py createsuperuser --no-input 
+    python manage.py createsuperuser --no-input --email $DJANGO_SUPERUSER_EMAIL --username $DJANGO_SUPERUSER_USERNAME --password $DJANGO_SUPERUSER_PASSWORD
+    echo "Superuser created."
 fi
 
 # Celery

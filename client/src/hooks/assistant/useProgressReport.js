@@ -1,7 +1,9 @@
 import api from "@/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function fetchProgressReport(userId) {
+    const queryClient = useQueryClient();
+
     const progressReports = useQuery({
         queryKey: ['progressReport', userId],
         queryFn: async () => {
@@ -14,10 +16,16 @@ export function fetchProgressReport(userId) {
         refetchOnWindowFocus: false,
     });
 
+    // Invalidate function
+    const invalidateProgressReport = () => {
+        queryClient.invalidateQueries({ queryKey: ['progressReport', userId] });
+    }
+
     return {
         progressReports: progressReports.data,
         isLoading: progressReports.isLoading,
         isError: progressReports.isError,
+        invalidateProgressReport,
     }
 }
 

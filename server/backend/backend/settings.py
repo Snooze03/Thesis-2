@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "django_filters",
+    "django_celery_beat",
+    "django_celery_results",
     # My Apps
     "accounts",
     "workouts",
@@ -198,6 +200,8 @@ CELERY_RESULT_BACKEND_MAX_RETRIES = 10
 CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
-# CELERY_BROKER_TRANSPORT_OPTIONS = {
-#     "visibility_timeout": 3600,  # 1 hour
-# }
+
+# Memory optimization settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Only fetch 1 task at a time
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 10  # Restart worker after 10 tasks (frees memory)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = 400000  # 400MB - restart if exceeds

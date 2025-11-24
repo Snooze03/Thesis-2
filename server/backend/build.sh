@@ -1,11 +1,19 @@
+#!/usr/bin/env bash
 set -o errexit
 
+echo "Installing dependencies..."
 pip install -r requirements.txt
 
+echo "Collecting static files..."
 python manage.py collectstatic --no-input
 
-python manage.py migrate
+echo "Running migrations..."
+python manage.py migrate --noinput
 
-# Celery
-python manage.py migrate django_celery_beat
-python manage.py migrate django_celery_results
+# if [[ $CREATE_SUPERUSER ]]; 
+# then
+#     echo "Creating superuser..."
+#     python manage.py createsuperuser --no-input 
+# fi
+
+echo "Build complete!"

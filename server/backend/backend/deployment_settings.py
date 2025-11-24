@@ -116,3 +116,8 @@ LOGGING = {
         },
     },
 }
+
+# Memory optimization settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Only fetch 1 task at a time
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 10  # Restart worker after 10 tasks (frees memory)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = 400000  # 400MB - restart if exceeds

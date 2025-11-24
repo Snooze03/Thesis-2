@@ -24,14 +24,18 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     "generate-scheduled-progress-reports": {
         "task": "assistant.tasks.generate_scheduled_progress_reports",
-        "schedule": crontab(hour=5, minute=0),  # 5:00 AM every day
+        "schedule": crontab(hour=0, minute=0),  # 12:00 AM (midnight) every day
+        # FOR DEV TESTING PURPOSES ONLY
+        # "schedule": crontab(minute="*"),  # Every minute
         "options": {
             "expires": 3600,  # Task expires after 1 hour if not picked up
         },
     },
     "cleanup-old-reports": {
         "task": "assistant.tasks.cleanup_old_reports",
-        "schedule": crontab(hour=2, minute=0, day_of_week=0),  # Sunday 2 AM
+        "schedule": crontab(
+            hour=0, minute=0, day_of_week=0
+        ),  # Sunday 12:00 AM (midnight)
         "options": {
             "expires": 7200,
         },

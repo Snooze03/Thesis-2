@@ -24,6 +24,7 @@ class ProgressReportSettingsSerializer(serializers.ModelSerializer):
 
     def validate_day_interval(self, value):
         """Validate day interval is between 7 and 120 days"""
+        # if value < 0: # For testing only
         if value < 7:
             raise serializers.ValidationError("Day interval must be at least 7 days")
         if value > 120:

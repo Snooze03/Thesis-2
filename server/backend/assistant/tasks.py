@@ -84,6 +84,74 @@ def generate_progress_report_task(
         raise self.retry(exc=e, countdown=60)
 
 
+@shared_task(name="assistant.tasks.test_generate_all_user_reports")
+def test_generate_all_user_reports():
+    """
+    TEST TASK: Generate progress reports for ALL users with enabled settings.
+    This is for testing purposes - generates reports for the last 7 days.
+    """
+    from assistant.models.progress_report import ProgressReportSettings
+
+    logger.info("TEST: Starting report generation for ALL users")
+
+    # Get all users with enabled report settings
+    all_settings = ProgressReportSettings.objects.filter(
+        is_enabled=True
+    ).select_related("user")
+
+    if not all_settings.exists():
+        logger.warning("No users with enabled report settings found")
+        return {
+            "status": "success",
+            "message": "No users to generate reports for",
+            "reports_scheduled": 0,
+        }
+
+    reports_scheduled = 0
+    errors = 0
+
+    for setting in all_settings:
+        try:
+            # Calculate period (last 7 days or user's interval)
+            period_end = timezone.now()
+            period_start = period_end - timedelta(days=setting.day_interval)
+
+            logger.info(
+                f"Scheduling report for user {setting.user.email} "
+                f"({period_start.date()} to {period_end.date()})"
+            )
+
+            # Schedule the report generation task
+            generate_progress_report_task.delay(
+                user_id=setting.user.id,
+                period_start=period_start.isoformat(),
+                period_end=period_end.isoformat(),
+                report_type=setting.report_type,
+            )
+
+            reports_scheduled += 1
+
+        except Exception as e:
+            logger.error(
+                f"Error scheduling report for user {setting.user.email}: {str(e)}"
+            )
+            errors += 1
+            continue
+
+    logger.info(
+        f"TEST: Report generation complete. "
+        f"Reports scheduled: {reports_scheduled}, Errors: {errors}"
+    )
+
+    return {
+        "status": "success",
+        "reports_scheduled": reports_scheduled,
+        "errors": errors,
+        "users_processed": all_settings.count(),
+        "timestamp": timezone.now().isoformat(),
+    }
+
+
 @shared_task(name="assistant.tasks.generate_scheduled_progress_reports")
 def generate_scheduled_progress_reports():
     """

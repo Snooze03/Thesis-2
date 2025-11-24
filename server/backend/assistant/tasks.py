@@ -3,16 +3,33 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from datetime import timedelta
 import logging
+import psutil  # Add this to requirements.txt
+import os
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
 
+def log_memory_usage(task_name, stage="start"):
+    """Helper function to log memory usage"""
+    try:
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        memory_mb = memory_info.rss / 1024 / 1024  # Convert to MB
+        logger.info(f"[MEMORY] {task_name} - {stage}: {memory_mb:.2f} MB")
+        return memory_mb
+    except Exception as e:
+        logger.warning(f"[MEMORY] Could not get memory info: {e}")
+        return 0
+
+
 @shared_task(name="assistant.tasks.test_celery_task")
 def test_celery_task():
     """Test task to verify Celery is working"""
+    log_memory_usage("test_celery_task", "start")
     logger.info("[TASK-TEST] Test Celery task executed successfully!")
+    log_memory_usage("test_celery_task", "end")
     return {
         "status": "success",
         "message": "Celery is working!",
@@ -40,6 +57,9 @@ def generate_progress_report_task(
     """
     from .models import ProgressReport
     from .services.progress_report_service import ReportGenerationService
+    import gc
+
+    log_memory_usage("generate_progress_report_task", "start")
 
     try:
         # Get user
@@ -47,6 +67,8 @@ def generate_progress_report_task(
         logger.info(
             f"[TASK] Generating progress report for user {user.email} ({period_start} to {period_end})"
         )
+
+        log_memory_usage("generate_progress_report_task", "after_user_fetch")
 
         # Parse dates
         from django.utils.dateparse import parse_datetime
@@ -63,9 +85,15 @@ def generate_progress_report_task(
             report_type=report_type,
         )
 
+        log_memory_usage("generate_progress_report_task", "after_generation")
+
         logger.info(
             f"[TASK] Successfully generated report {report.id} for user {user.email}"
         )
+
+        # Force garbage collection to free memory
+        gc.collect()
+        log_memory_usage("generate_progress_report_task", "after_gc")
 
         return {
             "status": "success",
@@ -83,6 +111,8 @@ def generate_progress_report_task(
         logger.error(f"[TASK] Error generating report for user {user_id}: {str(e)}")
         # Retry the task
         raise self.retry(exc=e, countdown=60)
+    finally:
+        log_memory_usage("generate_progress_report_task", "end")
 
 
 @shared_task(name="assistant.tasks.test_generate_all_user_reports")
@@ -93,7 +123,9 @@ def test_generate_all_user_reports():
     """
     from .models import ProgressReportSettings
     from .services.progress_report_service import ReportGenerationService
+    import gc
 
+    log_memory_usage("test_generate_all_user_reports", "start")
     logger.info("[TASK] Starting report generation for ALL users")
 
     # Get all users with enabled report settings
@@ -111,10 +143,18 @@ def test_generate_all_user_reports():
 
     reports_generated = 0
     reports_failed = 0
-    service = ReportGenerationService()
 
+    # Process users one at a time to reduce memory usage
     for setting in all_settings:
         try:
+            logger.info(f"[TASK] Processing user {setting.user.email}")
+            log_memory_usage(
+                "test_generate_all_user_reports", f"before_{setting.user.email}"
+            )
+
+            # Create new service instance for each user
+            service = ReportGenerationService()
+
             # Calculate period (use user's interval setting)
             period_end = timezone.now()
             period_start = period_end - timedelta(days=setting.day_interval)
@@ -132,9 +172,20 @@ def test_generate_all_user_reports():
             else:
                 reports_failed += 1
 
+            # Clean up after each user
+            del service
+            gc.collect()
+            log_memory_usage(
+                "test_generate_all_user_reports", f"after_{setting.user.email}"
+            )
+
         except Exception as e:
+            logger.error(f"[TASK] Error for user {setting.user.email}: {str(e)}")
             reports_failed += 1
+            gc.collect()
             continue
+
+    log_memory_usage("test_generate_all_user_reports", "end")
 
     return {
         "status": "success",
@@ -152,7 +203,9 @@ def generate_scheduled_progress_reports():
     and schedules report generation tasks for them.
     """
     from .models import ProgressReportSettings
+    import gc
 
+    log_memory_usage("generate_scheduled_progress_reports", "start")
     logger.info("[TASK] Starting scheduled progress report generation check")
 
     # Get all users with enabled report settings who are due for a report
@@ -194,6 +247,9 @@ def generate_scheduled_progress_reports():
             errors += 1
             continue
 
+    gc.collect()
+    log_memory_usage("generate_scheduled_progress_reports", "end")
+
     logger.info(
         f"[TASK] Scheduled progress report check complete. "
         f"[TASK] Reports scheduled: {reports_scheduled}, Errors: {errors}"
@@ -216,7 +272,9 @@ def cleanup_old_reports(keep_last_n=5):
         keep_last_n: Number of most recent reports to keep per user (default: 5)
     """
     from .models import ProgressReport
+    import gc
 
+    log_memory_usage("cleanup_old_reports", "start")
     logger.info(
         f"[TASK] Starting cleanup of old progress reports (keeping last {keep_last_n})"
     )
@@ -261,6 +319,9 @@ def cleanup_old_reports(keep_last_n=5):
                 f"[TASK] Error cleaning up reports for user ID {user_id}: {str(e)}"
             )
             continue
+
+    gc.collect()
+    log_memory_usage("cleanup_old_reports", "end")
 
     logger.info(
         f"[TASK] Cleanup complete. Deleted {deleted_count} reports across {users_cleaned} users"

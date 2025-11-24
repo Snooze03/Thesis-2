@@ -38,8 +38,8 @@ def generate_progress_report_task(
         period_end: End date of the reporting period (ISO format string)
         report_type: Type of report ('short' or 'detailed')
     """
-    from assistant.models.progress_report import ProgressReport
-    from assistant.services.progress_report_service import ProgressReportService
+    from .models import ProgressReport
+    from .services.progress_report_service import ReportGenerationService
 
     try:
         # Get user
@@ -55,13 +55,12 @@ def generate_progress_report_task(
         end_date = parse_datetime(period_end)
 
         # Generate report using service
-        service = ProgressReportService()
+        service = ReportGenerationService()
         report = service.generate_report(
             user=user,
             period_start=start_date,
             period_end=end_date,
             report_type=report_type,
-            auto_generated=True,
         )
 
         logger.info(f"Successfully generated report {report.id} for user {user.email}")
@@ -158,7 +157,8 @@ def generate_scheduled_progress_reports():
     Scheduled task that runs daily to check which users are due for progress reports
     and schedules report generation tasks for them.
     """
-    from assistant.models.progress_report import ProgressReportSettings
+    # from assistant.models.progress_report import ProgressReportSettings
+    from .models import ProgressReportSettings
 
     logger.info("Starting scheduled progress report generation check")
 

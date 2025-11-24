@@ -60,3 +60,4 @@ reportlab
 weasyprint
 django-celery-beat
 SQLAlchemy
+psutil

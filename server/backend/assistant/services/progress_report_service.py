@@ -33,9 +33,6 @@ class ReportGenerationService:
         # Get system prompt file
         self.base_prompt = self._get_system_prompt()
 
-        # Initialize rule-based analyzer
-        self.rule_analyzer = RuleBasedAnalyzer()
-
     def _get_system_prompt(self):
         prompt_file = os.path.join(
             os.path.dirname(__file__),
@@ -83,15 +80,20 @@ class ReportGenerationService:
             data_service = DataCollectionService(user, period_start, period_end)
             collected_data = data_service.collect_all_data()
 
+            print(f"[ReportService] Data collected for user {user.email}")
+
             # Check if there's enough data to generate a report
             has_nutrition = collected_data["nutrition_data"]["has_data"]
             has_workouts = collected_data["workout_data"]["has_data"]
 
             if not has_nutrition and not has_workouts:
+                print(f"[ReportService] Insufficient data for user {user.email}")
                 report.status = "failed"
                 report.generation_error = "Insufficient data: No nutrition or workout data found for this period"
                 report.save()
                 return report
+
+            print(f"[ReportService] Running rule-based analysis for user {user.email}")
 
             # Apply rule-based analysis WITH period information
             rule_analyzer = RuleBasedAnalyzer(
@@ -100,8 +102,12 @@ class ReportGenerationService:
             rule_based_insights = rule_analyzer.analyze_all(collected_data)
             collected_data["rule_based_insights"] = rule_based_insights
 
+            print(f"[ReportService] Generating AI report content for user {user.email}")
+
             # Generate report sections using AI
             report_content = self._generate_report_content(collected_data, report_type)
+
+            print(f"[ReportService] AI content generated for user {user.email}")
 
             # Update report with generated content
             report.progress_summary = report_content.get("progress_summary", "")
@@ -121,6 +127,8 @@ class ReportGenerationService:
             report.status = "generated"
             report.save()
 
+            print(f"[ReportService] Report {report.id} saved for user {user.email}")
+
             # Update user's progress report settings
             settings, created = ProgressReportSettings.objects.get_or_create(
                 user=user,
@@ -138,14 +146,24 @@ class ReportGenerationService:
             # Update next generation date (converts datetime to date automatically)
             settings.update_next_generation_date()
 
+            print(
+                f"[ReportService] Successfully completed report for user {user.email}"
+            )
+
             return report
 
         except Exception as e:
             # Handle generation errors
+            print(
+                f"[ReportService] ERROR generating report for user {user.email}: {str(e)}"
+            )
+            import traceback
+
+            traceback.print_exc()
+
             report.status = "failed"
             report.generation_error = str(e)
             report.save()
-            print(f"Error generating progress report: {e}")
             return report
 
     def _generate_report_content(self, collected_data, report_type):
@@ -163,6 +181,8 @@ class ReportGenerationService:
         system_prompt = self._build_system_prompt(report_type)
         user_prompt = self._build_user_prompt(collected_data)
 
+        print(f"[ReportService] Calling LLM API...")
+
         # Call OpenAI API
         response = self.client.chat.completions.create(
             model=self.model,
@@ -173,6 +193,8 @@ class ReportGenerationService:
             temperature=0.7,
             max_tokens=2000 if report_type == "detailed" else 1000,
         )
+
+        print(f"[ReportService] LLM API response received")
 
         # Parse the AI response
         ai_response = response.choices[0].message.content
@@ -328,9 +350,11 @@ class ReportGenerationService:
             prompt_parts.append("=== RULE-BASED ANALYSIS ===")
             prompt_parts.append("=" * 60)
 
-            insights_summary = self.rule_analyzer.get_summary_insights(
-                rule_based_insights
-            )
+            # Create a new rule analyzer instance just for summary
+            from .rule_based_analyzer import RuleBasedAnalyzer
+
+            temp_analyzer = RuleBasedAnalyzer()
+            insights_summary = temp_analyzer.get_summary_insights(rule_based_insights)
             prompt_parts.append(insights_summary)
 
             prompt_parts.append("\n" + "=" * 60)

@@ -4,7 +4,7 @@ export const InputError = ({ className, children, props }) => {
     return (
         <div
             className={cn(
-                "px-1 text-sm text-red-500",
+                "px-3 py-2 text-sm bg-red-50 text-red-500 rounded-lg",
                 className
             )}
             {...props}>

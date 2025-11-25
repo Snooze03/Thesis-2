@@ -20,6 +20,12 @@ export const formatDate = (dateString, format = 'MM-DD-YYYY') => {
                 day: 'numeric',
                 year: 'numeric'
             });
+        case 'ddd, MMM DD':
+            return date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
         default:
             return dateString;
     }

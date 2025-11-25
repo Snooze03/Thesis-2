@@ -4,11 +4,11 @@ const WeightEntrySchema = v.object({
     weight: v.pipe(
         v.string("Weight is required"),
         v.nonEmpty("Weight cannot be empty"),
+        v.regex(/^\d+(\.\d{1,2})?$/, "Weight must be a valid number with up to 2 decimal places"),
         v.transform(parseFloat),
         v.number("Weight must be a valid number"),
         v.minValue(20, "Weight must be at least 20 kg"),
-        v.maxValue(500, "Weight cannot exceed 500 kg"),
-        v.transform((val) => parseFloat(val.toFixed(2))) // Round to 2 decimal places
+        v.maxValue(500, "Weight cannot exceed 500 kg")
     ),
     recorded_date: v.pipe(
         v.string("Date is required"),

@@ -116,7 +116,7 @@ function WeightManager() {
 }
 
 function AddWeight({ open, onOpenChange, onSuccess }) {
-    const { addMutation, isPending } = useAddWeightEntry();
+    const { mutate: addEntry, isPending } = useAddWeightEntry();
 
     const {
         register,
@@ -162,7 +162,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
     };
 
     const onSubmit = async (data) => {
-        addMutation.mutate(data, {
+        addEntry(data, {
             onSuccess: () => {
                 reset();
                 onOpenChange(false);

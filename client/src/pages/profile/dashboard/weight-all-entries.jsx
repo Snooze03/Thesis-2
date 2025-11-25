@@ -25,7 +25,7 @@ function WeightAllEntries() {
     } = useWeightHistory();
 
     const {
-        deleteMutation,
+        mutate: deleteEntry,
         isPending,
         isError: isDeleteError,
     } = useDeleteWeightEntry();
@@ -54,7 +54,7 @@ function WeightAllEntries() {
     };
 
     const handleDeleteConfirm = () => {
-        deleteMutation.mutate(selectedEntryId);
+        deleteEntry(selectedEntryId);
         setDeleteDialogOpen(false);
     };
 
@@ -123,7 +123,7 @@ function WeightAllEntries() {
                                                         {getWeightChangeText(entry.weight_change)}
                                                     </div>
                                                 )}
-                                                <KebabMenu items={menuItems} disabled={deleteMutation.isPending} />
+                                                <KebabMenu items={menuItems} disabled={isPending} />
                                             </div>
                                         </div>
                                     );

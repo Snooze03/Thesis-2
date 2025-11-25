@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useAddWeightEntry } from "@/hooks/profile/useWeightEntry";
-import api from "@/api";
+import toast from "react-hot-toast";
+import { useAddWeightEntry, useRecentWeightHistory } from "@/hooks/profile/useWeightEntry";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
@@ -18,6 +17,9 @@ import { WeightEntrySchema } from "../schema/weight-entry-schema";
 import { TrendingUp, Plus, ListCollapse } from "lucide-react";
 
 function WeightManager() {
+    const navigate = useNavigate();
+    const [isDialogueOpen, setIsDialogueOpen] = useState(false);
+
     const chartConfig = {
         weight: {
             label: "Weight",
@@ -26,36 +28,17 @@ function WeightManager() {
     };
 
     const {
-        data: weightHistory = [],
-        isPending,
+        weightHistory,
+        chartData,
+        isLoading,
         refetch
-    } = useQuery({
-        queryKey: ["weight_history"],
-        queryFn: async () => {
-            const response = await api.get("accounts/weight-history/recent/");
-            return response.data.data;
-        }
-    });
+    } = useRecentWeightHistory();
 
-    // Gets chart data from response and sort it from old -> new logs
-    const chartData = [...weightHistory]
-        .sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date))
-        .slice(-10) // only get the latest 10 entries
-        .map((entry) => ({
-            month: new Date(entry.recorded_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-            }),
-            weight: parseFloat(entry.weight),
-        }))
-
-    const [isDialogueOpen, setIsDialogueOpen] = useState(false);
-
+    // ===== EVENT HANDLERS =====
     const openWeightDialogue = () => {
         setIsDialogueOpen(true);
     }
-
-    const navigate = useNavigate();
+    // ===== END EVENT HANDLERS =====
 
     const menuItems = [
         { type: "title", label: "Weight Entry" },
@@ -63,7 +46,7 @@ function WeightManager() {
         { icon: ListCollapse, label: "All Entries", action: () => navigate("/profile/weight-entries") },
     ]
 
-    if (isPending) return <LoadingSpinner message="Chart" />
+    if (isLoading) return <LoadingSpinner message="Chart" />
 
     return (
         <Card className="gap-2">
@@ -133,8 +116,6 @@ function WeightManager() {
 }
 
 function AddWeight({ open, onOpenChange, onSuccess }) {
-    const [apiError, setApiError] = useState("");
-
     const { addMutation, isPending } = useAddWeightEntry();
 
     const {
@@ -151,64 +132,49 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
         }
     });
 
-    const onSubmit = async (data) => {
-        setApiError("");
+    const handleApiError = (err) => {
+        const errorData = err.response?.data;
 
+        // Handle field-specific errors
+        if (errorData?.errors) {
+            const { errors: apiErrors } = errorData;
+
+            // Set field errors using react-hook-form
+            Object.keys(apiErrors).forEach((field) => {
+                if (field === "non_field_errors") {
+                    toast.error(apiErrors[field][0] || "Failed to add weight entry");
+                } else if (["weight", "recorded_date"].includes(field)) {
+                    setError(field, {
+                        type: "server",
+                        message: apiErrors[field][0]
+                    });
+                }
+            });
+        }
+        // Handle general error messages
+        else if (errorData?.message) {
+            toast.error(errorData.message);
+        }
+        // Fallback error
+        else {
+            toast.error("Failed to add weight entry. Please try again.");
+        }
+    };
+
+    const onSubmit = async (data) => {
         addMutation.mutate(data, {
             onSuccess: () => {
                 reset();
                 onOpenChange(false);
                 onSuccess();
-                setApiError("");
             },
-            onError: (err) => {
-                console.error("Error adding weight:", err);
-
-                if (err.response?.data?.errors) {
-                    const errors = err.response.data.errors;
-
-                    if (errors.non_field_errors && errors.non_field_errors[0]) {
-                        const errorMessage = errors.non_field_errors[0];
-                        if (errorMessage.includes("Weight entry already exists for this date") ||
-                            errorMessage.includes("one weight per day")) {
-                            setApiError("You already have a weight entry for this date. You can only record one weight per day.");
-                        } else {
-                            setApiError(errorMessage);
-                        }
-                    } else if (errors.recorded_date && errors.recorded_date[0]) {
-                        setError("recorded_date", {
-                            type: "server",
-                            message: errors.recorded_date[0]
-                        });
-                    } else if (errors.weight && errors.weight[0]) {
-                        setError("weight", {
-                            type: "server",
-                            message: errors.weight[0]
-                        });
-                    } else {
-                        setApiError("Failed to add weight entry. Please try again.");
-                    }
-                } else if (err.response?.data?.message) {
-                    const message = err.response.data.message;
-                    if (message.includes("Weight entry already exists") ||
-                        message.includes("one weight per day")) {
-                        setApiError("You already have a weight entry for this date. You can only record one weight per day.");
-                    } else {
-                        setApiError(message);
-                    }
-                } else if (err.response?.status === 400) {
-                    setApiError("Unable to add weight entry. You may already have an entry for this date, or the data is invalid.");
-                } else {
-                    setApiError("Failed to add weight entry. Please check your connection and try again.");
-                }
-            }
+            onError: handleApiError
         });
     };
 
     const handleClose = () => {
         if (!isPending) {
             reset();
-            setApiError("");
             onOpenChange(false);
         }
     };
@@ -223,13 +189,17 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
+                {errors.recorded_date || errors.weight && (
+                    <div className="w-full px-3 py-2 bg-red-200/50 rounded-lg">
+                        {errors.weight ?
+                            <div className="px-3 py-1 bg-red-300/40 border-1 border-red-500/40 rounded-md">
+                                <p className="text-sm">{errors.weight.message}</p>
+                            </div>
+                            : null
+                        }
+                    </div>
+                )}
                 <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-3">
-                    {apiError && (
-                        <InputError className="col-span-2 -mt-2 text-sm bg-red-50 p-2 rounded-lg">
-                            {apiError}
-                        </InputError>
-                    )}
-
                     <div className="space-y-2">
                         <Label htmlFor="weight">Weight (kg)</Label>
                         <Input
@@ -240,9 +210,6 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             disabled={isPending}
                             {...register("weight")}
                         />
-                        {errors.weight && (
-                            <p className="text-red-600 text-sm">{errors.weight.message}</p>
-                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -254,23 +221,14 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             disabled={isPending}
                             {...register("recorded_date")}
                         />
-                        {errors.recorded_date && (
-                            <p className="text-red-600 text-sm">{errors.recorded_date.message}</p>
-                        )}
                     </div>
                 </form>
 
                 <AlertDialogFooter>
-                    <AlertDialogCancel
-                        onClick={handleClose}
-                        disabled={isPending}
-                    >
+                    <AlertDialogCancel onClick={handleClose} disabled={isPending}>
                         Cancel
                     </AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={handleSubmit(onSubmit)}
-                        disabled={isPending}
-                    >
+                    <AlertDialogAction onClick={handleSubmit(onSubmit)} disabled={isPending}>
                         {isPending ? "Saving..." : "Save"}
                     </AlertDialogAction>
                 </AlertDialogFooter>

@@ -9,6 +9,7 @@ import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/utils/formatDate";
 import { useState } from "react";
 
 function WeightAllEntries() {
@@ -29,15 +30,9 @@ function WeightAllEntries() {
         isError: isDeleteError,
     } = useDeleteWeightEntry();
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
+    useScrollLock(isLoading);
 
+    // ===== STYLE HELPERS =====
     const getWeightChangeColor = (change) => {
         if (change > 0) return 'text-red-500';
         if (change < 0) return 'text-green-500';
@@ -49,8 +44,7 @@ function WeightAllEntries() {
         const sign = change > 0 ? '+' : '';
         return `${sign}${change} kg`;
     };
-
-    useScrollLock(isLoading);
+    // ===== END STYLE HELPERS =====
 
     // ===== EVENT HANDLERS =====
     const handleDeleteClick = (entry) => {
@@ -118,7 +112,7 @@ function WeightAllEntries() {
                                         )}>
                                             <div className="flex flex-col gap-1">
                                                 <p className="font-medium text-lg">{entry.weight} kg</p>
-                                                <p className="text-sm text-gray-600">{formatDate(entry.recorded_date)}</p>
+                                                <p className="text-sm text-gray-600">{formatDate(entry.recorded_date, 'ddd, MMM DD')}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {entry.weight_change && (
@@ -148,7 +142,7 @@ function WeightAllEntries() {
                         <AlertDialogDescription>
                             {selectedEntry && (
                                 <>
-                                    Are you sure you want to delete this weight entry of {selectedEntry.weight} kg from {formatDate(selectedEntry.recorded_date)}?
+                                    Are you sure you want to delete this weight entry of <span className="font-bold">{selectedEntry.weight} kg</span>  from <span className="font-bold">{formatDate(selectedEntry.recorded_date, 'ddd, MMM DD')}</span>?
                                     This action cannot be undone.
                                 </>
                             )}

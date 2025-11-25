@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { useWeightHistory, useDeleteWeightEntry } from "@/hooks/profile/useWeightEntry";
+import { useWeightHistory, useDeleteWeightEntry, useEditWeightEntry } from "@/hooks/profile/useWeightEntry";
 import { SubLayout } from "@/layouts/sub-layout";
 import { SectionTitle } from "@/components/ui/section-title";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -10,11 +12,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/utils/formatDate";
+import { valibotResolver } from "@hookform/resolvers/valibot";
+import { InputError } from "@/components/ui/inputError";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { WeightEntrySchema } from "../schema/weight-entry-schema";
 import { useState } from "react";
 
 function WeightAllEntries() {
     const navigate = useNavigate();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [selectedEntryId, setSelectedEntryId] = useState(null);
     const [selectedEntry, setSelectedEntry] = useState(null);
 
@@ -26,9 +34,13 @@ function WeightAllEntries() {
 
     const {
         mutate: deleteEntry,
-        isPending,
-        isError: isDeleteError,
+        isPending: isDeleting,
     } = useDeleteWeightEntry();
+
+    const {
+        mutate: editEntry,
+        isPending: isEditing,
+    } = useEditWeightEntry();
 
     useScrollLock(isLoading);
 
@@ -47,6 +59,12 @@ function WeightAllEntries() {
     // ===== END STYLE HELPERS =====
 
     // ===== EVENT HANDLERS =====
+    const handleEditClick = (entry) => {
+        setSelectedEntry(entry);
+        setSelectedEntryId(entry.id);
+        setEditDialogOpen(true);
+    };
+
     const handleDeleteClick = (entry) => {
         setSelectedEntry(entry);
         setSelectedEntryId(entry.id);
@@ -57,12 +75,7 @@ function WeightAllEntries() {
         deleteEntry(selectedEntryId);
         setDeleteDialogOpen(false);
     };
-
-    const handleEdit = (id) => {
-        console.log(`Edit ${id}`)
-    }
     // ===== END EVENT HANDLERS =====
-
 
     return (
         <SubLayout>
@@ -93,7 +106,6 @@ function WeightAllEntries() {
             {!isLoading && !isError && (
                 <div className="space-y-6">
                     {Object.entries(weightEntries).map(([monthYear, entries]) => (
-                        // Month & Year Group
                         <div key={monthYear} className="space-y-3">
                             <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                                 {monthYear}
@@ -101,7 +113,7 @@ function WeightAllEntries() {
                             <div className="space-y-2">
                                 {entries.map(entry => {
                                     const menuItems = [
-                                        { icon: Pencil, label: "Edit", action: () => handleEdit(entry.id) },
+                                        { icon: Pencil, label: "Edit", action: () => handleEditClick(entry) },
                                         { icon: Trash2, label: "Delete", action: () => handleDeleteClick(entry), variant: "destructive" },
                                     ];
 
@@ -123,7 +135,7 @@ function WeightAllEntries() {
                                                         {getWeightChangeText(entry.weight_change)}
                                                     </div>
                                                 )}
-                                                <KebabMenu items={menuItems} disabled={isPending} />
+                                                <KebabMenu items={menuItems} disabled={isDeleting || isEditing} />
                                             </div>
                                         </div>
                                     );
@@ -134,6 +146,14 @@ function WeightAllEntries() {
                 </div>
             )}
 
+            {/* Edit Weight Dialog */}
+            <EditWeight
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                entry={selectedEntry}
+                entryId={selectedEntryId}
+            />
+
             {/* Delete entry dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
@@ -142,7 +162,7 @@ function WeightAllEntries() {
                         <AlertDialogDescription>
                             {selectedEntry && (
                                 <>
-                                    Are you sure you want to delete this weight entry of <span className="font-bold">{selectedEntry.weight} kg</span>  from <span className="font-bold">{formatDate(selectedEntry.recorded_date, 'ddd, MMM DD')}</span>?
+                                    Are you sure you want to delete this weight entry of <span className="font-bold">{selectedEntry.weight} kg</span> from <span className="font-bold">{formatDate(selectedEntry.recorded_date, 'ddd, MMM DD')}</span>?
                                     This action cannot be undone.
                                 </>
                             )}
@@ -159,6 +179,124 @@ function WeightAllEntries() {
                 </AlertDialogContent>
             </AlertDialog>
         </SubLayout>
+    );
+}
+
+function EditWeight({ open, onOpenChange, entry, entryId }) {
+    const { mutate: editEntry, isPending } = useEditWeightEntry();
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors },
+        setError
+    } = useForm({
+        resolver: valibotResolver(WeightEntrySchema),
+        defaultValues: {
+            weight: entry?.weight || "",
+            recorded_date: entry?.recorded_date || new Date().toISOString().split('T')[0]
+        },
+        values: entry ? {
+            weight: entry.weight,
+            recorded_date: entry.recorded_date
+        } : undefined
+    });
+
+    const handleApiError = (err) => {
+        const errorData = err.response?.data;
+
+        if (errorData?.errors) {
+            const { errors: apiErrors } = errorData;
+
+            Object.keys(apiErrors).forEach((field) => {
+                if (field === "non_field_errors") {
+                    toast.error(apiErrors[field][0] || "Failed to update weight entry");
+                } else if (["weight", "recorded_date"].includes(field)) {
+                    setError(field, {
+                        type: "server",
+                        message: apiErrors[field][0]
+                    });
+                }
+            });
+        } else if (errorData?.message) {
+            toast.error(errorData.message);
+        } else {
+            toast.error("Failed to update weight entry. Please try again.");
+        }
+    };
+
+    const onSubmit = async (data) => {
+        editEntry(
+            { id: entryId, data },
+            {
+                onSuccess: () => {
+                    reset();
+                    onOpenChange(false);
+                },
+                onError: handleApiError
+            }
+        );
+    };
+
+    const handleClose = () => {
+        if (!isPending) {
+            reset();
+            onOpenChange(false);
+        }
+    };
+
+    const errorMessage = errors.weight?.message || errors.recorded_date?.message;
+
+    return (
+        <AlertDialog open={open} onOpenChange={handleClose}>
+            <AlertDialogContent className="w-sm">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Edit Weight Entry</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Update the weight measurement below.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-3">
+                    {errorMessage && (
+                        <InputError className="col-span-2 -mt-2">{errorMessage}</InputError>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label htmlFor="weight">Weight (kg)</Label>
+                        <Input
+                            id="weight"
+                            type="number"
+                            step="0.01"
+                            placeholder="55.00"
+                            disabled={isPending}
+                            {...register("weight")}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="recorded_date">Recorded At</Label>
+                        <Input
+                            id="recorded_date"
+                            type="date"
+                            max={new Date().toISOString().split('T')[0]}
+                            disabled={isPending}
+                            {...register("recorded_date")}
+                        />
+                    </div>
+                </form>
+
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={handleClose} disabled={isPending}>
+                        Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSubmit(onSubmit)} disabled={isPending}>
+                        {isPending ? "Updating..." : "Update"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 

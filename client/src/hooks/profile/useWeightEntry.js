@@ -38,6 +38,38 @@ export function useWeightHistory() {
     }
 }
 
+export function useRecentWeightHistory() {
+    const query = useQuery({
+        queryKey: ["weight_history"],
+        queryFn: async () => {
+            const response = await api.get("accounts/weight-history/recent/");
+            return response.data.data;
+        }
+    });
+
+    // Gets chart data from response and sort it from old -> new logs
+    const chartData = query.data
+        ? [...query.data]
+            .sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date))
+            .slice(-10) // only get the latest 10 entries
+            .map((entry) => ({
+                month: new Date(entry.recorded_date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                }),
+                weight: parseFloat(entry.weight),
+            }))
+        : [];
+
+    return {
+        weightHistory: query.data || [],
+        chartData,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        refetch: query.refetch
+    }
+}
+
 export function useAddWeightEntry() {
     const queryClient = useQueryClient();
 

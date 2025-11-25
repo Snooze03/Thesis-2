@@ -179,6 +179,9 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
         }
     };
 
+    // Get the first error message if any
+    const errorMessage = errors.weight?.message || errors.recorded_date?.message;
+
     return (
         <AlertDialog open={open} onOpenChange={handleClose}>
             <AlertDialogContent className="w-sm">
@@ -189,17 +192,11 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                {errors.recorded_date || errors.weight && (
-                    <div className="w-full px-3 py-2 bg-red-200/50 rounded-lg">
-                        {errors.weight ?
-                            <div className="px-3 py-1 bg-red-300/40 border-1 border-red-500/40 rounded-md">
-                                <p className="text-sm">{errors.weight.message}</p>
-                            </div>
-                            : null
-                        }
-                    </div>
-                )}
                 <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-3">
+                    {errorMessage && (
+                        <InputError className="col-span-2 -mt-2">{errorMessage}</InputError>
+                    )}
+
                     <div className="space-y-2">
                         <Label htmlFor="weight">Weight (kg)</Label>
                         <Input

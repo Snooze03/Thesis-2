@@ -15,11 +15,10 @@ const NutritionDashboard = () => {
     // console.log(dailyEntry);
     // console.log("Nutrition Profile:", profile);
 
-    useScrollLock(isDailyEntryLoading);
-
     if (isDailyEntryLoading) {
         return <NutritionDashboardSkeleton />;
     }
+
 
     return (
         <MainLayout>
@@ -34,13 +33,16 @@ const NutritionDashboard = () => {
 }
 
 const NutritionDashboardSkeleton = () => {
+    useScrollLock(true);
+
     return (
         <MainLayout>
-            <Skeleton className="w-25 h-10" />
-            <Skeleton className="w-30 h-5" />
-            <Skeleton className="w-full h-55" />
-            <Skeleton className="w-30 h-5" />
-            <Skeleton className="w-full h-55" />
+            {[...Array(3)].map((_, index) => (
+                <div key={index} className="space-y-3">
+                    <Skeleton className="w-30 h-5" />
+                    <Skeleton className="w-full h-55" />
+                </div>
+            ))}
         </MainLayout>
     );
 }

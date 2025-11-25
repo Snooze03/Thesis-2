@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { Dumbbell, Flag, Apple, Target, Edit, Settings, LogOut } from "lucide-react";
 
-export const ProfileCard = ({ acc_data, acc_profile }) => {
+export const ProfileCard = ({ data, profile }) => {
     const navigate = useNavigate();
 
     const capitalize = (s) => {
@@ -15,16 +15,17 @@ export const ProfileCard = ({ acc_data, acc_profile }) => {
 
     // Get the latest weight from weight history, fallback to current_weight from profile
     const getLatestWeight = () => {
-        if (acc_data.weight_history && acc_data.weight_history.length > 0) {
+        if (data.weight_history && data.weight_history.length > 0) {
             // Weight history is ordered by most recent first
-            return Number(acc_data.weight_history[0].weight).toFixed(2);
+            return Number(data.weight_history[0].weight).toFixed(2);
         }
         // Fallback to profile current_weight if no weight history
-        return Number(acc_profile.current_weight).toFixed(2);
+        return Number(profile.current_weight).toFixed(2);
     };
 
-    const first_name = acc_data.first_name;
-    const userName = `${capitalize(acc_data.first_name)} ${capitalize(acc_data.last_name)}`
+    // Extract data for stats
+    const first_name = data.first_name;
+    const userName = `${capitalize(data.first_name)} ${capitalize(data.last_name)}`
     const weight = getLatestWeight();
 
     const menuItems = [
@@ -33,7 +34,7 @@ export const ProfileCard = ({ acc_data, acc_profile }) => {
             icon: Edit,
             label: "Edit",
             action: () => navigate("/profile/edit", {
-                state: { userData: { ...acc_data, profile: acc_profile } }
+                state: { userData: { ...data, profile: profile } }
             })
         },
         { icon: Settings, label: "Settings", action: () => navigate("/profile/settings") },
@@ -76,7 +77,7 @@ export const ProfileCard = ({ acc_data, acc_profile }) => {
                     <div className="grid grid-rows-2 place-items-center ">
                         <p className="font-semibold text-lg max-xs:text-md">
                             <Apple className="inline mr-1.5 stroke-red-400 size-4 max-xs:size-4" />
-                            {acc_profile.weight_progress} <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
+                            {profile.weight_progress} <span className="text-gray-800 font-normal max-xs:text-xs">kg</span>
                         </p>
                         <p className="text-gray-600 max-xs:text-sm">Progress</p>
                     </div>

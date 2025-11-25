@@ -1,6 +1,7 @@
 import api from "@/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { useMemo } from "react";
 
 export function useWeightHistory() {
     const entries = useQuery({
@@ -8,12 +9,16 @@ export function useWeightHistory() {
         queryFn: async () => {
             const response = await api.get("/accounts/weight-history/");
             return response.data.data;
-        }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 10, // 10 minutes 
     });
 
-    // Sort entries by date (latest first) and group by month
-    const sortedAndGroupedEntries = entries.data
-        ? entries.data
+    // Memoize the sorting and grouping to prevent recalculation on every render
+    const sortedAndGroupedEntries = useMemo(() => {
+        if (!entries.data) return {};
+
+        return entries.data
             .sort((a, b) => new Date(b.recorded_date) - new Date(a.recorded_date))
             .reduce((groups, entry) => {
                 const date = new Date(entry.recorded_date);
@@ -28,13 +33,14 @@ export function useWeightHistory() {
                 groups[monthYear].push(entry);
 
                 return groups;
-            }, {})
-        : {};
+            }, {});
+    }, [entries.data]);
 
     return {
         weightEntries: sortedAndGroupedEntries,
         isLoading: entries.isLoading,
-        isError: entries.isError
+        isError: entries.isError,
+        error: entries.error
     }
 }
 
@@ -44,28 +50,33 @@ export function useRecentWeightHistory() {
         queryFn: async () => {
             const response = await api.get("accounts/weight-history/recent/");
             return response.data.data;
-        }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 10, // 10 minutes
     });
 
-    // Gets chart data from response and sort it from old -> new logs
-    const chartData = query.data
-        ? [...query.data]
+    // Memoize chart data transformation
+    const chartData = useMemo(() => {
+        if (!query.data) return [];
+
+        return [...query.data]
             .sort((a, b) => new Date(a.recorded_date) - new Date(b.recorded_date))
-            .slice(-10) // only get the latest 10 entries
+            .slice(-10)
             .map((entry) => ({
                 month: new Date(entry.recorded_date).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                 }),
                 weight: parseFloat(entry.weight),
-            }))
-        : [];
+            }));
+    }, [query.data]);
 
     return {
         weightHistory: query.data || [],
         chartData,
         isLoading: query.isLoading,
         isError: query.isError,
+        error: query.error,
         refetch: query.refetch
     }
 }
@@ -83,7 +94,8 @@ export function useAddWeightEntry() {
         },
         onSuccess: () => {
             toast.success("Weight entry added successfully!");
-            // Invalidate both query keys to refresh all weight data
+            // Invalidate queries to refetch fresh data
+            queryClient.invalidateQueries({ queryKey: ["account_data"] });
             queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
             queryClient.invalidateQueries({ queryKey: ["weight_history"] });
         },
@@ -93,10 +105,13 @@ export function useAddWeightEntry() {
     });
 
     return {
-        addMutation: addEntry,
+        mutate: addEntry.mutate,
+        mutateAsync: addEntry.mutateAsync,
         isPending: addEntry.isPending,
         isError: addEntry.isError,
-        error: addEntry.error
+        isSuccess: addEntry.isSuccess,
+        error: addEntry.error,
+        reset: addEntry.reset
     }
 }
 
@@ -107,21 +122,58 @@ export function useDeleteWeightEntry() {
         mutationFn: async (id) => {
             await api.delete(`/accounts/weight-history/${id}/`);
         },
+        // Optimistic update for better UX
+        onMutate: async (deletedId) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["weightEntries"] });
+            await queryClient.cancelQueries({ queryKey: ["weight_history"] });
+
+            // Snapshot previous values
+            const previousEntries = queryClient.getQueryData(["weightEntries"]);
+            const previousHistory = queryClient.getQueryData(["weight_history"]);
+
+            // Optimistically update cache
+            queryClient.setQueryData(["weightEntries"], (old) => {
+                if (!old) return old;
+                return old.filter(entry => entry.id !== deletedId);
+            });
+
+            queryClient.setQueryData(["weight_history"], (old) => {
+                if (!old) return old;
+                return old.filter(entry => entry.id !== deletedId);
+            });
+
+            // Return context with snapshot
+            return { previousEntries, previousHistory };
+        },
         onSuccess: () => {
             toast.success("Entry deleted successfully!");
-            // Invalidate both query keys to refresh all weight data
-            queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
-            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
         },
-        onError: (error) => {
+        onError: (error, deletedId, context) => {
+            // Rollback on error
+            if (context?.previousEntries) {
+                queryClient.setQueryData(["weightEntries"], context.previousEntries);
+            }
+            if (context?.previousHistory) {
+                queryClient.setQueryData(["weight_history"], context.previousHistory);
+            }
             toast.error("Failed to delete weight entry");
             console.error('Delete error:', error);
+        },
+        onSettled: () => {
+            // Always refetch after error or success
+            queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
+            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
         }
     });
 
     return {
-        deleteMutation: deleteEntry,
+        mutate: deleteEntry.mutate,
+        mutateAsync: deleteEntry.mutateAsync,
         isPending: deleteEntry.isPending,
-        isError: deleteEntry.isError
+        isError: deleteEntry.isError,
+        isSuccess: deleteEntry.isSuccess,
+        error: deleteEntry.error,
+        reset: deleteEntry.reset
     }
 }

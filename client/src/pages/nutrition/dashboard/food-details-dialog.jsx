@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useUpdateFoodEntry, useDeleteFoodEntry } from "@/hooks/nutrition/food/useUpdateFoodEntry";
@@ -11,17 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Flame, Beef, Wheat, Citrus, Utensils, RefreshCcw } from "lucide-react";
+import { Flame, Beef, Wheat, Citrus, Utensils, RefreshCcw, Trash } from "lucide-react";
 import { toast } from "react-hot-toast";
 import clsx from "clsx";
-import { Trash } from "lucide-react";
+
+const MEALS = ["breakfast", "lunch", "dinner", "snack"];
+const SERVING_SIZES = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
 
 export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, isDietPlan = false }) {
     const [isCustomServing, setIsCustomServing] = useState(false);
-    const meal = ["breakfast", "lunch", "dinner", "snack"];
-    const servingSizes = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
-
-    // console.log(`Food DB ID ${foodDatabaseId} for Food ID ${foodId} in Entry ID ${entryId}`);
 
     // ===== FORM HANDLER =====
     const {
@@ -42,18 +40,14 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
     });
     // ===== END FORM HANDLER =====
 
-    // Fetch Food Details
+    // Fetch Food Details 
     const {
-        foodData,
+        foodDetails,
+        foodServings: servings,
         isLoading,
         isError,
         error,
     } = useFoodDatabase(foodDatabaseId);
-
-    // get data from json response
-    const foodDetails = foodData;
-    const foodServings = foodData?.fatsecret_servings;
-    const servings = Array.isArray(foodServings) ? foodServings : [];
 
     // Watch form values for UI updates
     const selectedServingId = watch("selectedServingId");
@@ -61,17 +55,25 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
     const customUnit = watch("customUnit");
     const selectedMeal = watch("selectedMeal");
 
-    // Find the selected serving, and use the first one as default
-    const selectedServing = selectedServingId
-        ? servings.find(serving => serving.serving_id === selectedServingId)
-        : servings[0];
+    // Memoize selected serving calculation
+    const selectedServing = useMemo(() => {
+        return selectedServingId
+            ? servings.find(serving => serving.serving_id === selectedServingId)
+            : servings[0];
+    }, [selectedServingId, servings]);
 
-    // Set default serving when servings are loaded
+    // Reset form and set default serving when dialog opens or foodDatabaseId changes
     useEffect(() => {
-        if (servings.length > 0 && !selectedServingId) {
-            setValue("selectedServingId", servings[0].serving_id);
+        if (isOpen && servings.length > 0) {
+            reset({
+                selectedServingId: servings[0].serving_id,
+                customAmount: "",
+                customUnit: "",
+                selectedMeal: ""
+            });
+            setIsCustomServing(false);
         }
-    }, [servings, selectedServingId, setValue]);
+    }, [isOpen, foodDatabaseId, servings, reset]);
 
     // Reset form when dialog closes
     useEffect(() => {
@@ -89,6 +91,7 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
         }
     }, [errors]);
 
+    // ===== MUTATIONS =====
     const {
         updateFoodEntry,
         isUpdatingFoodEntry,
@@ -117,9 +120,16 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
             onClose();
         }
     });
+    // ===== END MUTATIONS =====
 
-    // ===== FORM SUBMISSION HANDLER =====
-    const onSubmit = (formData) => {
+    // Memoize loading state
+    const isProcessing = useMemo(() =>
+        isUpdatingFoodEntry || isDeletingFoodEntry,
+        [isUpdatingFoodEntry, isDeletingFoodEntry]
+    );
+
+    // ===== MEMOIZED HANDLERS =====
+    const onSubmit = useCallback((formData) => {
         const updateData = {
             meal_type: formData.selectedMeal,
             serving_type: "fatsecret",
@@ -130,17 +140,20 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
         };
 
         if (isDietPlan) {
-            console.log(`ID: ${foodDatabaseId}`);
             updateDietPlanFoodItem({ mealItemId: foodDatabaseId, updateData });
         } else {
             updateFoodEntry({ foodEntryId: entryId, updateData });
         }
-    };
-    // ==== END FORM SUBMISSION HANDLER =====
+    }, [isDietPlan, foodDatabaseId, entryId, updateDietPlanFoodItem, updateFoodEntry]);
 
-    const handleDeleteEntry = () => {
+    const handleDeleteEntry = useCallback(() => {
         deleteFoodEntry(entryId);
-    }
+    }, [deleteFoodEntry, entryId]);
+
+    const toggleCustomServing = useCallback((value) => {
+        setIsCustomServing(value);
+    }, []);
+    // ===== END MEMOIZED HANDLERS =====
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -167,39 +180,14 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                 {!isLoading && foodDetails && (
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         {/* Food macros */}
-                        <div className="grid grid-cols-4 gap-3">
-                            <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-primary-100 rounded-md text-gray-700">
-                                <Flame className="size-4 stroke-primary" />
-                                <p className="text-xs">Calories</p>
-                                <p className="text-sm font-medium">{selectedServing?.calories || 0}</p>
-                            </div>
-                            <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-green-100 rounded-md text-green-500">
-                                <Beef className="size-4 stroke-green-400" />
-                                <p className="text-xs">Protein</p>
-                                <p className="text-sm font-medium">{selectedServing?.protein || 0} g</p>
-                            </div>
-                            <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-orange-100 rounded-md text-orange-500">
-                                <Wheat className="size-4 stroke-orange-400" />
-                                <p className="text-xs">Carbs</p>
-                                <p className="text-sm font-medium">{selectedServing?.carbohydrate || 0} g</p>
-                            </div>
-                            <div className="px-3 py-2 flex flex-col items-center justify-center gap-[2px] bg-purple-100 rounded-md text-purple-500">
-                                <Citrus className="size-4 stroke-purple-400" />
-                                <p className="text-xs">Fats</p>
-                                <p className="text-sm font-medium">{selectedServing?.fat || 0} g</p>
-                            </div>
-                        </div>
+                        <MacroCards selectedServing={selectedServing} />
 
                         {/* FatSecret Servings */}
-                        <div className="space-y-2" onClick={() => setIsCustomServing(false)}>
-                            <div className="flex items-center justify-between gap-4">
-                                <p className={clsx(
-                                    "text-sm",
-                                    { "text-gray-600": isCustomServing },
-                                    { "font-semibold": !isCustomServing },
-                                )}>Serving Options</p>
-                                <Separator className="h-px flex-1 bg-border" />
-                            </div>
+                        <div className="space-y-2" onClick={() => toggleCustomServing(false)}>
+                            <SectionHeader
+                                title="Serving Options"
+                                isActive={!isCustomServing}
+                            />
                             <Select
                                 onValueChange={(value) => setValue("selectedServingId", value)}
                                 value={selectedServingId}
@@ -214,7 +202,6 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                                             key={serving.serving_id || index}
                                             value={serving.serving_id || index.toString()}
                                         >
-                                            {/* {serving.metric_serving_amount} {serving.metric_serving_unit} */}
                                             {serving.serving_description.length > 5 ? (
                                                 <span>{serving.serving_description} • ({serving.metric_serving_amount} {serving.metric_serving_unit})</span>
                                             ) : (
@@ -227,15 +214,11 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                         </div>
 
                         {/* Custom Serving Input */}
-                        <div className="space-y-2" onClick={() => setIsCustomServing(true)}>
-                            <div className="flex items-center justify-between gap-4">
-                                <p className={clsx(
-                                    "text-sm",
-                                    { "text-gray-600": !isCustomServing },
-                                    { "font-semibold": isCustomServing },
-                                )}>Custom Serving</p>
-                                <Separator className="h-px flex-1 bg-border" />
-                            </div>
+                        <div className="space-y-2" onClick={() => toggleCustomServing(true)}>
+                            <SectionHeader
+                                title="Custom Serving"
+                                isActive={isCustomServing}
+                            />
                             <div className="grid grid-cols-2 gap-3">
                                 <Input
                                     {...register("customAmount")}
@@ -254,11 +237,8 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                                         <SelectValue placeholder="Unit" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {servingSizes.map((size, index) => (
-                                            <SelectItem
-                                                key={index}
-                                                value={size}
-                                            >
+                                        {SERVING_SIZES.map((size, index) => (
+                                            <SelectItem key={index} value={size}>
                                                 {size}
                                             </SelectItem>
                                         ))}
@@ -269,10 +249,7 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
 
                         {/* Meal Selection */}
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-4">
-                                <p className="text-sm font-semibold">Add to Meal</p>
-                                <Separator className="h-px flex-1 bg-border" />
-                            </div>
+                            <SectionHeader title="Add to Meal" isActive={true} />
                             <Select
                                 onValueChange={(value) => setValue("selectedMeal", value)}
                                 value={selectedMeal}
@@ -281,11 +258,8 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                                     <SelectValue placeholder="Select meal" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {meal.map((mealItem, index) => (
-                                        <SelectItem
-                                            key={index}
-                                            value={mealItem}
-                                        >
+                                    {MEALS.map((mealItem, index) => (
+                                        <SelectItem key={index} value={mealItem}>
                                             {mealItem.charAt(0).toUpperCase() + mealItem.slice(1)}
                                         </SelectItem>
                                     ))}
@@ -294,13 +268,12 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                         </div>
 
                         <DialogFooter className="flex gap-2 pt-4">
-                            {/* Hide delete button when isDietPlan is true */}
                             {!isDietPlan && (
                                 <Button
                                     type="button"
                                     variant="destructive"
                                     onClick={handleDeleteEntry}
-                                    disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
+                                    disabled={isProcessing}
                                 >
                                     <Trash className="size-4" />
                                     {isDeletingFoodEntry ? 'Deleting...' : 'Delete Food'}
@@ -308,7 +281,7 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
                             )}
                             <Button
                                 type="submit"
-                                disabled={isUpdatingFoodEntry || isDeletingFoodEntry}
+                                disabled={isProcessing}
                                 className="flex-1"
                             >
                                 <RefreshCcw className="size-4" />
@@ -321,3 +294,71 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
         </Dialog>
     );
 }
+
+// Extracted components for better performance
+const MacroCards = ({ selectedServing }) => {
+    const macros = useMemo(() => [
+        {
+            icon: <Flame className="size-4 stroke-primary" />,
+            label: "Calories",
+            value: selectedServing?.calories || 0,
+            unit: "",
+            bgColor: "bg-primary-100",
+            textColor: "text-gray-700"
+        },
+        {
+            icon: <Beef className="size-4 stroke-green-400" />,
+            label: "Protein",
+            value: selectedServing?.protein || 0,
+            unit: "g",
+            bgColor: "bg-green-100",
+            textColor: "text-green-500"
+        },
+        {
+            icon: <Wheat className="size-4 stroke-orange-400" />,
+            label: "Carbs",
+            value: selectedServing?.carbohydrate || 0,
+            unit: "g",
+            bgColor: "bg-orange-100",
+            textColor: "text-orange-500"
+        },
+        {
+            icon: <Citrus className="size-4 stroke-purple-400" />,
+            label: "Fats",
+            value: selectedServing?.fat || 0,
+            unit: "g",
+            bgColor: "bg-purple-100",
+            textColor: "text-purple-500"
+        }
+    ], [selectedServing]);
+
+    return (
+        <div className="grid grid-cols-4 gap-3">
+            {macros.map((macro, index) => (
+                <div
+                    key={index}
+                    className={`px-3 py-2 flex flex-col items-center justify-center gap-[2px] ${macro.bgColor} rounded-md ${macro.textColor}`}
+                >
+                    {macro.icon}
+                    <p className="text-xs">{macro.label}</p>
+                    <p className="text-sm font-medium">
+                        {macro.value}{macro.unit}
+                    </p>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const SectionHeader = ({ title, isActive }) => (
+    <div className="flex items-center justify-between gap-4">
+        <p className={clsx(
+            "text-sm",
+            { "text-gray-600": !isActive },
+            { "font-semibold": isActive }
+        )}>
+            {title}
+        </p>
+        <Separator className="h-px flex-1 bg-border" />
+    </div>
+);

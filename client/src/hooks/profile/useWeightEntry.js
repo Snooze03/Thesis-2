@@ -115,6 +115,40 @@ export function useAddWeightEntry() {
     }
 }
 
+export function useEditWeightEntry() {
+    const queryClient = useQueryClient();
+
+    const editEntry = useMutation({
+        mutationFn: async ({ id, data }) => {
+            const payload = {
+                weight: parseFloat(data.weight).toFixed(2),
+                recorded_date: data.recorded_date
+            };
+            return await api.patch(`/accounts/weight-history/${id}/`, payload);
+        },
+        onSuccess: () => {
+            toast.success("Weight entry updated successfully!");
+            // Invalidate queries to refetch fresh data
+            queryClient.invalidateQueries({ queryKey: ["account_data"] });
+            queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
+            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
+        },
+        onError: (error) => {
+            console.error('Edit weight error:', error);
+        }
+    });
+
+    return {
+        mutate: editEntry.mutate,
+        mutateAsync: editEntry.mutateAsync,
+        isPending: editEntry.isPending,
+        isError: editEntry.isError,
+        isSuccess: editEntry.isSuccess,
+        error: editEntry.error,
+        reset: editEntry.reset
+    }
+}
+
 export function useDeleteWeightEntry() {
     const queryClient = useQueryClient();
 

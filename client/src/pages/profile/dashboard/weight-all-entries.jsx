@@ -1,69 +1,33 @@
 import { useNavigate } from "react-router-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useWeightHistory, useDeleteWeightEntry } from "@/hooks/profile/useWeightEntry";
 import { SubLayout } from "@/layouts/sub-layout";
-import api from "@/api";
 import { SectionTitle } from "@/components/ui/section-title";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { toast } from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useScrollLock } from "@/hooks/useScrollLock";
 
 function WeightAllEntries() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     const {
-        data: weightEntries = [],
-        isPending,
+        weightEntries,
+        isLoading,
         isError
-    } = useQuery({
-        queryKey: ["weightEntries"],
-        queryFn: async () => {
-            const response = await api.get("/accounts/weight-history/");
-            return response.data.data;
-        }
-    });
+    } = useWeightHistory();
 
-    const deleteMutation = useMutation({
-        mutationFn: async (id) => {
-            await api.delete(`/accounts/weight-history/${id}/`);
-        },
-        onSuccess: () => {
-            // Invalidate and refetch the weight entries
-            toast.success("Entry deleted successfully!");
-            queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
-        },
-        onError: (error) => {
-            toast.error("Failed to delete weight entry");
-            console.error('Delete error:', error);
-        }
-    });
+    const {
+        deleteMutation,
+        isPending,
+        isError: isDeleteError,
+    } = useDeleteWeightEntry();
 
     // console.log(weightEntries);
     const handleDelete = (id) => {
         deleteMutation.mutate(id);
     };
-
-    // Sort entries by date (latest first) and group by month
-    const sortedAndGroupedEntries = weightEntries
-        .sort((a, b) => new Date(b.recorded_date) - new Date(a.recorded_date))
-        .reduce((groups, entry) => {
-            const date = new Date(entry.recorded_date);
-            const monthYear = date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long'
-            });
-
-            if (!groups[monthYear]) {
-                groups[monthYear] = [];
-            }
-            groups[monthYear].push(entry);
-
-            return groups;
-        }, {});
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -86,7 +50,7 @@ function WeightAllEntries() {
         return `${sign}${change} kg`;
     };
 
-    useScrollLock(isPending);
+    useScrollLock(isLoading);
 
     return (
         <SubLayout>
@@ -97,7 +61,7 @@ function WeightAllEntries() {
                 <SectionTitle>All Entries</SectionTitle>
             </div>
 
-            {isPending && (
+            {isLoading && (
                 <>
                     <Skeleton className="h-7 w-35 rounded-lg" />
                     {[...Array(3)].map((_, index) => (
@@ -113,9 +77,9 @@ function WeightAllEntries() {
                 </div>
             )}
 
-            {!isPending && !isError && (
+            {!isLoading && !isError && (
                 <div className="space-y-6">
-                    {Object.entries(sortedAndGroupedEntries).map(([monthYear, entries]) => (
+                    {Object.entries(weightEntries).map(([monthYear, entries]) => (
                         <div key={monthYear} className="space-y-3">
                             <h2 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                                 {monthYear}

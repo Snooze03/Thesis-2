@@ -38,6 +38,36 @@ export function useWeightHistory() {
     }
 }
 
+export function useAddWeightEntry() {
+    const queryClient = useQueryClient();
+
+    const addEntry = useMutation({
+        mutationFn: async (data) => {
+            const payload = {
+                weight: parseFloat(data.weight).toFixed(2),
+                recorded_date: data.recorded_date
+            };
+            return await api.post("accounts/weight-history/", payload);
+        },
+        onSuccess: () => {
+            toast.success("Weight entry added successfully!");
+            // Invalidate both query keys to refresh all weight data
+            queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
+            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
+        },
+        onError: (error) => {
+            console.error('Add weight error:', error);
+        }
+    });
+
+    return {
+        addMutation: addEntry,
+        isPending: addEntry.isPending,
+        isError: addEntry.isError,
+        error: addEntry.error
+    }
+}
+
 export function useDeleteWeightEntry() {
     const queryClient = useQueryClient();
 
@@ -46,9 +76,10 @@ export function useDeleteWeightEntry() {
             await api.delete(`/accounts/weight-history/${id}/`);
         },
         onSuccess: () => {
-            // Invalidate and refetch the weight entries
             toast.success("Entry deleted successfully!");
+            // Invalidate both query keys to refresh all weight data
             queryClient.invalidateQueries({ queryKey: ["weightEntries"] });
+            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
         },
         onError: (error) => {
             toast.error("Failed to delete weight entry");

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useAddWeightEntry } from "@/hooks/profile/useWeightEntry";
 import api from "@/api";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
@@ -65,7 +66,7 @@ function WeightManager() {
     if (isPending) return <LoadingSpinner message="Chart" />
 
     return (
-        <Card>
+        <Card className="gap-2">
             <CardHeader>
                 <div className="flex justify-between gap-3 items-center">
                     <div className="flex flex-col gap-1">
@@ -85,9 +86,10 @@ function WeightManager() {
                     <LineChart
                         data={chartData}
                         margin={{
-                            top: 20,
+                            top: 15,
                             left: 12,
                             right: 12,
+                            bottom: 10
                         }}
                     >
                         <CartesianGrid vertical={false} />
@@ -132,7 +134,8 @@ function WeightManager() {
 
 function AddWeight({ open, onOpenChange, onSuccess }) {
     const [apiError, setApiError] = useState("");
-    const queryClient = useQueryClient();
+
+    const { addMutation, isPending } = useAddWeightEntry();
 
     const {
         register,
@@ -148,81 +151,62 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
         }
     });
 
-    const addWeightMutation = useMutation({
-        mutationFn: async (data) => {
-            const payload = {
-                weight: data.weight.toFixed(2),
-                recorded_date: data.recorded_date
-            };
-            return await api.post("accounts/weight-history/", payload);
-        },
-        onSuccess: () => {
-            // Reset form and close dialog
-            reset();
-            onOpenChange(false);
-            onSuccess();
-            setApiError("");
+    const onSubmit = async (data) => {
+        setApiError("");
 
-            // Invalidate and refetch weight history
-            queryClient.invalidateQueries({ queryKey: ["weight_history"] });
-        },
-        onError: (err) => {
-            console.error("Error adding weight:", err);
+        addMutation.mutate(data, {
+            onSuccess: () => {
+                reset();
+                onOpenChange(false);
+                onSuccess();
+                setApiError("");
+            },
+            onError: (err) => {
+                console.error("Error adding weight:", err);
 
-            // Handle different error types
-            if (err.response?.data?.errors) {
-                const errors = err.response.data.errors;
+                if (err.response?.data?.errors) {
+                    const errors = err.response.data.errors;
 
-                // Check for duplicate entry error (one per day constraint)
-                if (errors.non_field_errors && errors.non_field_errors[0]) {
-                    const errorMessage = errors.non_field_errors[0];
-                    if (errorMessage.includes("Weight entry already exists for this date") ||
-                        errorMessage.includes("one weight per day")) {
+                    if (errors.non_field_errors && errors.non_field_errors[0]) {
+                        const errorMessage = errors.non_field_errors[0];
+                        if (errorMessage.includes("Weight entry already exists for this date") ||
+                            errorMessage.includes("one weight per day")) {
+                            setApiError("You already have a weight entry for this date. You can only record one weight per day.");
+                        } else {
+                            setApiError(errorMessage);
+                        }
+                    } else if (errors.recorded_date && errors.recorded_date[0]) {
+                        setError("recorded_date", {
+                            type: "server",
+                            message: errors.recorded_date[0]
+                        });
+                    } else if (errors.weight && errors.weight[0]) {
+                        setError("weight", {
+                            type: "server",
+                            message: errors.weight[0]
+                        });
+                    } else {
+                        setApiError("Failed to add weight entry. Please try again.");
+                    }
+                } else if (err.response?.data?.message) {
+                    const message = err.response.data.message;
+                    if (message.includes("Weight entry already exists") ||
+                        message.includes("one weight per day")) {
                         setApiError("You already have a weight entry for this date. You can only record one weight per day.");
                     } else {
-                        setApiError(errorMessage);
+                        setApiError(message);
                     }
-                } else if (errors.recorded_date && errors.recorded_date[0]) {
-                    // Set field-specific error
-                    setError("recorded_date", {
-                        type: "server",
-                        message: errors.recorded_date[0]
-                    });
-                } else if (errors.weight && errors.weight[0]) {
-                    // Set field-specific error
-                    setError("weight", {
-                        type: "server",
-                        message: errors.weight[0]
-                    });
+                } else if (err.response?.status === 400) {
+                    setApiError("Unable to add weight entry. You may already have an entry for this date, or the data is invalid.");
                 } else {
-                    setApiError("Failed to add weight entry. Please try again.");
+                    setApiError("Failed to add weight entry. Please check your connection and try again.");
                 }
-            } else if (err.response?.data?.message) {
-                // Handle message-level errors that might contain duplicate info
-                const message = err.response.data.message;
-                if (message.includes("Weight entry already exists") ||
-                    message.includes("one weight per day")) {
-                    setApiError("You already have a weight entry for this date. You can only record one weight per day.");
-                } else {
-                    setApiError(message);
-                }
-            } else if (err.response?.status === 400) {
-                // Generic 400 error - likely validation issue including duplicates
-                setApiError("Unable to add weight entry. You may already have an entry for this date, or the data is invalid.");
-            } else {
-                setApiError("Failed to add weight entry. Please check your connection and try again.");
             }
-        }
-    });
-
-    const onSubmit = async (data) => {
-        // Clear previous API errors
-        setApiError("");
-        addWeightMutation.mutate(data);
+        });
     };
 
     const handleClose = () => {
-        if (!addWeightMutation.isPending) {
+        if (!isPending) {
             reset();
             setApiError("");
             onOpenChange(false);
@@ -239,7 +223,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2  gap-3">
+                <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-3">
                     {apiError && (
                         <InputError className="col-span-2 -mt-2 text-sm bg-red-50 p-2 rounded-lg">
                             {apiError}
@@ -253,7 +237,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             type="number"
                             step="0.01"
                             placeholder="55.00"
-                            disabled={addWeightMutation.isPending}
+                            disabled={isPending}
                             {...register("weight")}
                         />
                         {errors.weight && (
@@ -267,7 +251,7 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                             id="recorded_date"
                             type="date"
                             max={new Date().toISOString().split('T')[0]}
-                            disabled={addWeightMutation.isPending}
+                            disabled={isPending}
                             {...register("recorded_date")}
                         />
                         {errors.recorded_date && (
@@ -279,15 +263,15 @@ function AddWeight({ open, onOpenChange, onSuccess }) {
                 <AlertDialogFooter>
                     <AlertDialogCancel
                         onClick={handleClose}
-                        disabled={addWeightMutation.isPending}
+                        disabled={isPending}
                     >
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleSubmit(onSubmit)}
-                        disabled={addWeightMutation.isPending}
+                        disabled={isPending}
                     >
-                        {addWeightMutation.isPending ? "Saving..." : "Save"}
+                        {isPending ? "Saving..." : "Save"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

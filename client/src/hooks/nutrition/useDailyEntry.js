@@ -68,6 +68,8 @@ export function useDailyEntriesHistory(page = 1, pageSize = 1, filters = {}) {
             : 0,
         currentPage: page,
         pageSize,
+        hasNext: page < Math.ceil((query.data?.count || 0) / pageSize),
+        hasPrevious: page > 1,
     }), [query.data, page, pageSize]);
 
     return {

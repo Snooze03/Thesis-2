@@ -1,27 +1,30 @@
 from datetime import datetime, timedelta
-from django.utils import timezone  # Already imported, use it properly
+from django.utils import timezone
 from nutrition.models import DailyEntry
 from workouts.models import TemplateHistory
 
 
 class DataCollectionService:
     """
-    Service to collect user data for progress report generation.
-    Fetches nutrition and workout data for a specific time period.
+    Service to collect user data for progress reports and chat context.
+    Can fetch data for a specific period or all historical data.
     """
 
-    def __init__(self, user, period_start, period_end):
+    def __init__(self, user, period_start=None, period_end=None):
         """
         Initialize the data collection service.
 
         Args:
             user: The user instance
-            period_start: Start datetime of the reporting period (should be timezone-aware)
-            period_end: End datetime of the reporting period (should be timezone-aware)
+            period_start: Start datetime of the reporting period (optional, for progress reports)
+            period_end: End datetime of the reporting period (optional, for progress reports)
+
+        If period_start and period_end are None, collects all historical data.
         """
         self.user = user
-        self.period_start = self._make_aware(period_start)
-        self.period_end = self._make_aware(period_end)
+        self.period_start = self._make_aware(period_start) if period_start else None
+        self.period_end = self._make_aware(period_end) if period_end else None
+        self.is_full_history = period_start is None and period_end is None
 
     def _make_aware(self, dt):
         """
@@ -39,7 +42,7 @@ class DataCollectionService:
 
     def collect_all_data(self):
         """
-        Collect all data needed for progress report generation and chat context.
+        Collect all data needed for progress report generation or chat context.
 
         Returns:
             dict: Dictionary containing nutrition and workout data
@@ -52,7 +55,7 @@ class DataCollectionService:
 
     def get_nutrition_data(self):
         """
-        Fetch nutrition data (daily entries) for the reporting period.
+        Fetch nutrition data (daily entries) for the specified period or all history.
 
         Returns:
             dict: Nutrition statistics and daily entries
@@ -66,17 +69,21 @@ class DataCollectionService:
                     "message": "User does not have a nutrition profile",
                 }
 
-            # Fetch daily entries within the period
-            daily_entries = DailyEntry.objects.filter(
-                nutrition_profile=nutrition_profile,
-                date__gte=self.period_start.date(),
-                date__lte=self.period_end.date(),
-            ).order_by("date")
+            # Build query based on whether we're filtering by period
+            query = DailyEntry.objects.filter(nutrition_profile=nutrition_profile)
+
+            if not self.is_full_history:
+                query = query.filter(
+                    date__gte=self.period_start.date(),
+                    date__lte=self.period_end.date(),
+                )
+
+            daily_entries = query.order_by("date")
 
             if not daily_entries.exists():
                 return {
                     "has_data": False,
-                    "message": "No nutrition data found for this period",
+                    "message": "No nutrition data found",
                 }
 
             # Calculate nutrition statistics
@@ -112,9 +119,12 @@ class DataCollectionService:
             )
             fat_adherence = self._calculate_adherence(avg_fat, goals["daily_fat_goal"])
 
-            # Prepare daily entries summary
+            # Prepare daily entries summary (limit to last 30 for chat context)
+            entries_to_show = (
+                daily_entries[:30] if self.is_full_history else daily_entries
+            )
             entries_summary = []
-            for entry in daily_entries:
+            for entry in entries_to_show:
                 entries_summary.append(
                     {
                         "date": entry.date.strftime("%Y-%m-%d"),
@@ -128,7 +138,8 @@ class DataCollectionService:
 
             return {
                 "has_data": True,
-                "period_days": total_entries,
+                "is_full_history": self.is_full_history,
+                "total_days_tracked": total_entries,
                 "goals": goals,
                 "averages": {
                     "calories": avg_calories,
@@ -158,7 +169,7 @@ class DataCollectionService:
                         1,
                     ),
                 },
-                "daily_entries": entries_summary,
+                "recent_entries": entries_summary,
             }
 
         except Exception as e:
@@ -171,27 +182,29 @@ class DataCollectionService:
 
     def get_workout_data(self):
         """
-        Fetch workout history data for the reporting period.
+        Fetch workout history data for the specified period or all history.
 
         Returns:
             dict: Workout statistics and history
         """
         try:
-            # Fetch workout history within the period
-            workout_history = (
-                TemplateHistory.objects.filter(
-                    user_id=self.user,
+            # Build query based on whether we're filtering by period
+            query = TemplateHistory.objects.filter(user_id=self.user)
+
+            if not self.is_full_history:
+                query = query.filter(
                     completed_at__gte=self.period_start,
                     completed_at__lte=self.period_end,
                 )
-                .prefetch_related("performed_exercises__exercise")
-                .order_by("completed_at")
-            )
+
+            workout_history = query.prefetch_related(
+                "performed_exercises__exercise"
+            ).order_by("-completed_at")
 
             if not workout_history.exists():
                 return {
                     "has_data": False,
-                    "message": "No workout data found for this period",
+                    "message": "No workout data found",
                 }
 
             # Calculate workout statistics
@@ -207,14 +220,27 @@ class DataCollectionService:
                 round(total_minutes / total_workouts, 1) if total_workouts > 0 else 0
             )
 
-            # Get workout frequency (workouts per week)
-            period_duration = (self.period_end - self.period_start).days
-            weeks = max(period_duration / 7, 1)
+            # Calculate workout frequency
+            if self.is_full_history:
+                # For full history, calculate based on first and last workout
+                first_workout = workout_history.last()
+                last_workout = workout_history.first()
+                period_duration = (
+                    last_workout.completed_at - first_workout.completed_at
+                ).days
+                weeks = max(period_duration / 7, 1)
+            else:
+                period_duration = (self.period_end - self.period_start).days
+                weeks = max(period_duration / 7, 1)
+
             workouts_per_week = round(total_workouts / weeks, 1)
 
-            # Prepare workout history summary
+            # Prepare workout history summary (limit to last 20 for chat context)
+            workouts_to_show = (
+                workout_history[:20] if self.is_full_history else workout_history
+            )
             workouts_summary = []
-            for workout in workout_history:
+            for workout in workouts_to_show:
                 # Get exercises breakdown
                 exercises_performed = []
                 for performed_exercise in workout.performed_exercises.all():
@@ -259,13 +285,14 @@ class DataCollectionService:
 
             return {
                 "has_data": True,
+                "is_full_history": self.is_full_history,
                 "total_workouts": total_workouts,
                 "total_exercises_performed": total_exercises,
                 "total_sets_performed": total_sets,
                 "total_workout_minutes": total_minutes,
                 "average_workout_duration": avg_duration_minutes,
                 "workouts_per_week": workouts_per_week,
-                "workout_history": workouts_summary,
+                "recent_workouts": workouts_summary,
                 "volume_by_exercise": volume_by_exercise,
             }
 
@@ -283,6 +310,7 @@ class DataCollectionService:
     def get_user_profile_data(self):
         """
         Get user profile and nutrition profile data.
+        Collects the 10 essential profile fields needed for AI context.
 
         Returns:
             dict: User profile information
@@ -291,25 +319,46 @@ class DataCollectionService:
             user_profile = getattr(self.user, "profile", None)
             nutrition_profile = getattr(self.user, "nutrition_profile", None)
 
-            profile_data = {}
+            profile_data = {
+                "has_data": False,
+                "user_profile": {},
+                "nutrition_profile": {},
+            }
 
-            # User profile data
+            # Collect user profile data
             if user_profile:
                 profile_data["user_profile"] = {
                     "age": getattr(user_profile, "age", None),
-                    "body_goal": getattr(user_profile, "body_goal", None),
+                    "gender": getattr(user_profile, "gender", None),
                     "activity_level": getattr(user_profile, "activity_level", None),
+                    "starting_weight": getattr(user_profile, "starting_weight", None),
                     "current_weight": getattr(user_profile, "current_weight", None),
                     "goal_weight": getattr(user_profile, "goal_weight", None),
-                    "starting_weight": getattr(user_profile, "starting_weight", None),
+                    "injuries": getattr(user_profile, "injuries", None),
+                    "food_allergies": getattr(user_profile, "food_allergies", None),
                     "workout_frequency": getattr(
                         user_profile, "workout_frequency", None
                     ),
+                    "workout_location": getattr(user_profile, "workout_location", None),
+                    "body_goal": getattr(user_profile, "body_goal", None),
                 }
+                profile_data["has_data"] = True
 
-            # Nutrition profile data
+            # Collect nutrition profile data (supplementary info)
             if nutrition_profile:
                 profile_data["nutrition_profile"] = {
+                    "daily_calories_goal": getattr(
+                        nutrition_profile, "daily_calories_goal", None
+                    ),
+                    "daily_protein_goal": getattr(
+                        nutrition_profile, "daily_protein_goal", None
+                    ),
+                    "daily_carbs_goal": getattr(
+                        nutrition_profile, "daily_carbs_goal", None
+                    ),
+                    "daily_fat_goal": getattr(
+                        nutrition_profile, "daily_fat_goal", None
+                    ),
                     "bmi": getattr(nutrition_profile, "bmi", None),
                     "bmi_category": (
                         nutrition_profile.get_bmi_category()
@@ -319,12 +368,18 @@ class DataCollectionService:
                     "bmr": getattr(nutrition_profile, "bmr", None),
                     "tdee": getattr(nutrition_profile, "tdee", None),
                 }
+                profile_data["has_data"] = True
 
             return profile_data
 
         except Exception as e:
             print(f"Error collecting user profile data: {e}")
-            return {"error": str(e)}
+            return {
+                "has_data": False,
+                "error": str(e),
+                "user_profile": {},
+                "nutrition_profile": {},
+            }
 
     def _calculate_adherence(self, actual, goal):
         """
@@ -355,53 +410,119 @@ class DataCollectionService:
         summary_parts = []
 
         # Period info
-        period_duration = (self.period_end - self.period_start).days
-        summary_parts.append(
-            f"Reporting Period: {self.period_start.strftime('%Y-%m-%d')} to {self.period_end.strftime('%Y-%m-%d')} ({period_duration} days)"
-        )
+        if self.is_full_history:
+            summary_parts.append("=== Complete Historical Data Summary ===")
+        else:
+            period_duration = (self.period_end - self.period_start).days
+            summary_parts.append(
+                f"=== Reporting Period: {self.period_start.strftime('%Y-%m-%d')} to {self.period_end.strftime('%Y-%m-%d')} ({period_duration} days) ==="
+            )
+
+        # User Profile Summary
+        profile_data = data["user_profile"]
+        if profile_data["has_data"]:
+            summary_parts.append("\n--- User Profile ---")
+            up = profile_data["user_profile"]
+            if up.get("gender"):
+                summary_parts.append(f"Gender: {up['gender']}")
+            if up.get("age"):
+                summary_parts.append(f"Age: {up['age']} years")
+            if up.get("body_goal"):
+                summary_parts.append(f"Fitness Goal: {up['body_goal']}")
+            if up.get("activity_level"):
+                summary_parts.append(f"Activity Level: {up['activity_level']}")
+            if up.get("starting_weight"):
+                summary_parts.append(f"Starting Weight: {up['starting_weight']} kg")
+            if up.get("current_weight"):
+                summary_parts.append(f"Current Weight: {up['current_weight']} kg")
+            if up.get("goal_weight"):
+                summary_parts.append(f"Goal Weight: {up['goal_weight']} kg")
+            if up.get("workout_frequency"):
+                summary_parts.append(f"Workout Frequency: {up['workout_frequency']}")
+            if up.get("workout_location"):
+                summary_parts.append(f"Workout Location: {up['workout_location']}")
+            if up.get("injuries"):
+                summary_parts.append(f"Injuries/Medical Conditions: {up['injuries']}")
+            if up.get("food_allergies"):
+                summary_parts.append(
+                    f"Food Allergies/Restrictions: {up['food_allergies']}"
+                )
+
+            # Add nutrition profile goals
+            np = profile_data["nutrition_profile"]
+            if np:
+                summary_parts.append("\n--- Nutrition Goals ---")
+                if np.get("daily_calories_goal"):
+                    summary_parts.append(
+                        f"Daily Calorie Goal: {np['daily_calories_goal']} kcal"
+                    )
+                if np.get("daily_protein_goal"):
+                    summary_parts.append(
+                        f"Daily Protein Goal: {np['daily_protein_goal']}g"
+                    )
+                if np.get("daily_carbs_goal"):
+                    summary_parts.append(f"Daily Carbs Goal: {np['daily_carbs_goal']}g")
+                if np.get("daily_fat_goal"):
+                    summary_parts.append(f"Daily Fat Goal: {np['daily_fat_goal']}g")
+                if np.get("bmi"):
+                    summary_parts.append(
+                        f"BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
+                    )
+                if np.get("bmr"):
+                    summary_parts.append(f"BMR: {np['bmr']} kcal")
+                if np.get("tdee"):
+                    summary_parts.append(f"TDEE: {np['tdee']} kcal")
 
         # Nutrition summary
         nutrition = data["nutrition_data"]
         if nutrition["has_data"]:
-            summary_parts.append("\nNutrition Summary:")
+            summary_parts.append("\n--- Nutrition Summary ---")
             summary_parts.append(
-                f"- Tracked {nutrition['period_days']} days out of {period_duration} days"
+                f"Total days tracked: {nutrition['total_days_tracked']}"
             )
             summary_parts.append(
-                f"- Average daily calories: {nutrition['averages']['calories']} kcal (Goal: {nutrition['goals']['daily_calories_goal']} kcal)"
+                f"Average daily calories: {nutrition['averages']['calories']} kcal (Goal: {nutrition['goals']['daily_calories_goal']} kcal)"
             )
             summary_parts.append(
-                f"- Average daily protein: {nutrition['averages']['protein']}g (Goal: {nutrition['goals']['daily_protein_goal']}g)"
+                f"Average daily protein: {nutrition['averages']['protein']}g (Goal: {nutrition['goals']['daily_protein_goal']}g)"
             )
             summary_parts.append(
-                f"- Overall nutrition adherence: {nutrition['adherence']['overall']}%"
+                f"Average daily carbs: {nutrition['averages']['carbs']}g (Goal: {nutrition['goals']['daily_carbs_goal']}g)"
+            )
+            summary_parts.append(
+                f"Average daily fat: {nutrition['averages']['fat']}g (Goal: {nutrition['goals']['daily_fat_goal']}g)"
+            )
+            summary_parts.append(
+                f"Overall nutrition adherence: {nutrition['adherence']['overall']}%"
             )
         else:
-            summary_parts.append(f"\nNutrition Summary: {nutrition['message']}")
+            summary_parts.append(f"\n--- Nutrition Summary ---")
+            summary_parts.append(nutrition["message"])
 
         # Workout summary
         workout = data["workout_data"]
         if workout["has_data"]:
-            summary_parts.append("\nWorkout Summary:")
+            summary_parts.append("\n--- Workout Summary ---")
             summary_parts.append(
-                f"- Total workouts completed: {workout['total_workouts']}"
+                f"Total workouts completed: {workout['total_workouts']}"
             )
             summary_parts.append(
-                f"- Average workout frequency: {workout['workouts_per_week']} workouts per week"
+                f"Average workout frequency: {workout['workouts_per_week']} workouts per week"
             )
             summary_parts.append(
-                f"- Total exercises performed: {workout['total_exercises_performed']}"
+                f"Total exercises performed: {workout['total_exercises_performed']}"
             )
             summary_parts.append(
-                f"- Total sets completed: {workout['total_sets_performed']}"
+                f"Total sets completed: {workout['total_sets_performed']}"
             )
             summary_parts.append(
-                f"- Total workout time: {workout['total_workout_minutes']} minutes"
+                f"Total workout time: {workout['total_workout_minutes']} minutes"
             )
             summary_parts.append(
-                f"- Average workout duration: {workout['average_workout_duration']} minutes"
+                f"Average workout duration: {workout['average_workout_duration']} minutes"
             )
         else:
-            summary_parts.append(f"\nWorkout Summary: {workout['message']}")
+            summary_parts.append(f"\n--- Workout Summary ---")
+            summary_parts.append(workout["message"])
 
         return "\n".join(summary_parts)

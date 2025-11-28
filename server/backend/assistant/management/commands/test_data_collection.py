@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from services.data_collection_service import DataCollectionService
+from ...services.data_collection_service import DataCollectionService
 from datetime import timedelta
 import json
 
@@ -25,8 +25,13 @@ class Command(BaseCommand):
         parser.add_argument(
             "--days",
             type=int,
-            default=7,
-            help="Number of days to include in collection (default: 7)",
+            default=None,
+            help="Number of days to include in collection (default: all history)",
+        )
+        parser.add_argument(
+            "--full-history",
+            action="store_true",
+            help="Collect all historical data (ignores --days)",
         )
         parser.add_argument(
             "--json",
@@ -40,16 +45,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Get all options first
+        # Get all options
         user_id = options.get("user_id")
         user_email = options.get("user_email")
-        days = options.get("days")  # Moved before it's used
+        days = options.get("days")
+        full_history = options.get("full_history")
         json_output = options.get("json")
         summary_only = options.get("summary_only")
-
-        # Initialize period with timezone-aware datetimes
-        period_end = timezone.now()
-        period_start = period_end - timedelta(days=days)
 
         # Get user
         try:
@@ -76,10 +78,20 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"{'='*60}\n"))
         self.stdout.write(f"User: {user.email} (ID: {user.id})")
 
-        self.stdout.write(
-            f"Period: {period_start.strftime('%Y-%m-%d %H:%M')} to {period_end.strftime('%Y-%m-%d %H:%M')}"
-        )
-        self.stdout.write(f"Duration: {days} days\n")
+        # Determine collection mode
+        if full_history or days is None:
+            # Full history mode
+            period_start = None
+            period_end = None
+            self.stdout.write(self.style.WARNING("Mode: FULL HISTORY (all data)\n"))
+        else:
+            # Period mode
+            period_end = timezone.now()
+            period_start = period_end - timedelta(days=days)
+            self.stdout.write(f"Mode: PERIOD ({days} days)")
+            self.stdout.write(
+                f"Period: {period_start.strftime('%Y-%m-%d %H:%M')} to {period_end.strftime('%Y-%m-%d %H:%M')}\n"
+            )
 
         try:
             service = DataCollectionService(user, period_start, period_end)
@@ -97,7 +109,7 @@ class Command(BaseCommand):
 
             if json_output:
                 # Output as JSON
-                self.stdout.write(json.dumps(collected_data, indent=2))
+                self.stdout.write(json.dumps(collected_data, indent=2, default=str))
                 return
 
             # Display formatted output
@@ -148,7 +160,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"\n{nutrition_data['message']}"))
             return
 
-        self.stdout.write(f"\nDays Tracked: {nutrition_data['period_days']}")
+        # Show mode indicator
+        if nutrition_data.get("is_full_history"):
+            self.stdout.write(
+                self.style.WARNING("\n[Full History Mode - All Time Data]")
+            )
+
+        self.stdout.write(
+            f"\nTotal Days Tracked: {nutrition_data['total_days_tracked']}"
+        )
 
         self.stdout.write("\n--- Goals ---")
         for key, value in nutrition_data["goals"].items():
@@ -168,17 +188,20 @@ class Command(BaseCommand):
             f"\nOverall Adherence: {nutrition_data['adherence']['overall']}%"
         )
 
-        self.stdout.write("\n--- Daily Breakdown ---")
-        for entry in nutrition_data["daily_entries"][:5]:  # Show first 5 days
+        # Show recent entries
+        entries_to_show = nutrition_data.get("recent_entries", [])
+        if entries_to_show:
             self.stdout.write(
-                f"  {entry['date']}: {entry['calories']} kcal, "
-                f"{entry['protein']}g protein, "
-                f"{entry['food_entries_count']} food entries"
+                f"\n--- Recent Daily Entries (showing {min(5, len(entries_to_show))} of {len(entries_to_show)}) ---"
             )
-        if len(nutrition_data["daily_entries"]) > 5:
-            self.stdout.write(
-                f"  ... and {len(nutrition_data['daily_entries']) - 5} more days"
-            )
+            for entry in entries_to_show[:5]:
+                self.stdout.write(
+                    f"  {entry['date']}: {entry['calories']} kcal, "
+                    f"{entry['protein']}g protein, "
+                    f"{entry['food_entries_count']} food entries"
+                )
+            if len(entries_to_show) > 5:
+                self.stdout.write(f"  ... and {len(entries_to_show) - 5} more entries")
 
     def _display_workout_data(self, workout_data):
         """Display workout data"""
@@ -189,6 +212,12 @@ class Command(BaseCommand):
         if not workout_data["has_data"]:
             self.stdout.write(self.style.WARNING(f"\n{workout_data['message']}"))
             return
+
+        # Show mode indicator
+        if workout_data.get("is_full_history"):
+            self.stdout.write(
+                self.style.WARNING("\n[Full History Mode - All Time Data]")
+            )
 
         self.stdout.write(f"\nTotal Workouts: {workout_data['total_workouts']}")
         self.stdout.write(
@@ -218,15 +247,20 @@ class Command(BaseCommand):
                     f"({data['total_sets']} sets, {data['occurrences']} sessions)"
                 )
 
-        self.stdout.write("\n--- Workout History ---")
-        for workout in workout_data["workout_history"][:5]:  # Show first 5 workouts
+        # Show recent workouts
+        workouts_to_show = workout_data.get("recent_workouts", [])
+        if workouts_to_show:
             self.stdout.write(
-                f"  {workout['date']}: {workout['title']} "
-                f"({workout['duration_minutes']} min, "
-                f"{workout['total_exercises']} exercises, "
-                f"{workout['total_sets']} sets)"
+                f"\n--- Recent Workouts (showing {min(5, len(workouts_to_show))} of {len(workouts_to_show)}) ---"
             )
-        if len(workout_data["workout_history"]) > 5:
-            self.stdout.write(
-                f"  ... and {len(workout_data['workout_history']) - 5} more workouts"
-            )
+            for workout in workouts_to_show[:5]:
+                self.stdout.write(
+                    f"  {workout['date']}: {workout['title']} "
+                    f"({workout['duration_minutes']} min, "
+                    f"{workout['total_exercises']} exercises, "
+                    f"{workout['total_sets']} sets)"
+                )
+            if len(workouts_to_show) > 5:
+                self.stdout.write(
+                    f"  ... and {len(workouts_to_show) - 5} more workouts"
+                )

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useDailyEntriesHistory } from "@/hooks/nutrition/useDailyEntry";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { DailyEntryCard } from "./daily-entry-card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -27,12 +27,15 @@ export function DailyEntriesHistory() {
         }
     }, [pagination.totalPages, currentPage]);
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-    };
+    // Memoize page change handler
+    const handlePageChange = useCallback((page) => {
+        if (page >= 1 && page <= pagination.totalPages && !isFetching) {
+            setCurrentPage(page);
+        }
+    }, [pagination.totalPages, isFetching]);
 
-    // Generate page numbers to show 
-    const generatePageNumbers = () => {
+    // Memoize page numbers generation
+    const pageNumbers = useMemo(() => {
         const { totalPages } = pagination;
         const maxVisiblePages = 4;
         const pages = [];
@@ -57,13 +60,11 @@ export function DailyEntriesHistory() {
 
         // Add the visible page range
         for (let i = startPage; i <= endPage; i++) {
-            // Avoid duplicating page 1 if it's already added
-            if (i === 1 && pages.includes(1)) continue;
             pages.push(i);
         }
 
         return pages;
-    };
+    }, [pagination.totalPages, currentPage]);
 
     if (error) {
         return (
@@ -75,67 +76,74 @@ export function DailyEntriesHistory() {
         );
     }
 
+    if (isLoading || currentPage === null) {
+        return (
+            <Card className="min-h-90">
+                <CardContent className="my-auto text-center text-muted-foreground">
+                    <LoadingSpinner message="entry" />
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (entries.length === 0) {
+        return (
+            <Card className="min-h-90">
+                <CardContent className="py-8 text-center text-muted-foreground">
+                    No daily entries found
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <>
-            {entries.length === 0 ? (
-                <Card className="min-h-90">
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                        <LoadingSpinner message="entry" />
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    {entries.map((dailyEntry) => (
-                        <DailyEntryCard
-                            key={dailyEntry.id}
-                            dailyEntry={dailyEntry}
-                        />
-                    ))}
+            {entries.map((dailyEntry) => (
+                <DailyEntryCard
+                    key={dailyEntry.id}
+                    dailyEntry={dailyEntry}
+                />
+            ))}
 
-                    {pagination.totalPages > 1 && (
-                        <div className="w-full max-w-full overflow-hidden">
-                            <Pagination className="w-full">
-                                <PaginationContent className="flex-nowrap justify-center overflow-x-auto px-2">
-                                    <PaginationItem className="shrink-0">
-                                        <PaginationPrevious
-                                            onClick={() => handlePageChange(currentPage - 1)}
-                                            className={`text-sm px-2 ${currentPage <= 1 || isFetching
-                                                ? "pointer-events-none opacity-50"
-                                                : "cursor-pointer"
-                                                }`}
-                                        />
-                                    </PaginationItem>
+            {pagination.totalPages > 1 && (
+                <div className="w-full max-w-full overflow-hidden">
+                    <Pagination className="w-full">
+                        <PaginationContent className="flex-nowrap justify-center overflow-x-auto px-2">
+                            <PaginationItem className="shrink-0">
+                                <PaginationPrevious
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    className={`text-sm px-2 ${!pagination.hasPrevious || isFetching
+                                        ? "pointer-events-none opacity-50"
+                                        : "cursor-pointer"
+                                        }`}
+                                />
+                            </PaginationItem>
 
-                                    {generatePageNumbers().map((page, index) => (
-                                        <PaginationItem key={index} className="shrink-0">
-                                            {page === 'ellipsis-start' || page === 'ellipsis-end' ? (
-                                                <PaginationEllipsis className="text-sm px-1" />
-                                            ) : (
-                                                <PaginationLink
-                                                    onClick={() => handlePageChange(page)}
-                                                    isActive={currentPage === page}
-                                                    className="cursor-pointer text-sm px-2 py-1 min-w-[32px]"
-                                                >
-                                                    {page}
-                                                </PaginationLink>
-                                            )}
-                                        </PaginationItem>
-                                    ))}
+                            {pageNumbers.map((page) => (
+                                <PaginationItem key={page} className="shrink-0">
+                                    <PaginationLink
+                                        onClick={() => handlePageChange(page)}
+                                        isActive={currentPage === page}
+                                        className={`cursor-pointer text-sm px-2 py-1 min-w-[32px] ${isFetching ? "pointer-events-none" : ""
+                                            }`}
+                                    >
+                                        {page}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            ))}
 
-                                    <PaginationItem className="shrink-0">
-                                        <PaginationNext
-                                            onClick={() => handlePageChange(currentPage + 1)}
-                                            className={`text-sm px-2 ${currentPage >= pagination.totalPages || isFetching
-                                                ? "pointer-events-none opacity-50"
-                                                : "cursor-pointer"
-                                                }`}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
-                        </div>
-                    )}
-                </>
+                            <PaginationItem className="shrink-0">
+                                <PaginationNext
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    className={`text-sm px-2 ${!pagination.hasNext || isFetching
+                                        ? "pointer-events-none opacity-50"
+                                        : "cursor-pointer"
+                                        }`}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
             )}
         </>
     );

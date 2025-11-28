@@ -178,8 +178,7 @@ class RuleBasedAnalyzer:
                     }
                 )
 
-        # Rule 5: Consistency tracking - NOW USES PERIOD
-        days_tracked = nutrition_data["period_days"]
+        days_tracked = nutrition_data["total_days_tracked"]
         total_period_days = self._get_total_period_days()
 
         tracking_rate = (

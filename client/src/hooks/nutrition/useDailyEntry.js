@@ -1,29 +1,39 @@
 import api from "@/api";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 export function useDailyEntry() {
-    const fetchTodayDailyEntry = useQuery({
+    const query = useQuery({
         queryKey: ["todayDailyEntry"],
         queryFn: async () => {
             const response = await api.get("nutrition/daily-entries/today/");
             return response.data;
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        cacheTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 1000 * 60 * 5, // 5 minutes 
+        gcTime: 1000 * 60 * 10, // 10 minutes 
+        refetchOnWindowFocus: false,
+        retry: 2,
     });
 
     return {
-        fetchTodayDailyEntry,
-        data: fetchTodayDailyEntry.data?.data,
-        isLoading: fetchTodayDailyEntry.isLoading,
-        error: fetchTodayDailyEntry.error,
+        data: query.data?.data,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        isSuccess: query.isSuccess,
+        error: query.error,
+        refetch: query.refetch,
     };
 }
 
-// Paginated daily entries
 export function useDailyEntriesHistory(page = 1, pageSize = 1, filters = {}) {
-    const fetchDailyEntriesHistory = useQuery({
-        queryKey: ["dailyEntriesHistory", page, pageSize, filters],
+    // Memoize query key to prevent unnecessary refetches
+    const queryKey = useMemo(
+        () => ["dailyEntriesHistory", page, pageSize, filters],
+        [page, pageSize, filters]
+    );
+
+    const query = useQuery({
+        queryKey,
         queryFn: async () => {
             const params = new URLSearchParams({
                 page: page.toString(),
@@ -41,25 +51,36 @@ export function useDailyEntriesHistory(page = 1, pageSize = 1, filters = {}) {
             const response = await api.get(`nutrition/daily-entries/history/?${params}`);
             return response.data;
         },
-        staleTime: 2 * 60 * 1000, // 2 minutes
-        cacheTime: 5 * 60 * 1000, // 5 minutes
-        keepPreviousData: true, // Keep previous data while loading new page
-        retry: 2, // Retry failed requests
+        staleTime: 1000 * 60 * 2, // 2 minutes
+        gcTime: 1000 * 60 * 5, // 5 minutes 
+        placeholderData: (previousData) => previousData, // Keep previous data while loading 
+        retry: 2,
+        enabled: pageSize > 0, // Only fetch if pageSize is valid
     });
 
+    // Memoize pagination data to prevent recalculation
+    const pagination = useMemo(() => ({
+        count: query.data?.count || 0,
+        next: query.data?.next,
+        previous: query.data?.previous,
+        totalPages: query.data?.count
+            ? Math.ceil(query.data.count / pageSize)
+            : 0,
+        currentPage: page,
+        pageSize,
+        hasNext: page < Math.ceil((query.data?.count || 0) / pageSize),
+        hasPrevious: page > 1,
+    }), [query.data, page, pageSize]);
+
     return {
-        fetchDailyEntriesHistory,
-        data: fetchDailyEntriesHistory.data,
-        entries: fetchDailyEntriesHistory.data?.results || [],
-        pagination: {
-            count: fetchDailyEntriesHistory.data?.count || 0,
-            next: fetchDailyEntriesHistory.data?.next,
-            previous: fetchDailyEntriesHistory.data?.previous,
-            totalPages: fetchDailyEntriesHistory.data?.count ?
-                Math.ceil(fetchDailyEntriesHistory.data.count / pageSize) : 0,
-        },
-        isLoading: fetchDailyEntriesHistory.isLoading,
-        error: fetchDailyEntriesHistory.error,
-        isFetching: fetchDailyEntriesHistory.isFetching,
+        data: query.data,
+        entries: query.data?.results || [],
+        pagination,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        isSuccess: query.isSuccess,
+        error: query.error,
+        isFetching: query.isFetching,
+        refetch: query.refetch,
     };
 }

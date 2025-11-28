@@ -12,8 +12,8 @@ import { EmptyItems } from "@/components/empty-items";
 
 const Profile = () => {
     const {
-        account_data,
-        account_profile,
+        accountData,
+        accountProfile,
         isPending,
     } = useAccountProfile();
 
@@ -39,7 +39,7 @@ const Profile = () => {
     return (
         <MainLayout>
             <SectionTitle>Profile</SectionTitle>
-            <ProfileCard acc_data={account_data} acc_profile={account_profile} />
+            <ProfileCard data={accountData} profile={accountProfile} />
 
             <SectionSubTitle>Weight Logs</SectionSubTitle>
             <WeightManager />

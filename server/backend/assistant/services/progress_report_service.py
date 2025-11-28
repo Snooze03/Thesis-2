@@ -76,7 +76,7 @@ class ReportGenerationService:
         )
 
         try:
-            # Collect user data
+            # Collect user data - with period parameters for progress reports
             data_service = DataCollectionService(user, period_start, period_end)
             collected_data = data_service.collect_all_data()
 
@@ -220,7 +220,7 @@ class ReportGenerationService:
 
     def _build_user_prompt(self, collected_data):
         """
-        Build the user prompt containing collected data.
+        Build the user prompt containing collected data from DataCollectionService.
 
         Args:
             collected_data: Dictionary containing user data
@@ -238,45 +238,73 @@ class ReportGenerationService:
         # User Profile Section
         prompt_parts.append("=== USER PROFILE ===")
 
-        if user_profile and "user_profile" in user_profile:
-            up = user_profile["user_profile"]
-            if up.get("body_goal"):
-                prompt_parts.append(f"Body Goal: {up['body_goal']}")
-            if up.get("activity_level"):
-                prompt_parts.append(f"Activity Level: {up['activity_level']}")
-            if up.get("age"):
-                prompt_parts.append(f"Age: {up['age']}")
-            if up.get("starting_weight"):
-                prompt_parts.append(f"Starting Weight: {up['starting_weight']}kg")
-            if up.get("current_weight"):
-                prompt_parts.append(f"Current Weight: {up['current_weight']}kg")
-            if up.get("goal_weight"):
-                prompt_parts.append(f"Goal Weight: {up['goal_weight']}kg")
-            if up.get("workout_frequency"):
-                prompt_parts.append(
-                    f"Target Workout Frequency: {up['workout_frequency']} times/week"
-                )
+        if user_profile.get("has_data"):
+            if "user_profile" in user_profile:
+                up = user_profile["user_profile"]
+
+                # Display the 10 essential fields
+                if up.get("gender"):
+                    prompt_parts.append(f"Gender: {up['gender']}")
+                if up.get("age"):
+                    prompt_parts.append(f"Age: {up['age']} years")
+                if up.get("body_goal"):
+                    prompt_parts.append(f"Body Goal: {up['body_goal']}")
+                if up.get("activity_level"):
+                    prompt_parts.append(f"Activity Level: {up['activity_level']}")
+                if up.get("starting_weight"):
+                    prompt_parts.append(f"Starting Weight: {up['starting_weight']} kg")
+                if up.get("current_weight"):
+                    prompt_parts.append(f"Current Weight: {up['current_weight']} kg")
+                if up.get("goal_weight"):
+                    prompt_parts.append(f"Goal Weight: {up['goal_weight']} kg")
+                if up.get("workout_frequency"):
+                    prompt_parts.append(
+                        f"Target Workout Frequency: {up['workout_frequency']}"
+                    )
+                if up.get("workout_location"):
+                    prompt_parts.append(f"Workout Location: {up['workout_location']}")
+                if up.get("injuries"):
+                    prompt_parts.append(
+                        f"Injuries/Medical Conditions: {up['injuries']}"
+                    )
+                if up.get("food_allergies"):
+                    prompt_parts.append(
+                        f"Food Allergies/Restrictions: {up['food_allergies']}"
+                    )
+
+            if "nutrition_profile" in user_profile:
+                np = user_profile["nutrition_profile"]
+                prompt_parts.append("\nNutrition Profile:")
+                if np.get("daily_calories_goal"):
+                    prompt_parts.append(
+                        f"- Daily Calorie Goal: {np['daily_calories_goal']} kcal"
+                    )
+                if np.get("daily_protein_goal"):
+                    prompt_parts.append(
+                        f"- Daily Protein Goal: {np['daily_protein_goal']}g"
+                    )
+                if np.get("daily_carbs_goal"):
+                    prompt_parts.append(
+                        f"- Daily Carbs Goal: {np['daily_carbs_goal']}g"
+                    )
+                if np.get("daily_fat_goal"):
+                    prompt_parts.append(f"- Daily Fat Goal: {np['daily_fat_goal']}g")
+                if np.get("bmi"):
+                    prompt_parts.append(
+                        f"- BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
+                    )
+                if np.get("bmr"):
+                    prompt_parts.append(f"- BMR: {np['bmr']} kcal/day")
+                if np.get("tdee"):
+                    prompt_parts.append(f"- TDEE: {np['tdee']} kcal/day")
         else:
             prompt_parts.append("No user profile data available")
 
-        if user_profile and "nutrition_profile" in user_profile:
-            np = user_profile["nutrition_profile"]
-            prompt_parts.append("\nNutrition Profile:")
-            if np.get("bmi"):
-                prompt_parts.append(
-                    f"- BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
-                )
-            if np.get("bmr"):
-                prompt_parts.append(f"- BMR: {np['bmr']} kcal/day")
-            if np.get("tdee"):
-                prompt_parts.append(f"- TDEE: {np['tdee']} kcal/day")
-
         prompt_parts.append("")
 
-        # Nutrition Data Section
         prompt_parts.append("=== NUTRITION DATA ===")
         if nutrition_data["has_data"]:
-            prompt_parts.append(f"Days Tracked: {nutrition_data['period_days']}")
+            prompt_parts.append(f"Days Tracked: {nutrition_data['total_days_tracked']}")
             prompt_parts.append("\nDaily Averages:")
             prompt_parts.append(
                 f"- Calories: {nutrition_data['averages']['calories']} kcal "

@@ -117,7 +117,7 @@ function DietPlan({ is_alternative = false }) {
         console.log(selectedServing);
 
         const menuItems = [
-            { icon: Plus, label: "Add to Daily Entry", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
+            { icon: Plus, label: "Add", action: () => handleAddToEntry(foodEntry.food.id, foodEntry) },
             { icon: Pencil, label: "Edit", action: () => handleEditFood(foodEntry) },
             { icon: Trash, label: "Delete", action: () => handleDeleteFood(foodEntry.id), variant: "destructive" },
         ];

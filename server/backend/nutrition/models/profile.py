@@ -90,7 +90,7 @@ class NutritionProfile(models.Model):
                 return 22.0
 
             # Get current weight, fallback to starting weight
-            weight_kg = profile.current_weight or profile.starting_weight
+            weight_kg = profile.starting_weight
 
             if not weight_kg:
                 return 22.0
@@ -130,7 +130,7 @@ class NutritionProfile(models.Model):
 
         try:
             # Use current weight if available, otherwise starting weight
-            weight_kg = float(profile.current_weight or profile.starting_weight)
+            weight_kg = float(profile.starting_weight)
 
             # Convert height from feet/inches to cm
             total_inches = (self.account.height_ft * 12) + self.account.height_in
@@ -199,7 +199,7 @@ class NutritionProfile(models.Model):
     def _has_complete_profile_data(self, profile):
         """Check if the user profile has all required data"""
         try:
-            has_weight = bool(profile.current_weight or profile.starting_weight)
+            has_weight = bool(profile.starting_weight)
             has_height = bool(
                 self.account.height_ft and self.account.height_in is not None
             )

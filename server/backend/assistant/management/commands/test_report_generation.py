@@ -47,6 +47,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Show only rule-based insights without generating AI report",
         )
+        parser.add_argument(
+            "--show-data-summary",
+            action="store_true",
+            help="Show the complete data summary text used for AI context",
+        )
 
     def handle(self, *args, **options):
         user_id = options.get("user_id")
@@ -55,8 +60,9 @@ class Command(BaseCommand):
         report_type = options.get("report_type")
         show_insights = options.get("show_insights")
         insights_only = options.get("insights_only")
+        show_data_summary = options.get("show_data_summary")
 
-        # Get user FIRST
+        # Get user
         try:
             if user_id:
                 user = User.objects.get(id=user_id)
@@ -102,20 +108,29 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
         self.stdout.write(self.style.SUCCESS(f"Report Date Parameters"))
         self.stdout.write(self.style.SUCCESS(f"{'='*80}\n"))
+        self.stdout.write(f"Period Type: Time-bounded (for progress reports)")
         self.stdout.write(f"Start: {period_start}")
         self.stdout.write(f"End: {period_end}")
+        self.stdout.write(f"Duration: {(period_end - period_start).days} days")
 
         try:
-            # Collect data and run rule-based analysis
-            self.stdout.write(self.style.WARNING("Collecting user data..."))
+            # Collect data using DataCollectionService with period parameters
+            self.stdout.write(self.style.WARNING("\nCollecting user data..."))
             data_service = DataCollectionService(user, period_start, period_end)
             collected_data = data_service.collect_all_data()
 
-            # Display user profile data
+            # Show data summary if requested
+            if show_data_summary:
+                self._display_data_summary(data_service)
+
+            # Display user profile data from collected data
             self._display_user_profile(collected_data.get("user_profile", {}))
 
+            # Display basic collected data statistics
+            self._display_collected_data_stats(collected_data)
+
             # Run rule-based analysis
-            self.stdout.write(self.style.WARNING("Running rule-based analysis...\n"))
+            self.stdout.write(self.style.WARNING("\nRunning rule-based analysis...\n"))
             analyzer = RuleBasedAnalyzer(
                 period_start=period_start, period_end=period_end
             )
@@ -179,37 +194,134 @@ class Command(BaseCommand):
 
             traceback.print_exc()
 
-    def _display_user_profile(self, user_profile):
-        """Display user profile data"""
+    def _display_data_summary(self, data_service):
+        """Display the complete data summary text used for AI context"""
         self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
-        self.stdout.write(self.style.SUCCESS("USER PROFILE DATA"))
+        self.stdout.write(self.style.SUCCESS("DATA SUMMARY TEXT (AI Context)"))
+        self.stdout.write(self.style.SUCCESS(f"{'='*80}\n"))
+
+        summary_text = data_service.get_summary_text()
+        self.stdout.write(summary_text)
+
+    def _display_collected_data_stats(self, collected_data):
+        """Display statistics about collected data"""
+        self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
+        self.stdout.write(self.style.SUCCESS("COLLECTED DATA STATISTICS"))
         self.stdout.write(self.style.SUCCESS(f"{'='*80}"))
 
-        if user_profile and "user_profile" in user_profile:
-            up = user_profile["user_profile"]
-            self.stdout.write("\n👤 User Profile:")
-            if up.get("body_goal"):
-                self.stdout.write(f"  - Body Goal: {up['body_goal']}")
-            if up.get("activity_level"):
-                self.stdout.write(f"  - Activity Level: {up['activity_level']}")
+        # Nutrition data stats
+        nutrition = collected_data.get("nutrition_data", {})
+        if nutrition.get("has_data"):
+            self.stdout.write(self.style.WARNING("\n📊 Nutrition Data:"))
+            self.stdout.write(f"  - Days tracked: {nutrition['total_days_tracked']}")
+            self.stdout.write(
+                f"  - Overall adherence: {nutrition['adherence']['overall']}%"
+            )
+            self.stdout.write(
+                f"  - Average calories: {nutrition['averages']['calories']} kcal"
+            )
+            self.stdout.write(
+                f"  - Mode: {'Full History' if nutrition.get('is_full_history') else 'Period-based'}"
+            )
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"\n📊 Nutrition Data: {nutrition.get('message', 'No data')}"
+                )
+            )
+
+        # Workout data stats
+        workout = collected_data.get("workout_data", {})
+        if workout.get("has_data"):
+            self.stdout.write(self.style.WARNING("\n💪 Workout Data:"))
+            self.stdout.write(f"  - Total workouts: {workout['total_workouts']}")
+            self.stdout.write(
+                f"  - Workout frequency: {workout['workouts_per_week']} per week"
+            )
+            self.stdout.write(
+                f"  - Total exercises: {workout['total_exercises_performed']}"
+            )
+            self.stdout.write(
+                f"  - Mode: {'Full History' if workout.get('is_full_history') else 'Period-based'}"
+            )
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"\n💪 Workout Data: {workout.get('message', 'No data')}"
+                )
+            )
+
+        # Profile data stats
+        profile = collected_data.get("user_profile", {})
+        if profile.get("has_data"):
+            self.stdout.write(self.style.WARNING("\n👤 Profile Data:"))
+            up = profile.get("user_profile", {})
+            np = profile.get("nutrition_profile", {})
+
+            fields_collected = sum(1 for v in {**up, **np}.values() if v is not None)
+            self.stdout.write(f"  - Profile fields collected: {fields_collected}")
             if up.get("age"):
-                self.stdout.write(f"  - Age: {up['age']}")
-            if up.get("starting_weight"):
-                self.stdout.write(f"  - Starting Weight: {up['starting_weight']}kg")
-            if up.get("current_weight"):
-                self.stdout.write(f"  - Current Weight: {up['current_weight']}kg")
-            if up.get("goal_weight"):
-                self.stdout.write(f"  - Goal Weight: {up['goal_weight']}kg")
-            if up.get("workout_frequency"):
+                self.stdout.write(f"  - User age: {up['age']} years")
+            if np.get("bmi"):
                 self.stdout.write(
-                    f"  - Target Workouts: {up['workout_frequency']}/week"
+                    f"  - BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
                 )
         else:
-            self.stdout.write("\n⚠️ No user profile data found")
+            self.stdout.write(self.style.WARNING("\n👤 Profile Data: Not available"))
 
-        if user_profile and "nutrition_profile" in user_profile:
+    def _display_user_profile(self, user_profile):
+        """Display user profile data collected by DataCollectionService"""
+        self.stdout.write(self.style.SUCCESS(f"\n{'='*80}"))
+        self.stdout.write(
+            self.style.SUCCESS("USER PROFILE DATA (from DataCollectionService)")
+        )
+        self.stdout.write(self.style.SUCCESS(f"{'='*80}"))
+
+        if not user_profile.get("has_data"):
+            self.stdout.write("\n⚠️ No user profile data available")
+            return
+
+        # Display the 10 essential profile fields
+        if "user_profile" in user_profile:
+            up = user_profile["user_profile"]
+            self.stdout.write("\n👤 User Profile (10 Essential Fields):")
+
+            fields_map = {
+                "gender": "Gender",
+                "activity_level": "Activity Level",
+                "starting_weight": "Starting Weight (kg)",
+                "current_weight": "Current Weight (kg)",
+                "goal_weight": "Goal Weight (kg)",
+                "injuries": "Injuries/Medical Conditions",
+                "food_allergies": "Food Allergies/Restrictions",
+                "workout_frequency": "Workout Frequency",
+                "workout_location": "Workout Location",
+                "age": "Age (years)",
+            }
+
+            for key, label in fields_map.items():
+                value = up.get(key)
+                if value is not None:
+                    self.stdout.write(f"  ✓ {label}: {value}")
+                else:
+                    self.stdout.write(self.style.ERROR(f"  ✗ {label}: Not set"))
+
+            # Also show body_goal if available
+            if up.get("body_goal"):
+                self.stdout.write(f"  • Body Goal: {up['body_goal']}")
+
+        # Display nutrition profile
+        if "nutrition_profile" in user_profile:
             np = user_profile["nutrition_profile"]
             self.stdout.write("\n🥗 Nutrition Profile:")
+            if np.get("daily_calories_goal"):
+                self.stdout.write(
+                    f"  - Daily Calorie Goal: {np['daily_calories_goal']} kcal"
+                )
+            if np.get("daily_protein_goal"):
+                self.stdout.write(
+                    f"  - Daily Protein Goal: {np['daily_protein_goal']}g"
+                )
             if np.get("bmi"):
                 self.stdout.write(
                     f"  - BMI: {np['bmi']} ({np.get('bmi_category', 'N/A')})"
@@ -218,8 +330,6 @@ class Command(BaseCommand):
                 self.stdout.write(f"  - BMR: {np['bmr']} kcal/day")
             if np.get("tdee"):
                 self.stdout.write(f"  - TDEE: {np['tdee']} kcal/day")
-        else:
-            self.stdout.write("\n⚠️ No nutrition profile data found")
 
         self.stdout.write("")
 
@@ -330,7 +440,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("\n🥗 NUTRITION FEEDBACK:"))
             self.stdout.write(report.nutrition_feedback)
 
-        # NEW FIELDS
         if report.nutrition_adherence:
             self.stdout.write(self.style.WARNING("\n📈 NUTRITION ADHERENCE:"))
             self.stdout.write(report.nutrition_adherence)

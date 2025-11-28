@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download } from "lucide-react";
-import { formatDate } from "@/utils/formatDate";
+import { Mail } from "lucide-react";
+import clsx from "clsx";
 
 export const ReportCard = ({ data }) => {
     const navigate = useNavigate();
@@ -11,6 +10,9 @@ export const ReportCard = ({ data }) => {
     const number = data.id;
     const date = data.period_display;
     const description = data.preview_text;
+    const is_unread = !data.is_read;
+
+    // console.log("Report Data:", data);
 
     const handleOpen = () => {
         navigate(`progress-report`, { state: { reportId: data.id } });
@@ -18,19 +20,20 @@ export const ReportCard = ({ data }) => {
 
     return (
         <Card className="gap-2 hover:shadow-lg transition-shadow" onClick={handleOpen}>
-            <CardHeader className="grid grid-cols-2 grid-rows-2 gap-1 content-center">
-                <CardTitle>Report #{number}</CardTitle>
-                <CardAction className="self-start">
-                    <button className={cn(
-                        "flex items-center gap-2 px-4 py-1 text-sm border-2 border-primary rounded-md text-primary font-semibold cursor-pointer",
-                        "hover:bg-primary hover:text-white transition delay-50 duration-200 ease-in-out ",
-                        "max-xs:px-2",
-                    )}>
-                        <Download strokeWidth="3" className="hover:stroke-white size-4" />
-                        Export
-                    </button>
-                </CardAction>
-                <CardDescription className="max-xs:text-xs">{date}</CardDescription>
+            <CardHeader>
+                <div className={clsx(
+                    { "flex flex-col justify-center gap-1": !is_unread },
+                    { " grid grid-cols-[auto_min-content] grid-rows-2": is_unread }
+                )}>
+                    <CardTitle>Report #{number}</CardTitle>
+                    {is_unread && (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100">
+                            <Mail className="size-3 stroke-orange-400" />
+                            <p className="text-orange-600 text-xs">New</p>
+                        </div>
+                    )}
+                    <CardDescription className="max-xs:text-xs">{date}</CardDescription>
+                </div>
             </CardHeader>
             <CardContent className="max-xs:text-sm">
                 <p>{description}</p>

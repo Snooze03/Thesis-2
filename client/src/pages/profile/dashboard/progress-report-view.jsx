@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useExportReport } from "@/hooks/assistant/useExportReport";
-import { fetchProgressReportDetails } from "@/hooks/assistant/useProgressReport";
+import { fetchProgressReportDetails, fetchProgressReport } from "@/hooks/assistant/useProgressReport";
 import { SubLayout } from "@/layouts/sub-layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,10 @@ export function ProgressReportView() {
     const [exporting, setExporting] = useState(false);
 
     const {
+        invalidateProgressReport
+    } = fetchProgressReport();
+
+    const {
         data,
         isLoading,
         isError
@@ -31,7 +35,7 @@ export function ProgressReportView() {
         exportReport,
         isLoading: isExporting,
         isError: isExportError
-    } = useExportReport(reportId);
+    } = useExportReport();
 
     if (isLoading) {
         return <div>Loading...</div>;
@@ -89,7 +93,7 @@ export function ProgressReportView() {
         <SubLayout>
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" onClick={() => navigate(-1, { replace: true })}>
+                    <Button variant="ghost" onClick={() => { navigate(-1, { replace: true }); invalidateProgressReport(); }}>
                         <ArrowLeft className="size-4" />
                     </Button>
                     <SectionTitle>Report #{reportId}</SectionTitle>

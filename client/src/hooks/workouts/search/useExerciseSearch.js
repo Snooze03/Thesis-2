@@ -78,7 +78,7 @@ export function useExerciseSearch(searchTerm) {
     };
 
     const handleBackToEdit = () => {
-        navigate("/workouts/templates");
+        navigate(-1);
     };
 
     const clearSelections = () => {

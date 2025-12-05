@@ -75,8 +75,8 @@ class LLMService:
                 }
             ]
 
-            # Add chat history (last 15 messages for context)
-            recent_messages = chat.messages.order_by("-created_at")[:15]
+            # Add chat history (last 50 messages for context)
+            recent_messages = chat.messages.order_by("-created_at")[:50]
             for msg in reversed(recent_messages):
                 messages.append({"role": msg.role, "content": msg.content})
 

@@ -67,9 +67,9 @@ function SearchExercise() {
 
             <div className="flex flex-col gap-2">
                 {/* Debug info panel - remove this in production */}
-                <div className="bg-gray-100 p-2 rounded text-xs">
+                {/* <div className="bg-gray-100 p-2 rounded text-xs">
                     <p><strong>Debug:</strong> Search: "{searchTerm}" | Selected: {selectedExercises.size} | Loading: {isLoading ? 'Yes' : 'No'}</p>
-                </div>
+                </div> */}
 
                 {isError && (
                     <div className="flex justify-center items-center h-64">

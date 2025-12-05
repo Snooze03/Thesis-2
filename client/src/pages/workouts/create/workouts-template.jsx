@@ -350,7 +350,7 @@ export function WorkoutsTemplate() {
     const handleCancel = () => {
         // Clear atoms and navigate back
         clearAtoms();
-        navigate(-1, { replace: true });
+        navigate("/workouts", { replace: true });
     };
 
     // Memoize these functions to prevent recreating on every render
@@ -382,7 +382,7 @@ export function WorkoutsTemplate() {
 
     const handleCancelWorkout = () => {
         clearAtoms();
-        navigate(-1, { replace: true });
+        navigate("/workouts", { replace: true });
     }
     // ===== END EVENT HANDLERS =====
 

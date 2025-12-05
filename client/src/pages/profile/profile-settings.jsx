@@ -34,6 +34,7 @@ const ReportSettings = () => {
     const [daysInterval, setDaysInterval] = useState(7);
     const [lastGeneratedAt, setLastGeneratedAt] = useState(null);
     const [nextReportDate, setNextReportDate] = useState(null);
+    const [originalSettings, setOriginalSettings] = useState(null);
 
     const {
         settings,
@@ -50,12 +51,27 @@ const ReportSettings = () => {
     // Initialize state with fetched settings
     useEffect(() => {
         if (settings) {
-            setIsShort(settings.report_type === 'short');
-            setDaysInterval(settings.day_interval || 7);
+            const isShortValue = settings.report_type === 'short';
+            const intervalValue = settings.day_interval || 7;
+
+            setIsShort(isShortValue);
+            setDaysInterval(intervalValue);
             setLastGeneratedAt(settings.last_generated_display);
             setNextReportDate(settings.next_generation_display);
+
+            // Store original settings for comparison
+            setOriginalSettings({
+                report_type: isShortValue,
+                day_interval: intervalValue
+            });
         }
     }, [settings]);
+
+    // Check if settings have changed
+    const hasChanges = originalSettings && (
+        isShort !== originalSettings.report_type ||
+        daysInterval !== originalSettings.day_interval
+    );
 
     // ===== EVENT HANDLERS =====
     const handleIncreaseInterval = () => {
@@ -164,7 +180,7 @@ const ReportSettings = () => {
                         <Button
                             className="w-full"
                             onClick={handleSaveSettings}
-                            disabled={isUpdating}
+                            disabled={isUpdating || !hasChanges}
                         >
                             {isUpdating ? "Saving..." : "Save Settings"}
                         </Button>
@@ -176,20 +192,20 @@ const ReportSettings = () => {
             <Card>
                 <CardContent>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                            <Calendar className="size-4 text-gray-700 mt-1" />
-                            <div>
-                                <p className="text-sm text-gray-600">Last generated</p>
-                                <p className="text-gray-600 font-semibold">
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200 max-sm:gap-2">
+                            <Calendar className="size-4 text-gray-700 mt-1 max-sm:size-3" />
+                            <div className="text-xs sm:text-sm text-gray-600">
+                                <p>Last generated</p>
+                                <p className="font-semibold">
                                     {lastGeneratedAt ? lastGeneratedAt.split("a")[0] : "Never"}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-200">
-                            <Calendar className="size-4 text-sky-700 mt-1" />
-                            <div>
-                                <p className="text-sm text-sky-600">Next generation</p>
-                                <p className="text-sky-600 font-semibold">
+                        <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-200 max-sm:gap-2">
+                            <Calendar className="size-4 text-sky-700 mt-1 max-sm:size-3" />
+                            <div className="text-xs sm:text-sm text-sky-600">
+                                <p>Next generation</p>
+                                <p className="font-semibold">
                                     {nextReportDate || "Not scheduled"}
                                 </p>
                             </div>

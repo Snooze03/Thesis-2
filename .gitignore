@@ -1,6 +1,7 @@
 #  --- React (frontend)
 node_modules
 dist
+dev-dist
 dist-ssr
 *.local
 logs

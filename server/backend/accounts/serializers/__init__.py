@@ -18,6 +18,13 @@ from .progress_photo import (
     ProgressPhotoUpdateSerializer,
 )
 
+from .otp import (
+    RequestOTPSerializer,
+    VerifyOTPSerializer,
+    ResendOTPSerializer,
+    OTPResponseSerializer,
+)
+
 __all__ = [
     # Account serializers
     "AccountSerializer",
@@ -33,4 +40,9 @@ __all__ = [
     # Progress Photo serializers
     "ProgressPhotoSerializer",
     "ProgressPhotoUpdateSerializer",
+    # OTP serializers
+    "RequestOTPSerializer",
+    "VerifyOTPSerializer",
+    "ResendOTPSerializer",
+    "OTPResponseSerializer",
 ]

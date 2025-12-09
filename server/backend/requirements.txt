@@ -62,3 +62,5 @@ django-celery-beat
 SQLAlchemy
 psutil
 pyotp
+cloudinary
+django-cloudinary-storage

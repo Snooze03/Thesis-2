@@ -68,6 +68,8 @@ INSTALLED_APPS = [
     "django_filters",
     "django_celery_beat",
     "django_celery_results",
+    "cloudinary_storage",
+    "cloudinary",
     # My Apps
     "accounts",
     "workouts",

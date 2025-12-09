@@ -57,6 +57,7 @@ class TemplateExerciseSerializer(serializers.ModelSerializer):
             "exercise",
             "exercise_name",
             "sets_data",
+            "weight_unit",
             "total_sets",
             "rest_time",
             "notes",
@@ -109,6 +110,7 @@ class TemplateHistoryExerciseSerializer(serializers.ModelSerializer):
             "exercise",
             "exercise_name",
             "performed_sets_data",
+            "weight_unit",
             "total_sets_performed",
             "exercise_notes",
             "order",
@@ -326,6 +328,7 @@ class SaveCompletedWorkoutSerializer(serializers.Serializer):
                     exercise=exercise,  # Can be None if exercise not found
                     exercise_name=exercise_name,
                     performed_sets_data=exercise_data["performed_sets_data"],
+                    weight_unit=exercise_data.get("weight_unit", "kg"),
                     exercise_notes=exercise_data.get("exercise_notes", ""),
                     order=exercise_data.get("order", order),
                 )
@@ -443,6 +446,7 @@ class CreateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                     template=template,
                     exercise=exercise,
                     sets_data=exercise_data.get("sets_data", []),
+                    weight_unit=exercise_data.get("weight_unit", "kg"),
                     rest_time=exercise_data.get("rest_time"),
                     notes=exercise_data.get("notes", ""),
                     order=order,
@@ -619,6 +623,9 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
                             template_exercise.sets_data = exercise_data.get(
                                 "sets_data", template_exercise.sets_data
                             )
+                            template_exercise.weight_unit = exercise_data.get(
+                                "weight_unit", template_exercise.weight_unit
+                            )
                             template_exercise.rest_time = exercise_data.get(
                                 "rest_time", template_exercise.rest_time
                             )
@@ -682,6 +689,7 @@ class UpdateTemplateWithExercisesSerializer(serializers.ModelSerializer):
             template=template,
             exercise=exercise,
             sets_data=exercise_data.get("sets_data", []),
+            weight_unit=exercise_data.get("weight_unit", "kg"),
             rest_time=exercise_data.get("rest_time"),
             notes=exercise_data.get("notes", ""),
             order=exercise_data.get("order", max_order + 1),

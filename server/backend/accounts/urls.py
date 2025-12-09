@@ -8,6 +8,9 @@ from .views import (
     WeightHistoryViewSet,
     ProgressPhotoViewSet,
     CombinedSignupView,
+    RequestOTPView,
+    VerifyOTPView,
+    ResendOTPView,
 )
 
 
@@ -18,13 +21,17 @@ router.register(r"weight-history", WeightHistoryViewSet, basename="weight-histor
 router.register(r"progress-photos", ProgressPhotoViewSet, basename="progress-photos")
 
 urlpatterns = [
-    path(
-        "signup/",
-        CombinedSignupView.as_view(),
-        name="signup-with-profile",
-    ),
+    # OTP endpoints
+    path("request-otp/", RequestOTPView.as_view(), name="request-otp"),
+    path("verify-otp/", VerifyOTPView.as_view(), name="verify-otp"),
+    path("resend-otp/", ResendOTPView.as_view(), name="resend-otp"),
+    # Signup
+    path("signup/", CombinedSignupView.as_view(), name="signup-with-profile"),
+    # JWT Token endpoints
     path("token/", TokenObtainPairView.as_view(), name="login-get_token"),
     path("token/refresh/", TokenRefreshView.as_view(), name="refresh_token"),
+    # Router URLs
     path("", include(router.urls)),
+    # Account update
     path("update/", AccountUpdateView.as_view(), name="account-update"),
 ]

@@ -136,13 +136,19 @@ class NutritionProfile(models.Model):
             total_inches = (self.account.height_ft * 12) + self.account.height_in
             height_cm = total_inches * 2.54
 
-            estimated_age = 25
+            try:
+                user_age = self.account.age
+                # Validate age is reasonable (13-120)
+                if user_age < 13 or user_age > 120:
+                    user_age = 25  # Fallback to default
+            except (AttributeError, TypeError):
+                user_age = 25  # Fallback if age calculation fails
 
             # Calculate BMR using Mifflin-St Jeor Equation
             if self.account.gender == "male":
-                bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * estimated_age) + 5
-            else:
-                bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * estimated_age) - 161
+                bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * user_age) + 5
+            else:  # female, other, prefer_not_to_say
+                bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * user_age) - 161
 
             # Calculate TDEE
             activity_multipliers = {
@@ -205,8 +211,15 @@ class NutritionProfile(models.Model):
             )
             has_activity = bool(profile.activity_level)
             has_goal = bool(profile.body_goal)
+            has_birth_date = bool(self.account.birth_date)
 
-            return has_weight and has_height and has_activity and has_goal
+            return (
+                has_weight
+                and has_height
+                and has_activity
+                and has_goal
+                and has_birth_date
+            )
         except AttributeError:
             return False
 

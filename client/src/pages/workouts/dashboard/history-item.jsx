@@ -3,12 +3,51 @@ import { Calendar, Clock } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 import { Separator } from "@/components/ui/separator";
 
+// Conversion constant
+const LBS_TO_KG = 0.453592;
+
 // Individual workout history items
 export function HistoryItem({ workout }) {
-    // Calculate total volume across all exercises
-    const totalVolume = workout.performed_exercises?.reduce((total, exercise) => {
-        return total + (exercise.total_volume || 0);
-    }, 0) || 0;
+    // Calculate total volume and track units used
+    const volumeData = workout.performed_exercises?.reduce((acc, exercise) => {
+        const unit = exercise.weight_unit || 'kg';
+        const volume = exercise.total_volume || 0;
+
+        acc.exercises.push({ unit, volume });
+
+        if (!acc.unitCounts[unit]) {
+            acc.unitCounts[unit] = 0;
+        }
+        acc.unitCounts[unit]++;
+
+        return acc;
+    }, { exercises: [], unitCounts: {} }) || { exercises: [], unitCounts: {} };
+
+    // Format total volume display
+    const formatTotalVolume = () => {
+        const units = Object.keys(volumeData.unitCounts);
+
+        if (units.length === 0) {
+            return '0kg';
+        }
+
+        // If only one unit is used across all exercises
+        if (units.length === 1) {
+            const unit = units[0];
+            const totalVolume = volumeData.exercises.reduce((sum, ex) => sum + ex.volume, 0);
+            return `${totalVolume.toFixed(1)}${unit}`;
+        }
+
+        // If mixed units - convert everything to kg
+        const totalVolumeInKg = volumeData.exercises.reduce((sum, ex) => {
+            const volumeInKg = ex.unit === 'lbs'
+                ? ex.volume * LBS_TO_KG
+                : ex.volume;
+            return sum + volumeInKg;
+        }, 0);
+
+        return `${totalVolumeInKg.toFixed(1)}kg`;
+    };
 
     return (
         <Card>
@@ -42,7 +81,7 @@ export function HistoryItem({ workout }) {
                         <p className="text-xs">Sets</p>
                     </div>
                     <div className="py-1 text-center bg-orange-200 rounded-md">
-                        <p className="text-lg font-bold text-gray-800">{totalVolume}kg</p>
+                        <p className="text-lg font-bold text-gray-800">{formatTotalVolume()}</p>
                         <p className="text-xs">Volume</p>
                     </div>
                 </div>
@@ -53,16 +92,21 @@ export function HistoryItem({ workout }) {
                 <div className="space-y-2">
                     <h4 className="text-sm font-bold">Exercises Performed</h4>
                     <div className="space-y-1">
-                        {workout.performed_exercises?.map((exercise, index) => (
-                            <div key={exercise.id} className="flex justify-between items-center text-sm">
-                                <span className="text-gray-600">
-                                    {index + 1}. {exercise.exercise_name}
-                                </span>
-                                <span className="text-gray-500 font-mono text-xs">
-                                    {exercise.total_sets_performed} sets • {exercise.total_volume}kg
-                                </span>
-                            </div>
-                        ))}
+                        {workout.performed_exercises?.map((exercise, index) => {
+                            const unit = exercise.weight_unit || 'kg';
+                            const volume = exercise.total_volume || 0;
+
+                            return (
+                                <div key={exercise.id} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">
+                                        {index + 1}. {exercise.exercise_name}
+                                    </span>
+                                    <span className="text-gray-500 font-mono text-xs">
+                                        {exercise.total_sets_performed} sets • {volume.toFixed(1)}{unit}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 

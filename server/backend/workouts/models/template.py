@@ -4,6 +4,13 @@ from accounts.models import Account
 from .exercise import Exercise
 
 
+class WeightUnitChoices(models.TextChoices):
+    """Weight unit options for exercises"""
+
+    KG = "kg", "Kilograms"
+    LBS = "lbs", "Pounds"
+
+
 class Template(models.Model):
     user_id = models.ForeignKey(
         Account,
@@ -37,6 +44,14 @@ class TemplateExercise(models.Model):
         default=list,
         blank=True,
         help_text="Array of objects containing reps and weight for each set",
+    )
+
+    # Weight unit preference for this exercise
+    weight_unit = models.CharField(
+        max_length=3,
+        choices=WeightUnitChoices.choices,
+        default=WeightUnitChoices.KG,
+        help_text="Unit of measurement for weight values in sets_data",
     )
 
     # Keep total sets count for easier querying
@@ -96,7 +111,8 @@ class TemplateExercise(models.Model):
         for i, set_data in enumerate(self.sets_data, 1):
             reps = set_data.get("reps", "N/A")
             weight = set_data.get("weight", "N/A")
-            sets_display.append(f"Set {i}: {reps} reps @ {weight}kg")
+            unit = self.weight_unit  # Use the weight_unit field
+            sets_display.append(f"Set {i}: {reps} reps @ {weight}{unit}")
 
         return " | ".join(sets_display)
 
@@ -207,6 +223,14 @@ class TemplateHistoryExercise(models.Model):
         help_text="Actual sets performed: [{'reps': 12, 'weight': 50.5}, {'reps': 10, 'weight': 52.5}]",
     )
 
+    # Weight unit used during this workout session
+    weight_unit = models.CharField(
+        max_length=3,
+        choices=WeightUnitChoices.choices,
+        default=WeightUnitChoices.KG,
+        help_text="Unit of measurement for weight values in performed_sets_data",
+    )
+
     # Keep count for easy querying
     total_sets_performed = models.PositiveIntegerField(
         default=0, help_text="Total number of sets performed for this exercise"
@@ -248,7 +272,8 @@ class TemplateHistoryExercise(models.Model):
         for i, set_data in enumerate(self.performed_sets_data, 1):
             reps = set_data.get("reps", "N/A")
             weight = set_data.get("weight", "N/A")
-            sets_display.append(f"Set {i}: {reps} reps @ {weight}kg")
+            unit = self.weight_unit
+            sets_display.append(f"Set {i}: {reps} reps @ {weight}{unit}")
 
         return " | ".join(sets_display)
 

@@ -27,12 +27,13 @@ export function useTemplates() {
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
                     sets_data: exercise.sets_data || [],
+                    weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),
                     notes: exercise.notes || ''
                 }))
             };
 
-            console.log("Formatted Data for Backend:", formattedData); // Debug log
+            // console.log("Formatted Data for Backend:", formattedData); // Debug log
 
             const response = await api.post("workouts/templates/create_with_exercises/", formattedData);
             return response.data;
@@ -65,6 +66,7 @@ export function useTemplates() {
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
                     sets_data: exercise.sets_data || [],
+                    weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),
                     notes: exercise.notes || '',
                     order: exercise.order || 0

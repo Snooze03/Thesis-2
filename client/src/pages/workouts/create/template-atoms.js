@@ -17,7 +17,7 @@ export const templateModeAtom = atom("create"); // "create" / "edit" / "start"
 export const startedAtAtom = atom(null);
 export const completedAtAtom = atom(null);
 
-// Rest time ato
+// Rest time atom
 export const exerciseRestTimesAtom = atom(new Map());
 
 // Rest timer countdown atom
@@ -28,3 +28,8 @@ export const restTimerAtom = atom({
     exerciseMuscle: null,
     totalSeconds: 0
 });
+
+// Weight Unit Atom - tracks weight unit preference per exercise
+// Structure: Map<exerciseKey, "kg" | "lbs">
+// exerciseKey format: "${exercise.name}_${exercise.muscle}"
+export const exerciseWeightUnitsAtom = atom(new Map());

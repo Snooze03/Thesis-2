@@ -6,10 +6,15 @@ import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, AlarmClock, Minus, Lock, Check } from "lucide-react";
+import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { exerciseRestTimesAtom, restTimerAtom } from "./template-atoms";
+import { exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
 import clsx from "clsx";
+import toast from "react-hot-toast";
+
+// Conversion constants
+const KG_TO_LBS = 2.20462;
+const LBS_TO_KG = 0.453592;
 
 function ExerciseCard({
     exercise,
@@ -31,9 +36,11 @@ function ExerciseCard({
     const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
     const [restTimer, setRestTimer] = useAtom(restTimerAtom);
+    const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
 
     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
     const currentRestTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time || null;
+    const currentWeightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
     // Generate time options from 0:05 to 6:00 in 5-second intervals
     const generateTimeOptions = () => {
@@ -63,6 +70,56 @@ function ExerciseCard({
 
         setIsRestTimerOpen(false);
     }, [exerciseKey, setExerciseRestTimes, onUpdate]);
+
+    // Handle weight unit change with conversion
+    const handleWeightUnitChange = useCallback((newUnit) => {
+        // If already in target unit, do nothing
+        if (currentWeightUnit === newUnit) {
+            return;
+        }
+
+        // Convert all weights in sets_data
+        const convertedSetsData = setsData.map((set, index) => {
+            // Skip conversion if weight is null, empty, or 0
+            if (set.weight === null || set.weight === '' || set.weight === 0) {
+                return set;
+            }
+
+            const weight = parseFloat(set.weight);
+
+            // Skip if weight is not a valid number
+            if (isNaN(weight)) {
+                return set;
+            }
+
+            const convertedWeight = newUnit === 'lbs'
+                ? (weight * KG_TO_LBS).toFixed(2)
+                : (weight * LBS_TO_KG).toFixed(2);
+
+
+            return {
+                ...set,
+                weight: parseFloat(convertedWeight)
+            };
+        });
+
+
+        // Update local state
+        setSetsData(convertedSetsData);
+
+        // Update weight units atom
+        setExerciseWeightUnits(prev => {
+            const newMap = new Map(prev);
+            newMap.set(exerciseKey, newUnit);
+            return newMap;
+        });
+
+        // Update parent component
+        onUpdate?.({
+            sets_data: convertedSetsData,
+            weight_unit: newUnit
+        });
+    }, [currentWeightUnit, setsData, exerciseKey, setExerciseWeightUnits, onUpdate]);
 
     // Effect to scroll to selected time when dialog opens
     useEffect(() => {
@@ -199,14 +256,30 @@ function ExerciseCard({
                 label: "Rest Timer",
                 action: handleRestTimer
             },
+            {
+                icon: Weight,
+                label: "Weight Unit",
+                submenu: [
+                    {
+                        label: "Kilograms (kg)",
+                        action: () => handleWeightUnitChange('kg'),
+                        icon: currentWeightUnit === 'kg' ? Check : null,
+                    },
+                    {
+                        label: "Pounds (lbs)",
+                        action: () => handleWeightUnitChange('lbs'),
+                        icon: currentWeightUnit === 'lbs' ? Check : null,
+                    },
+                ]
+            },
         ];
 
         if (isStartMode) {
-            // In start mode, only show basic actions
+            // In start mode, show all items including weight unit
             return baseItems;
         }
 
-        // In edit/create mode, show all actions
+        // In edit/create mode, show all actions including remove
         return [
             ...baseItems,
             {
@@ -246,7 +319,7 @@ function ExerciseCard({
                     <div className="grid grid-cols-[.16fr_.4fr_.5fr_.5fr_auto] gap-3 place-items-center">
                         <p className="text-sm text-gray-600">Sets</p>
                         <p className="text-sm text-gray-600">Previous</p>
-                        <p className="text-sm text-gray-600">Weight</p>
+                        <p className="text-sm text-gray-600">Weight ({currentWeightUnit})</p>
                         <p className="text-sm text-gray-600">Reps</p>
                         <div className={clsx("w-4", { "w-7": isStartMode })}></div>
                     </div>

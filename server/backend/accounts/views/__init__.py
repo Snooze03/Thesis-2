@@ -3,6 +3,7 @@ from .profile import ProfileViewSet
 from .weight_history import WeightHistoryViewSet
 from .signup import CombinedSignupView
 from .progress_photo import ProgressPhotoViewSet
+from .otp import RequestOTPView, VerifyOTPView, ResendOTPView
 
 __all__ = [
     "AccountProfileViewSet",
@@ -11,4 +12,7 @@ __all__ = [
     "WeightHistoryViewSet",
     "CombinedSignupView",
     "ProgressPhotoViewSet",
+    "RequestOTPView",
+    "VerifyOTPView",
+    "ResendOTPView",
 ]

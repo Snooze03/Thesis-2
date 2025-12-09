@@ -1,8 +1,10 @@
-from ..models import Account, Profile, WeightHistory
+from ..models import Account, Profile, WeightHistory, EmailVerification
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
 from ..serializers import (
     AccountCreateSerializer,
     ProfileCreateUpdateSerializer,
@@ -20,6 +22,7 @@ class CombinedSignupView(generics.CreateAPIView):
     - Account creation with authentication details
     - Profile creation with fitness/health data
     - Weight history entry creation for starting weight
+    - Email verification token validation
     - Atomic transaction to ensure data consistency
 
     POST /accounts/signup/
@@ -47,6 +50,24 @@ class CombinedSignupView(generics.CreateAPIView):
 
         validated_data = serializer.validated_data
 
+        # Validate verification token
+        verification_token = validated_data.get("verification_token")
+        email = validated_data.get("email")
+
+        try:
+            email_verification = EmailVerification.objects.get(
+                email=email, verification_token=verification_token, is_verified=True
+            )
+        except EmailVerification.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid or expired verification token",
+                    "errors": {"verification_token": ["Invalid verification token"]},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Extract account data
         account_fields = [
             "email",
@@ -57,6 +78,7 @@ class CombinedSignupView(generics.CreateAPIView):
             "gender",
             "height_ft",
             "height_in",
+            "birth_date",
         ]
         account_data = {
             field: validated_data.get(field)
@@ -186,12 +208,15 @@ class CombinedSignupView(generics.CreateAPIView):
                     if current_weight_serializer.is_valid():
                         current_weight_serializer.save()
 
-                # Step 5: Return complete user data
+                # Step 5: Delete the email verification record (already verified)
+                email_verification.delete()
+
+                # Step 6: Return complete user data
                 response_serializer = AccountDetailSerializer(account)
                 return Response(
                     {
                         "success": True,
-                        "message": "Account, profile, and weight history created successfully",
+                        "message": "Account created successfully! Welcome aboard!",
                         "data": response_serializer.data,
                     },
                     status=status.HTTP_201_CREATED,

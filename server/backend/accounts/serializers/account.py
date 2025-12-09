@@ -16,6 +16,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
     # Calculated fields
     height_in_cm = serializers.ReadOnlyField()
+    age = serializers.ReadOnlyField()
 
     # Password handling for creation/updates
     password = serializers.CharField(write_only=True)
@@ -31,6 +32,8 @@ class AccountSerializer(serializers.ModelSerializer):
             "height_ft",
             "height_in",
             "height_in_cm",
+            "birth_date",
+            "age",
             "is_active",
             "date_joined",
             "profile",
@@ -40,6 +43,7 @@ class AccountSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "height_in_cm",
+            "age",
             "date_joined",
             "profile",
             "recent_weight_history",
@@ -78,7 +82,7 @@ class AccountSerializer(serializers.ModelSerializer):
 class AccountCreateSerializer(serializers.ModelSerializer):
     """Simplified serializer for account creation."""
 
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
@@ -92,13 +96,38 @@ class AccountCreateSerializer(serializers.ModelSerializer):
             "gender",
             "height_ft",
             "height_in",
+            "birth_date",
         ]
 
     def validate(self, data):
         """Validate password confirmation."""
         if data["password"] != data["password_confirm"]:
-            raise serializers.ValidationError("Passwords do not match.")
+            raise serializers.ValidationError({"password": "Passwords do not match."})
         return data
+
+    def validate_birth_date(self, value):
+        """Validate birth date is in the past and user is at least 13 years old."""
+        today = date.today()
+
+        if value >= today:
+            raise serializers.ValidationError("Birth date must be in the past.")
+
+        # Calculate age
+        age = (
+            today.year
+            - value.year
+            - ((today.month, today.day) < (value.month, value.day))
+        )
+
+        if age < 13:
+            raise serializers.ValidationError(
+                "You must be at least 13 years old to register."
+            )
+
+        if age > 120:
+            raise serializers.ValidationError("Please enter a valid birth date.")
+
+        return value
 
     def create(self, validated_data):
         """Create account with confirmed password."""
@@ -112,9 +141,9 @@ class AccountDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for account with all related data."""
 
     profile = ProfileSerializer(read_only=True)
-    # weight_history = WeightHistorySerializer(many=True, read_only=True)
     weight_history = serializers.SerializerMethodField()
     height_in_cm = serializers.ReadOnlyField()
+    age = serializers.ReadOnlyField()
 
     class Meta:
         model = Account
@@ -127,6 +156,8 @@ class AccountDetailSerializer(serializers.ModelSerializer):
             "height_ft",
             "height_in",
             "height_in_cm",
+            "birth_date",
+            "age",
             "is_active",
             "date_joined",
             "last_login",
@@ -136,6 +167,7 @@ class AccountDetailSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "height_in_cm",
+            "age",
             "date_joined",
             "last_login",
             "profile",
@@ -153,15 +185,19 @@ class AccountDetailSerializer(serializers.ModelSerializer):
 class CombinedSignupSerializer(serializers.Serializer):
     """Combined serializer for account creation with profile in browsable API."""
 
+    # Verification token
+    verification_token = serializers.CharField(required=True)
+
     # Account fields
     email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     gender = serializers.ChoiceField(choices=Account.GENDER_CHOICES)
     height_ft = serializers.IntegerField(min_value=3, max_value=8)
     height_in = serializers.IntegerField(min_value=0, max_value=11)
+    birth_date = serializers.DateField()
 
     # Profile fields
     starting_weight = serializers.DecimalField(
@@ -169,6 +205,8 @@ class CombinedSignupSerializer(serializers.Serializer):
         decimal_places=2,
         min_value=Decimal("20.00"),
         max_value=Decimal("500.00"),
+        required=False,
+        allow_null=True,
     )
     current_weight = serializers.DecimalField(
         max_digits=5,
@@ -197,13 +235,37 @@ class CombinedSignupSerializer(serializers.Serializer):
     def validate(self, data):
         """Validate password confirmation and dates."""
         if data.get("password") != data.get("password_confirm"):
-            raise serializers.ValidationError("Passwords do not match.")
+            raise serializers.ValidationError({"password": "Passwords do not match."})
 
         # Validate start_weight_date
         start_date = data.get("start_weight_date", date.today())
         if start_date > date.today():
             raise serializers.ValidationError(
-                "Start weight date cannot be in the future."
+                {"start_weight_date": "Start weight date cannot be in the future."}
             )
 
         return data
+
+    def validate_birth_date(self, value):
+        """Validate birth date is in the past and user is at least 13 years old."""
+        today = date.today()
+
+        if value >= today:
+            raise serializers.ValidationError("Birth date must be in the past.")
+
+        # Calculate age
+        age = (
+            today.year
+            - value.year
+            - ((today.month, today.day) < (value.month, value.day))
+        )
+
+        if age < 13:
+            raise serializers.ValidationError(
+                "You must be at least 13 years old to register."
+            )
+
+        if age > 120:
+            raise serializers.ValidationError("Please enter a valid birth date.")
+
+        return value

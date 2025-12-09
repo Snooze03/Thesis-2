@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useFormContext } from "react-hook-form";
 import { InputError } from "@/components/ui/inputError";
 
-export function SignUp({ nextStep }) {
+export function SignUp({ nextStep, isRequesting }) {
     const {
         register,
         formState: { errors },
@@ -31,6 +31,7 @@ export function SignUp({ nextStep }) {
                                     type="text"
                                     placeholder="John"
                                     maxLength={150}
+                                    disabled={isRequesting}
                                 />
                                 {errors.first_name && (
                                     <InputError>
@@ -46,6 +47,7 @@ export function SignUp({ nextStep }) {
                                     type="text"
                                     placeholder="Doe"
                                     maxLength={150}
+                                    disabled={isRequesting}
                                 />
                                 {errors.last_name && (
                                     <InputError>
@@ -62,6 +64,7 @@ export function SignUp({ nextStep }) {
                                 {...register("email")}
                                 type="email"
                                 placeholder="john.doe@example.com"
+                                disabled={isRequesting}
                             />
                             {errors.email && (
                                 <InputError>
@@ -77,6 +80,7 @@ export function SignUp({ nextStep }) {
                                 {...register("password")}
                                 type="password"
                                 placeholder="Create a strong password"
+                                disabled={isRequesting}
                             />
                             {errors.password && (
                                 <InputError>
@@ -95,6 +99,7 @@ export function SignUp({ nextStep }) {
                                 {...register("confirm_password")}
                                 type="password"
                                 placeholder="Confirm your password"
+                                disabled={isRequesting}
                             />
                             {errors.confirm_password && (
                                 <InputError>
@@ -107,8 +112,9 @@ export function SignUp({ nextStep }) {
                             type="button"
                             onClick={nextStep}
                             className="w-full mt-2"
+                            disabled={isRequesting}
                         >
-                            Continue
+                            {isRequesting ? "Sending verification code..." : "Continue"}
                         </Button>
 
                         <div className="text-center text-sm text-muted-foreground">

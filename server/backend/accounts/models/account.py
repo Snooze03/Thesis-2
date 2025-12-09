@@ -5,6 +5,7 @@ from django.core.validators import (
     MaxValueValidator,
 )
 from django.contrib.auth.base_user import BaseUserManager
+from datetime import date
 
 
 class AccountManager(BaseUserManager):
@@ -27,6 +28,7 @@ class AccountManager(BaseUserManager):
         extra_fields.setdefault("gender", "male")
         extra_fields.setdefault("height_ft", 5)
         extra_fields.setdefault("height_in", 10)
+        extra_fields.setdefault("birth_date", date(1990, 1, 1))  # Default birth date
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
@@ -54,6 +56,10 @@ class Account(AbstractUser):
     ]
 
     # Static/rarely changing fields
+    birth_date = models.DateField(
+        verbose_name="Date of Birth",
+        help_text="User's date of birth",
+    )
     gender = models.CharField(
         max_length=20, choices=GENDER_CHOICES, verbose_name="Gender"
     )
@@ -80,3 +86,13 @@ class Account(AbstractUser):
         """Convert height to centimeters."""
         total_inches = (self.height_ft * 12) + self.height_in
         return round(total_inches * 2.54, 1)
+
+    @property
+    def age(self):
+        """Calculate age from birth date."""
+        today = date.today()
+        return (
+            today.year
+            - self.birth_date.year
+            - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+        )

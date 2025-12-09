@@ -29,6 +29,22 @@ export function BasicInfo({ nextStep, prevStep }) {
                         "grid grid-rows-3 gap-4",
                         "max-xs:grid-rows-4"
                     )}>
+                        {/* Birth Date */}
+                        <div className="flex flex-col gap-3">
+                            <Label htmlFor="birth_date">Date of Birth</Label>
+                            <Input
+                                id="birth_date"
+                                type="date"
+                                max={new Date().toISOString().split('T')[0]}
+                                {...register("birth_date")}
+                            />
+                            {errors.birth_date && (
+                                <InputError>
+                                    {errors.birth_date.message}
+                                </InputError>
+                            )}
+                        </div>
+
                         {/* Gender and Activity Level Row */}
                         <div className={cn(
                             "grid grid-cols-2 gap-4",

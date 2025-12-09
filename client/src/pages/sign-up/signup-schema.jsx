@@ -64,6 +64,30 @@ export const MultiStepSchema = v.object({
     ),
 
     // Step 2 fields
+    birth_date: v.pipe(
+        v.string(),
+        v.nonEmpty("Date of birth is required"),
+        v.custom((value) => {
+            const birthDate = new Date(value);
+            const today = new Date();
+
+            // Check if date is in the future
+            if (birthDate >= today) {
+                return false;
+            }
+
+            // Calculate age
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            // Must be at least 13 years old
+            return age >= 13;
+        }, "You must be at least 13 years old to register")
+    ),
     gender: v.pipe(
         v.string(),
         v.picklist(formOptions.genders.map((g) => g.value), "Please select a gender")
@@ -109,23 +133,34 @@ export const MultiStepSchema = v.object({
         v.picklist(formOptions.bodyGoals.map((b) => b.value), "Please select a body goal")
     ),
 
-    // Step 3 fields (optional fields, so just validate length if provided)
-    injuries: v.pipe(
-        v.string(),
-        v.maxLength(500, "Injuries description must be less than 500 characters")
+    // Step 3 fields
+    injuries: v.optional(
+        v.pipe(
+            v.string(),
+            v.maxLength(500, "Injuries description must be less than 500 characters")
+        ),
+        ""
     ),
-    food_allergies: v.pipe(
-        v.string(),
-        v.maxLength(500, "Food allergies description must be less than 500 characters")
+    food_allergies: v.optional(
+        v.pipe(
+            v.string(),
+            v.maxLength(500, "Food allergies description must be less than 500 characters")
+        ),
+        ""
     ),
     workout_frequency: v.pipe(
         v.string(),
-        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select workout frequency")
+        v.nonEmpty("Please select workout frequency"),
+        v.picklist(formOptions.workoutFrequencies.map((wf) => wf.value), "Please select a valid workout frequency")
     ),
     workout_location: v.pipe(
         v.string(),
-        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select workout location")
+        v.nonEmpty("Please select workout location"),
+        v.picklist(formOptions.workoutLocations.map((loc) => loc.value), "Please select a valid workout location")
     ),
+
+    // Verification token
+    verification_token: v.optional(v.string()),
 });
 
 // Default values for the form
@@ -138,6 +173,7 @@ export const defaultFormValues = {
     confirm_password: "",
 
     // Step 2
+    birth_date: "",
     gender: "",
     activity_level: "",
     current_weight: "",
@@ -156,6 +192,6 @@ export const defaultFormValues = {
 // Step field mappings for validation
 export const stepFields = {
     1: ["first_name", "last_name", "email", "password", "confirm_password"],
-    2: ["gender", "activity_level", "current_weight", "goal_weight", "height_ft", "height_in", "body_goal"],
+    2: ["birth_date", "gender", "activity_level", "current_weight", "goal_weight", "height_ft", "height_in", "body_goal"],
     3: ["injuries", "food_allergies", "workout_frequency", "workout_location"]
 };

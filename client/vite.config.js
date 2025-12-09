@@ -21,6 +21,7 @@ export default defineConfig({
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
+        display_override: ["fullscreen", "minimal-ui"],
         scope: "/",
         start_url: "/",
         orientation: "portrait",
@@ -50,9 +51,25 @@ export default defineConfig({
             "purpose": "maskable"
           }
         ],
-        },
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2}'],
+        screenshots: [
+          {
+            "src": "/desktop-screenshot.png",
+            "sizes": "1817x858",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Wonder Widgets"
+          },
+          {
+            "src": "/mobile-screenshot.png",
+            "sizes": "424x856",
+            "type": "image/png",
+            // "form_factor": "wide",
+            "label": "Wonder Widgets"
+          }
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff,woff2}'],
       }
     })
   ],

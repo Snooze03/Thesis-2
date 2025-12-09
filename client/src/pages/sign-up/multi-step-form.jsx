@@ -1,18 +1,19 @@
-import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { useState } from "react";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { SignUp } from "./stepOne";
 import { BasicInfo } from "./stepTwo";
 import { AdditionalInfo } from "./stepThree";
+import { OTPVerification } from "./OTPVerification";
 import { MultiStepSchema, defaultFormValues, stepFields } from "./signup-schema";
-import api from "@/api";
-import { useMutation } from "@tanstack/react-query";
-import { ACCESS_TOKEN, REFRESH_TOKEN } from "@/constants";
+import { useSignup } from "@/hooks/authentication/useSignup";
+import { useRequestOTP } from "@/hooks/authentication/useRequestOTP";
 
 export const MultiStepForm = () => {
-    const navigate = useNavigate();
     const [step, setStep] = useState(1);
+    const [showOTPModal, setShowOTPModal] = useState(false);
+    const [verificationToken, setVerificationToken] = useState(null);
+    const [pendingEmail, setPendingEmail] = useState(null);
 
     const methods = useForm({
         resolver: valibotResolver(MultiStepSchema),
@@ -21,96 +22,30 @@ export const MultiStepForm = () => {
     });
 
     const { getValues } = methods;
+    const { mutate, isPending, error } = useSignup(methods);
+    const { mutate: requestOTP, isPending: isRequestingOTP } = useRequestOTP();
 
-    // Post request to create new account to server
-    const {
-        mutate,
-        isPending,
-        error
-    } = useMutation({
-        mutationFn: async (data) => {
-            // Transform the form data to match backend expectations
-            const transformedData = {
-                // Account fields
-                email: data.email,
-                password: data.password,
-                password_confirm: data.confirm_password, // Backend expects password_confirm
-                first_name: data.first_name,
-                last_name: data.last_name,
-                gender: data.gender,
-                height_ft: Number(data.height_ft),
-                height_in: Number(data.height_in),
-
-                // Profile fields
-                starting_weight: Number(data.current_weight), // Use current as starting weight
-                current_weight: Number(data.current_weight),
-                goal_weight: Number(data.goal_weight),
-                start_weight_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-                activity_level: data.activity_level,
-                body_goal: data.body_goal,
-                workout_frequency: data.workout_frequency,
-                workout_location: data.workout_location,
-                injuries: data.injuries || "", // Ensure empty string if null/undefined
-                food_allergies: data.food_allergies || "", // Ensure empty string if null/undefined
-            };
-
-            // console.log("Sending to backend:", transformedData);
-
-            const response = await api.post("accounts/signup/", transformedData);
-            return { ...data, ...response.data };
-        },
-        onSuccess: async (data) => {
-            try {
-                // Get authentication tokens
-                const tokenResponse = await api.post("accounts/token/", {
-                    email: data.email,
-                    password: data.password
-                });
-
-                localStorage.setItem(ACCESS_TOKEN, tokenResponse.data.access);
-                localStorage.setItem(REFRESH_TOKEN, tokenResponse.data.refresh);
-
-                navigate("/profile");
-            } catch (tokenError) {
-                console.error("Token retrieval failed:", tokenError);
-                // Even if token fails, account was created successfully
-                // Could redirect to login page instead
-                navigate("/login");
-            }
-        },
-        onError: (error) => {
-            console.error("Signup failed:", error);
-            // Handle specific backend validation errors
-            if (error.response?.data?.errors) {
-                const backendErrors = error.response.data.errors;
-
-                // Map backend errors to form fields
-                Object.keys(backendErrors).forEach(field => {
-                    if (backendErrors[field]) {
-                        let formField = field;
-
-                        // Map backend field names to form field names if needed
-                        if (field === 'password_confirm') {
-                            formField = 'confirm_password';
-                        }
-
-                        methods.setError(formField, {
-                            type: "manual",
-                            message: Array.isArray(backendErrors[field])
-                                ? backendErrors[field][0]
-                                : backendErrors[field]
-                        });
-                    }
-                });
-            }
-        }
-    });
-
-    // Submit handler
+    // ===== EVENT HANDLERS =====
     const onSubmit = (data) => {
-        // console.log("Form data before submission:", data);
-        mutate(data);
+        // Add verification token to submission data
+        const submissionData = {
+            ...data,
+            verification_token: verificationToken,
+        };
+        mutate(submissionData);
     };
+
+    const handleOTPVerified = (token) => {
+        setVerificationToken(token);
+        setShowOTPModal(false);
+        setStep(2);
+    };
+
+    const handleOTPClose = () => {
+        setShowOTPModal(false);
+        setPendingEmail(null);
+    };
+    // ===== END EVENT HANDLERS =====
 
     // Multi step form handler
     const nextStep = async () => {
@@ -118,18 +53,38 @@ export const MultiStepForm = () => {
         const fieldsToValidate = stepFields[step];
         const valid = await methods.trigger(fieldsToValidate);
 
-        const { password, confirm_password } = getValues();
+        // Special handling for Step 1: Trigger OTP verification
+        if (step === 1) {
+            const { password, confirm_password } = getValues();
 
-        // Special check for Step 1: Password Confirmation
-        if (step === 1 && password !== confirm_password) {
-            methods.setError("confirm_password", {
-                type: "manual",
-                message: "Passwords do not match",
-            });
-            return;
+            // Check password confirmation
+            if (password !== confirm_password) {
+                methods.setError("confirm_password", {
+                    type: "manual",
+                    message: "Passwords do not match",
+                });
+                return;
+            }
+
+            // If valid, trigger OTP flow
+            if (valid) {
+                const email = getValues("email");
+                setPendingEmail(email);
+
+                // Request OTP from backend
+                requestOTP(email, {
+                    onSuccess: () => {
+                        // Show OTP modal on successful OTP request
+                        setShowOTPModal(true);
+                    },
+                });
+
+                // Don't increment step - wait for OTP verification
+                return;
+            }
         }
 
-        // If everything is valid, move to the next step
+        // For other steps, just move forward if valid
         if (valid) {
             setStep((prev) => prev + 1);
         }
@@ -142,9 +97,18 @@ export const MultiStepForm = () => {
     return (
         <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
-                {step === 1 && <SignUp nextStep={nextStep} />}
+                {step === 1 && <SignUp nextStep={nextStep} isRequesting={isRequestingOTP} />}
                 {step === 2 && <BasicInfo nextStep={nextStep} prevStep={prevStep} />}
                 {step === 3 && <AdditionalInfo prevStep={prevStep} isSubmitting={isPending} />}
+
+                {/* OTP Verification Modal */}
+                {showOTPModal && pendingEmail && (
+                    <OTPVerification
+                        email={pendingEmail}
+                        onVerified={handleOTPVerified}
+                        onClose={handleOTPClose}
+                    />
+                )}
 
                 {/* Display general error messages */}
                 {error && (

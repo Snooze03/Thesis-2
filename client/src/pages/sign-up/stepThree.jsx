@@ -25,17 +25,16 @@ export function AdditionalInfo({ prevStep, isSubmitting }) {
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col gap-4">
-                        {/* Medical Condition */}
+                        {/* Injuries */}
                         <div className="flex flex-col gap-3">
                             <Label htmlFor="injuries">
-                                Do you have any existing medical conditions, injuries, or physical limitations?
+                                Do you have any injuries or physical limitations?
                             </Label>
                             <Textarea
                                 id="injuries"
                                 {...register("injuries")}
-                                placeholder="Please describe any medical conditions or leave blank if none"
-                                className="max-sm:placeholder:text-xs"
-                                maxLength={500}
+                                placeholder="Describe any injuries or limitations (optional)"
+                                className="min-h-[80px] resize-none"
                             />
                             {errors.injuries && (
                                 <InputError>
@@ -44,17 +43,16 @@ export function AdditionalInfo({ prevStep, isSubmitting }) {
                             )}
                         </div>
 
-                        {/* Dietary Restrictions */}
+                        {/* Food Allergies */}
                         <div className="flex flex-col gap-3">
                             <Label htmlFor="food_allergies">
-                                Food allergies/dietary restrictions
+                                Do you have any food allergies or dietary restrictions?
                             </Label>
                             <Textarea
                                 id="food_allergies"
                                 {...register("food_allergies")}
-                                placeholder="Please describe any dietary restrictions or leave blank if none"
-                                className="max-sm:placeholder:text-xs"
-                                maxLength={500}
+                                placeholder="List any allergies or restrictions (optional)"
+                                className="min-h-[80px] resize-none"
                             />
                             {errors.food_allergies && (
                                 <InputError>
@@ -63,7 +61,23 @@ export function AdditionalInfo({ prevStep, isSubmitting }) {
                             )}
                         </div>
 
-                        {/* Workout Frequency */}
+                        {/* Birth Date */}
+                        <div className="flex flex-col gap-3">
+                            <Label htmlFor="birth_date">Date of Birth</Label>
+                            <input
+                                id="birth_date"
+                                type="date"
+                                {...register("birth_date")}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                            {errors.birth_date && (
+                                <InputError>
+                                    {errors.birth_date.message}
+                                </InputError>
+                            )}
+                        </div>
+
+                        {/* Workout Frequency - KEEP AS STRING */}
                         <div className="flex flex-col gap-3">
                             <Label>
                                 How many days per week can you commit to a workout?

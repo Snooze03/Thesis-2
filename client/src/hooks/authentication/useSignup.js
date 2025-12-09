@@ -8,6 +8,9 @@ export const useSignup = (methods) => {
 
     return useMutation({
         mutationFn: async (data) => {
+            // Get today's date for start_weight_date
+            const today = new Date().toISOString().split('T')[0];
+
             // Transform the form data to match backend expectations
             const transformedData = {
                 // Verification token
@@ -22,13 +25,13 @@ export const useSignup = (methods) => {
                 gender: data.gender,
                 height_ft: Number(data.height_ft),
                 height_in: Number(data.height_in),
+                birth_date: data.birth_date,
 
                 // Profile fields
-                birth_date: data.birth_date,
-                starting_weight: data.current_weight ? Number(data.current_weight) : null,
+                starting_weight: Number(data.current_weight), // Use current_weight as starting_weight
                 current_weight: Number(data.current_weight),
                 goal_weight: Number(data.goal_weight),
-                start_weight_date: data.birth_date,
+                start_weight_date: today,
                 activity_level: data.activity_level,
                 body_goal: data.body_goal,
                 workout_frequency: data.workout_frequency,
@@ -38,6 +41,8 @@ export const useSignup = (methods) => {
                 injuries: data.injuries || "",
                 food_allergies: data.food_allergies || "",
             };
+
+            console.log("Sending signup data:", transformedData); // Debug log
 
             const response = await api.post("accounts/signup/", transformedData);
             return { ...data, ...response.data };
@@ -64,6 +69,7 @@ export const useSignup = (methods) => {
 
         onError: (error) => {
             console.error("Signup failed:", error);
+            console.error("Error response:", error.response?.data); // Debug log
 
             // Handle specific backend validation errors
             if (error.response?.data?.errors) {

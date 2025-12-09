@@ -56,6 +56,7 @@ export function DailyEntryCard({ dailyEntry }) {
             setSelectedEntry(entryId);
             setFoodDatabaseId(foodDbId);
             setDialogOpen(true);
+            console.log(`Selected Entry ID: ${entryId}, Food Database ID: ${foodDbId}`);
         } else {
             console.warn('No food ID found in entry:', entry);
         }
@@ -150,7 +151,16 @@ export function DailyEntryCard({ dailyEntry }) {
 
                     {/* Only show Add Food button for today's entry */}
                     <CardAction className="w-full mt-5">
-                        {isToday ? (
+                        {isToday && (
+                            <Button
+                                className="w-full"
+                                onClick={handleAddFood}
+                            >
+                                <Search className="inline" />
+                                Add Food
+                            </Button>
+                        )}
+                        {/* {isToday ? (
                             <Button
                                 className="w-full"
                                 onClick={handleAddFood}
@@ -167,7 +177,7 @@ export function DailyEntryCard({ dailyEntry }) {
                                 <Search className="inline" />
                                 View Details
                             </Button>
-                        )}
+                        )} */}
                     </CardAction>
                 </CardContent>
             </Card >
@@ -176,11 +186,12 @@ export function DailyEntryCard({ dailyEntry }) {
                 isOpen={dialogOpen}
                 onClose={() => {
                     setDialogOpen(false);
-                    setSelectedFoodId(null);
+                    setSelectedEntry(null);
+                    setFoodDatabaseId(null);
                 }}
-                foodId={selectedFoodId}
-                foodDatabaseId={foodDatabaseId}
                 entryId={selectedEntry}
+                foodDatabaseId={foodDatabaseId}
+                isDietPlan={false}
             />
         </>
     );

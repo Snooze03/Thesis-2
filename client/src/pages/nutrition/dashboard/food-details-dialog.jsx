@@ -18,7 +18,7 @@ import clsx from "clsx";
 const MEALS = ["breakfast", "lunch", "dinner", "snack"];
 const SERVING_SIZES = ["g (grams)", "oz (ounces)", "ml (milliliters)"];
 
-export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, isDietPlan = false }) {
+export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, mealItemId, isDietPlan = false }) {
     const [isCustomServing, setIsCustomServing] = useState(false);
 
     // ===== FORM HANDLER =====
@@ -115,6 +115,7 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
 
     const {
         updateFoodItem: { mutate: updateDietPlanFoodItem },
+        deleteMealItem: { mutate: deleteDietPlanMealItem },
     } = useDietPlan({
         onSuccess: () => {
             onClose();
@@ -130,29 +131,55 @@ export function FoodDetailsDialog({ isOpen, onClose, entryId, foodDatabaseId, is
 
     // ===== MEMOIZED HANDLERS =====
     const onSubmit = useCallback((formData) => {
+        const servingData = isCustomServing
+            ? {
+                serving_type: "custom",
+                custom_serving_amount: parseFloat(formData.customAmount),
+                custom_serving_unit: formData.customUnit,
+                fatsecret_serving_id: null,
+            }
+            : {
+                serving_type: "fatsecret",
+                fatsecret_serving_id: formData.selectedServingId,
+                custom_serving_amount: null,
+                custom_serving_unit: null,
+            };
+
         const updateData = {
-            meal_type: formData.selectedMeal,
-            serving_type: "fatsecret",
-            fatsecret_serving_id: formData.selectedServingId,
-            custom_serving_unit: formData.customUnit || null,
-            custom_serving_amount: formData.customAmount || null,
-            quantity: 1,
+            ...servingData,
+            meal_type: formData.selectedMeal.toLowerCase(),
         };
 
         if (isDietPlan) {
-            updateDietPlanFoodItem({ mealItemId: foodDatabaseId, updateData });
+            // Use mealItemId for updating diet plan meal items
+            updateDietPlanFoodItem({
+                mealItemId: mealItemId,
+                updateData
+            });
         } else {
-            updateFoodEntry({ foodEntryId: entryId, updateData });
+            updateFoodEntry({
+                foodEntryId: entryId,
+                updateData
+            });
+            console.log(`Updating Entry ID: ${entryId} with Data:`, updateData);
         }
-    }, [isDietPlan, foodDatabaseId, entryId, updateDietPlanFoodItem, updateFoodEntry]);
+    }, [isDietPlan, foodDatabaseId, entryId, mealItemId, updateDietPlanFoodItem, updateFoodEntry, isCustomServing]);
 
     const handleDeleteEntry = useCallback(() => {
-        deleteFoodEntry(entryId);
-    }, [deleteFoodEntry, entryId]);
+        if (isDietPlan) {
+            deleteDietPlanMealItem(mealItemId);
+        } else {
+            deleteFoodEntry(entryId);
+        }
+    }, [isDietPlan, deleteDietPlanMealItem, deleteFoodEntry, entryId, mealItemId]);
 
     const toggleCustomServing = useCallback((value) => {
         setIsCustomServing(value);
-    }, []);
+        if (!value) {
+            setValue("customAmount", "");
+            setValue("customUnit", "");
+        }
+    }, [setValue]);
     // ===== END MEMOIZED HANDLERS =====
 
     return (

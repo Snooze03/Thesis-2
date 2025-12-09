@@ -16,6 +16,7 @@ function DietPlan({ is_alternative = false }) {
     const [showSearchFood, setShowSearchFood] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [foodDatabaseId, setFoodDatabaseId] = useState(null);
+    const [selectedMealItemId, setSelectedMealItemId] = useState(null); ``
 
     const {
         data: todayDailyEntryID,
@@ -102,7 +103,8 @@ function DietPlan({ is_alternative = false }) {
     }
 
     const handleEditFood = (foodEntry) => {
-        setFoodDatabaseId(foodEntry.id);
+        setFoodDatabaseId(foodEntry.food.id);
+        setSelectedMealItemId(foodEntry.id);
         setDialogOpen(true);
     }
 
@@ -233,8 +235,13 @@ function DietPlan({ is_alternative = false }) {
 
             <FoodDetailsDialog
                 isOpen={dialogOpen}
-                onClose={() => setDialogOpen(false)}
+                onClose={() => {
+                    setDialogOpen(false);
+                    setFoodDatabaseId(null);
+                    setSelectedMealItemId(null);
+                }}
                 foodDatabaseId={foodDatabaseId}
+                mealItemId={selectedMealItemId}
                 isDietPlan={true}
             />
         </>

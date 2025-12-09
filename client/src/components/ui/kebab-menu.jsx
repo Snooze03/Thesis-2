@@ -1,7 +1,15 @@
-"use client"
-
-import { MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, ChevronRight } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuPortal
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { clsx } from "clsx";
 
@@ -57,6 +65,36 @@ export function KebabMenu({
         const Icon = item.icon
         const isDestructive = item.variant === "destructive"
 
+        // Handle submenu items
+        if (item.submenu && Array.isArray(item.submenu)) {
+            return (
+                <DropdownMenuSub key={`submenu-${index}`}>
+                    <DropdownMenuSubTrigger>
+                        {Icon && <Icon className="mr-2 size-4" />}
+                        <span>{item.label}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                            {item.submenu.map((subItem, subIndex) => {
+                                const SubIcon = subItem.icon;
+                                return (
+                                    <DropdownMenuItem
+                                        key={`subitem-${subIndex}`}
+                                        onClick={() => handleAction(subItem.action, subItem)}
+                                        disabled={subItem.disabled}
+                                    >
+                                        {SubIcon && <SubIcon className="mr-2 size-4" />}
+                                        <span>{subItem.label}</span>
+                                    </DropdownMenuItem>
+                                );
+                            })}
+                        </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                </DropdownMenuSub>
+            )
+        }
+
+        // Regular menu item
         return (
             <DropdownMenuItem
                 key={item.action?.toString() || index}
@@ -64,7 +102,7 @@ export function KebabMenu({
                 disabled={item.disabled}
                 className={clsx(isDestructive && "text-destructive focus:text-destructive")}
             >
-                {Icon && <Icon className={clsx("mr-1 size-4", isDestructive && "stroke-destructive")} />}
+                {Icon && <Icon className={clsx("mr-2 size-4", isDestructive && "stroke-destructive")} />}
                 {item.label}
             </DropdownMenuItem>
         )

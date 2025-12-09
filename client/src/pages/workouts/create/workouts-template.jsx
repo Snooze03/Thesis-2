@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useAtom } from "jotai";
-import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom } from "./template-atoms";
+import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus, CircleX, AlarmClock } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -38,6 +38,8 @@ export function WorkoutsTemplate() {
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
     // Rest timer countdown atom
     const [restTimer, setRestTimer] = useAtom(restTimerAtom);
+    // Weight units atom
+    const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
     // Rest timer dialog state
     const [isRestDialogOpen, setIsRestDialogOpen] = useState(false);
     // ===== END ATOMS =====
@@ -151,6 +153,7 @@ export function WorkoutsTemplate() {
             // Convert template exercises to the format expected by selectedExercises atom
             const exercisesMap = new Map();
             const restTimesMap = new Map();
+            const weightUnitsMap = new Map();
 
             if (template_data.template_exercises && template_data.template_exercises.length > 0) {
                 template_data.template_exercises.forEach((templateExercise) => {
@@ -167,6 +170,10 @@ export function WorkoutsTemplate() {
                         restTimesMap.set(exerciseKey, restTimeInSeconds);
                     }
 
+                    // Extract weight_unit from template exercise (default to 'kg' if not present)
+                    const weightUnit = templateExercise.weight_unit || 'kg';
+                    weightUnitsMap.set(exerciseKey, weightUnit);
+
                     // Create the exercise object with all necessary data
                     const exerciseData = {
                         // Exercise basic info
@@ -181,6 +188,7 @@ export function WorkoutsTemplate() {
                         sets_data: templateExercise.sets_data || [
                             { reps: null, weight: null }
                         ],
+                        weight_unit: weightUnit,
                         rest_time: restTimeInSeconds,
                         notes: templateExercise.notes || '',
 
@@ -195,9 +203,10 @@ export function WorkoutsTemplate() {
 
             setSelectedExercises(exercisesMap);
             setExerciseRestTimes(restTimesMap); // Set rest times
+            setExerciseWeightUnits(weightUnitsMap); // Set weight units
             hasPopulatedAtoms.current = true; // Mark as populated
         }
-    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes]);
+    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes, setExerciseWeightUnits]);
     // ===== END EFFECTS =====
 
     // Utility function to clear all atoms
@@ -210,6 +219,7 @@ export function WorkoutsTemplate() {
         setStarted_at(null);
         setCompleted_at(null);
         setExerciseRestTimes(new Map());
+        setExerciseWeightUnits(new Map());
         setRestTimer({
             isActive: false,
             remainingSeconds: 0,
@@ -218,7 +228,7 @@ export function WorkoutsTemplate() {
             totalSeconds: 0
         });
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setRestTimer]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setRestTimer]);
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -236,9 +246,10 @@ export function WorkoutsTemplate() {
             title: title.trim(),
             isAlternative: isAlternative,
             exercises: exercisesArray.map(exercise => {
-                // Generate exercise key to get rest time
+                // Generate exercise key to get rest time and weight unit
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                 const restTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time;
+                const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';  // Get weight unit
 
                 return {
                     // Include template_exercise_id for existing exercises in edit mode
@@ -255,6 +266,7 @@ export function WorkoutsTemplate() {
                     sets_data: exercise.sets_data || [
                         { reps: null, weight: null },
                     ],
+                    weight_unit: weightUnit,
                     rest_time: restTime, // Include rest time from atom or exercise data
                     notes: exercise.notes || '',
                     order: exercise.order || 0
@@ -305,9 +317,14 @@ export function WorkoutsTemplate() {
 
             // Only include exercise if it has at least one completed set
             if (completedSets.length > 0) {
+                // Get weight unit for this exercise
+                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
+
                 completedExercisesData.push({
                     exercise_name: exercise.name,
                     performed_sets_data: completedSets, // Only the completed sets
+                    weight_unit: weightUnit,
                     exercise_notes: exercise.notes || '',
                     order: exercise.order || index
                 });
@@ -374,7 +391,16 @@ export function WorkoutsTemplate() {
             }
             return newMap;
         });
-    }, [setSelectedExercises]);
+
+        // If weight_unit is being updated, also update the weight units atom
+        if (updates.weight_unit) {
+            setExerciseWeightUnits(prev => {
+                const newMap = new Map(prev);
+                newMap.set(exerciseKey, updates.weight_unit);
+                return newMap;
+            });
+        }
+    }, [setSelectedExercises, setExerciseWeightUnits]);
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);

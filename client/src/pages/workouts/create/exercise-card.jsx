@@ -9,19 +9,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
+import { generateTimeOptions } from "../utils/generateTimeOptions";
+import { KG_TO_LBS, LBS_TO_KG } from "../constants";
 import clsx from "clsx";
-import toast from "react-hot-toast";
 
-// Conversion constants
-const KG_TO_LBS = 2.20462;
-const LBS_TO_KG = 0.453592;
 
-function ExerciseCard({
-    exercise,
-    templateMode,
-    onRemove,
-    onUpdate
-}) {
+function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
     const canInputData = (templateMode === "start") ? false : true;
     const isStartMode = templateMode === "start";
 
@@ -43,18 +36,6 @@ function ExerciseCard({
     const currentWeightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
     // Generate time options from 0:05 to 6:00 in 5-second intervals
-    const generateTimeOptions = () => {
-        const options = [];
-        // Start from 5 seconds (0:05) up to 6 minutes (6:00)
-        for (let seconds = 5; seconds <= 360; seconds += 5) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            const display = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-            options.push({ value: seconds, display });
-        }
-        return options;
-    };
-
     const timeOptions = generateTimeOptions();
 
     // Handle rest time selection
@@ -102,7 +83,6 @@ function ExerciseCard({
                 weight: parseFloat(convertedWeight)
             };
         });
-
 
         // Update local state
         setSetsData(convertedSetsData);

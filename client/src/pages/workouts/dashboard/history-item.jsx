@@ -2,9 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 import { Separator } from "@/components/ui/separator";
-
-// Conversion constant
-const LBS_TO_KG = 0.453592;
+import { formatTotalVolume } from "../utils/formatTotalVolume";
 
 // Individual workout history items
 export function HistoryItem({ workout }) {
@@ -24,30 +22,7 @@ export function HistoryItem({ workout }) {
     }, { exercises: [], unitCounts: {} }) || { exercises: [], unitCounts: {} };
 
     // Format total volume display
-    const formatTotalVolume = () => {
-        const units = Object.keys(volumeData.unitCounts);
-
-        if (units.length === 0) {
-            return '0kg';
-        }
-
-        // If only one unit is used across all exercises
-        if (units.length === 1) {
-            const unit = units[0];
-            const totalVolume = volumeData.exercises.reduce((sum, ex) => sum + ex.volume, 0);
-            return `${totalVolume.toFixed(1)}${unit}`;
-        }
-
-        // If mixed units - convert everything to kg
-        const totalVolumeInKg = volumeData.exercises.reduce((sum, ex) => {
-            const volumeInKg = ex.unit === 'lbs'
-                ? ex.volume * LBS_TO_KG
-                : ex.volume;
-            return sum + volumeInKg;
-        }, 0);
-
-        return `${totalVolumeInKg.toFixed(1)}kg`;
-    };
+    const totalVolume = formatTotalVolume(volumeData);
 
     return (
         <Card>
@@ -81,7 +56,7 @@ export function HistoryItem({ workout }) {
                         <p className="text-xs">Sets</p>
                     </div>
                     <div className="py-1 text-center bg-orange-200 rounded-md">
-                        <p className="text-lg font-bold text-gray-800">{formatTotalVolume()}</p>
+                        <p className="text-lg font-bold text-gray-800">{totalVolume}</p>
                         <p className="text-xs">Volume</p>
                     </div>
                 </div>

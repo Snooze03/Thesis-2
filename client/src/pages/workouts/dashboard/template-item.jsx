@@ -4,6 +4,7 @@ import { useAtom } from "jotai";
 import { templateModeAtom } from "../create/template-atoms";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatMuscle } from "../utils/formatMuscle";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Play, Trash2, Pencil } from "lucide-react";
@@ -45,15 +46,6 @@ export function TemplateItem({ templateData }) {
         });
     };
     // ===== END EVENT HANDLERS =====
-
-    // Helper function to format muscle group
-    const formatMuscle = (muscle) => {
-        if (!muscle) return "";
-        return muscle
-            .split("_")
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
-    };
 
     return (
         <AccordionItem value={`item-${templateId}`} className="shadow-xs rounded-lg">

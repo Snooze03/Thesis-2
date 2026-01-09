@@ -160,7 +160,6 @@ export function WorkoutsTemplate() {
         setExerciseWeightUnits(new Map());
         setIsRestDialogOpen(false);
         hasPopulatedAtoms.current = false;
-        // Note: restTimer is managed by RestTimerDialog component
     }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setIsAlternative]);
 
     // ===== EVENT HANDLERS =====
@@ -238,52 +237,48 @@ export function WorkoutsTemplate() {
         const completedTime = new Date().toISOString();
         setCompleted_at(completedTime);
 
-        // Filter exercises and sets - only include exercises with at least one completed set
-        const completedExercisesData = [];
+        // Filter exercises with completed sets
+        const completedExercises = exercisesArray
+            .map((exercise, index) => {
+                const completedSets = exercise.sets_data.filter(set =>
+                    set.reps !== null && set.reps !== '' &&
+                    set.weight !== null && set.weight !== ''
+                );
 
-        exercisesArray.forEach((exercise, index) => {
-            // Filter only completed sets (both reps and weight are filled)
-            const completedSets = exercise.sets_data.filter(set =>
-                set.reps !== null && set.reps !== '' &&
-                set.weight !== null && set.weight !== ''
-            );
+                if (completedSets.length === 0) return null;
 
-            // Only include exercise if it has at least one completed set
-            if (completedSets.length > 0) {
-                // Get weight unit for this exercise
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                 const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
-                completedExercisesData.push({
+                return {
                     exercise_name: exercise.name,
                     performed_sets_data: completedSets,
                     weight_unit: weightUnit,
                     exercise_notes: exercise.notes || '',
-                    order: exercise.order || index
-                });
-            }
-        });
+                    order: exercise.order ?? index
+                };
+            })
+            .filter(Boolean); // Remove null entries
 
-        // Don't proceed if no exercises were completed
-        if (completedExercisesData.length === 0) {
+        // Validate that at least one exercise was completed
+        if (completedExercises.length === 0) {
             toast.error("No completed sets found. Please complete at least one set before finishing your workout.");
             return;
         }
 
-        // Prepare completed workout data for the backend
-        const completedWorkoutData = {
+        // Prepare raw workout data 
+        const workoutData = {
             template_id: template_id,
-            template_title: title.trim(),
+            template_title: title,
             started_at: started_at,
             completed_at: completedTime,
             workout_notes: "notes",
-            completed_exercises: completedExercisesData
+            completed_exercises: completedExercises
         };
 
-        // Save the completed workout using the mutation
+        // Save the completed workout
         saveTemplate({
-            templateId: template_id,
-            templateData: completedWorkoutData
+            templateData: workoutData
         }, {
             onSuccess: () => {
                 clearAtoms();
@@ -292,7 +287,6 @@ export function WorkoutsTemplate() {
             onError: (error) => {
                 clearAtoms();
                 console.error('Save workout failed:', error);
-                toast.error("Failed to save workout");
             }
         });
     };

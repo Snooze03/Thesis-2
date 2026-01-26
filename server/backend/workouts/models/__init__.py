@@ -3,6 +3,7 @@ from .template import (
     TemplateExercise,
     TemplateHistory,
     TemplateHistoryExercise,
+    SetTypeChoices,
 )
 
 from .exercise import (

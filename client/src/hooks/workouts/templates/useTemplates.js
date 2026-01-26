@@ -26,6 +26,7 @@ export function useTemplates() {
                     equipment: exercise.equipment || '',
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
+                    set_type: exercise.set_type || 'weight_reps', // ← ADD THIS
                     sets_data: exercise.sets_data || [],
                     weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),
@@ -65,6 +66,7 @@ export function useTemplates() {
                     equipment: exercise.equipment || '',
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
+                    set_type: exercise.set_type || 'weight_reps', // ← ADD THIS
                     sets_data: exercise.sets_data || [],
                     weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),

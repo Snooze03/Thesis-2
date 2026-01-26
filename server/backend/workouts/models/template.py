@@ -11,6 +11,14 @@ class WeightUnitChoices(models.TextChoices):
     LBS = "lbs", "Pounds"
 
 
+class SetTypeChoices(models.TextChoices):
+    """Set type options for exercises"""
+
+    WEIGHT_REPS = "weight_reps", "Weight & Reps"
+    REPS_ONLY = "reps_only", "Reps Only"
+    DURATION = "duration", "Duration"
+
+
 class Template(models.Model):
     user_id = models.ForeignKey(
         Account,
@@ -38,20 +46,31 @@ class TemplateExercise(models.Model):
         related_name="exercise_templates",
     )
 
+    # Set type for this exercise (applies to all sets)
+    set_type = models.CharField(
+        max_length=20,
+        choices=SetTypeChoices.choices,
+        default=SetTypeChoices.WEIGHT_REPS,
+        help_text="Type of sets for this exercise",
+    )
+
     # Store sets data as JSON array of objects
-    # Structure: [{"reps": 12, "weight": 50.5}, {"reps": 10, "weight": 55.0}]
+    # Structure depends on set_type:
+    # - weight_reps: [{"reps": 12, "weight": 50.5}, ...]
+    # - reps_only: [{"reps": 12}, ...]
+    # - duration: [{"duration": "00:02:30"}, ...] (MM:SS format)
     sets_data = JSONField(
         default=list,
         blank=True,
-        help_text="Array of objects containing reps and weight for each set",
+        help_text="Array of objects containing set data based on set_type",
     )
 
-    # Weight unit preference for this exercise
+    # Weight unit preference for this exercise (only applies to weight_reps)
     weight_unit = models.CharField(
         max_length=3,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.KG,
-        help_text="Unit of measurement for weight values in sets_data",
+        help_text="Unit of measurement for weight values (only for weight_reps type)",
     )
 
     # Keep total sets count for easier querying
@@ -77,23 +96,45 @@ class TemplateExercise(models.Model):
             self.total_sets = len(self.sets_data)
         super().save(*args, **kwargs)
 
-    def add_set(self, reps=None, weight=None):
-        """Add a new set to the exercise"""
+    def add_set(self, **kwargs):
+        """Add a new set to the exercise based on set_type"""
         if not self.sets_data:
             self.sets_data = []
 
-        self.sets_data.append(
-            {"reps": reps, "weight": float(weight) if weight else None}
-        )
+        # Build set data based on set_type
+        if self.set_type == SetTypeChoices.WEIGHT_REPS:
+            set_data = {
+                "reps": kwargs.get("reps"),
+                "weight": float(kwargs.get("weight")) if kwargs.get("weight") else None,
+            }
+        elif self.set_type == SetTypeChoices.REPS_ONLY:
+            set_data = {"reps": kwargs.get("reps")}
+        elif self.set_type == SetTypeChoices.DURATION:
+            set_data = {"duration": kwargs.get("duration")}  # Format: "MM:SS"
+        else:
+            raise ValueError(f"Invalid set_type: {self.set_type}")
+
+        self.sets_data.append(set_data)
         self.total_sets = len(self.sets_data)
 
-    def update_set(self, set_index, reps=None, weight=None):
-        """Update a specific set by index"""
+    def update_set(self, set_index, **kwargs):
+        """Update a specific set by index based on set_type"""
         if 0 <= set_index < len(self.sets_data):
-            if reps is not None:
-                self.sets_data[set_index]["reps"] = reps
-            if weight is not None:
-                self.sets_data[set_index]["weight"] = float(weight)
+            if self.set_type == SetTypeChoices.WEIGHT_REPS:
+                if kwargs.get("reps") is not None:
+                    self.sets_data[set_index]["reps"] = kwargs.get("reps")
+                if kwargs.get("weight") is not None:
+                    self.sets_data[set_index]["weight"] = (
+                        float(kwargs.get("weight")) if kwargs.get("weight") else None
+                    )
+            elif self.set_type == SetTypeChoices.REPS_ONLY:
+                if kwargs.get("reps") is not None:
+                    self.sets_data[set_index]["reps"] = kwargs.get("reps")
+            elif self.set_type == SetTypeChoices.DURATION:
+                if kwargs.get("duration") is not None:
+                    self.sets_data[set_index]["duration"] = kwargs.get("duration")
+
+            self.total_sets = len(self.sets_data)
 
     def remove_set(self, set_index):
         """Remove a set by index"""
@@ -105,16 +146,29 @@ class TemplateExercise(models.Model):
     def formatted_sets_display(self):
         """Return a formatted string representation of sets"""
         if not self.sets_data:
-            return "No sets configured"
+            return "No sets"
 
-        sets_display = []
-        for i, set_data in enumerate(self.sets_data, 1):
-            reps = set_data.get("reps", "N/A")
-            weight = set_data.get("weight", "N/A")
-            unit = self.weight_unit  # Use the weight_unit field
-            sets_display.append(f"Set {i}: {reps} reps @ {weight}{unit}")
+        if self.set_type == SetTypeChoices.WEIGHT_REPS:
+            sets_str = []
+            for set_data in self.sets_data:
+                reps = set_data.get("reps", 0)
+                weight = set_data.get("weight", 0)
+                sets_str.append(f"{reps} reps × {weight}{self.weight_unit}")
+            return " | ".join(sets_str)
 
-        return " | ".join(sets_display)
+        elif self.set_type == SetTypeChoices.REPS_ONLY:
+            sets_str = [
+                f"{set_data.get('reps', 0)} reps" for set_data in self.sets_data
+            ]
+            return " | ".join(sets_str)
+
+        elif self.set_type == SetTypeChoices.DURATION:
+            sets_str = [
+                f"{set_data.get('duration', '00:00')}" for set_data in self.sets_data
+            ]
+            return " | ".join(sets_str)
+
+        return "Unknown format"
 
 
 class TemplateHistory(models.Model):
@@ -187,9 +241,9 @@ class TemplateHistory(models.Model):
 
     @property
     def duration_minutes(self):
-        """Get duration in minutes for easier display"""
+        """Return duration in minutes"""
         if self.total_duration:
-            return round(self.total_duration.total_seconds() / 60, 1)
+            return round(self.total_duration.total_seconds() / 60, 2)
         return 0
 
 
@@ -217,18 +271,27 @@ class TemplateHistoryExercise(models.Model):
         max_length=100, help_text="Exercise name when workout was performed"
     )
 
-    # What was actually performed
-    performed_sets_data = JSONField(
-        default=list,
-        help_text="Actual sets performed: [{'reps': 12, 'weight': 50.5}, {'reps': 10, 'weight': 52.5}]",
+    # Set type for this exercise (snapshot from template)
+    set_type = models.CharField(
+        max_length=20,
+        choices=SetTypeChoices.choices,
+        default=SetTypeChoices.WEIGHT_REPS,
+        help_text="Type of sets performed for this exercise",
     )
 
-    # Weight unit used during this workout session
+    # What was actually performed
+    # Structure depends on set_type (same as TemplateExercise)
+    performed_sets_data = JSONField(
+        default=list,
+        help_text="Actual sets performed based on set_type",
+    )
+
+    # Weight unit used during this workout session (only applies to weight_reps)
     weight_unit = models.CharField(
         max_length=3,
         choices=WeightUnitChoices.choices,
         default=WeightUnitChoices.KG,
-        help_text="Unit of measurement for weight values in performed_sets_data",
+        help_text="Unit of measurement for weight values (only for weight_reps type)",
     )
 
     # Keep count for easy querying
@@ -251,13 +314,12 @@ class TemplateHistoryExercise(models.Model):
 
     class Meta:
         ordering = ["order", "created_at"]
-        unique_together = ("workout_history", "exercise", "order")
 
     def __str__(self):
         return f"{self.exercise_name} - {self.workout_history.template_title}"
 
     def save(self, *args, **kwargs):
-        """Override save to calculate total sets performed"""
+        """Override save to ensure total_sets_performed matches performed_sets_data length"""
         if self.performed_sets_data:
             self.total_sets_performed = len(self.performed_sets_data)
         super().save(*args, **kwargs)
@@ -266,27 +328,41 @@ class TemplateHistoryExercise(models.Model):
     def formatted_sets_display(self):
         """Return a formatted string representation of performed sets"""
         if not self.performed_sets_data:
-            return "No sets performed"
+            return "No sets"
 
-        sets_display = []
-        for i, set_data in enumerate(self.performed_sets_data, 1):
-            reps = set_data.get("reps", "N/A")
-            weight = set_data.get("weight", "N/A")
-            unit = self.weight_unit
-            sets_display.append(f"Set {i}: {reps} reps @ {weight}{unit}")
+        if self.set_type == SetTypeChoices.WEIGHT_REPS:
+            sets_str = []
+            for set_data in self.performed_sets_data:
+                reps = set_data.get("reps", 0)
+                weight = set_data.get("weight", 0)
+                sets_str.append(f"{reps} reps × {weight}{self.weight_unit}")
+            return " | ".join(sets_str)
 
-        return " | ".join(sets_display)
+        elif self.set_type == SetTypeChoices.REPS_ONLY:
+            sets_str = [
+                f"{set_data.get('reps', 0)} reps"
+                for set_data in self.performed_sets_data
+            ]
+            return " | ".join(sets_str)
+
+        elif self.set_type == SetTypeChoices.DURATION:
+            sets_str = [
+                f"{set_data.get('duration', '00:00')}"
+                for set_data in self.performed_sets_data
+            ]
+            return " | ".join(sets_str)
+
+        return "Unknown format"
 
     @property
     def total_volume(self):
-        """Calculate total volume (reps × weight) for this exercise"""
-        if not self.performed_sets_data:
-            return 0
+        """Calculate total volume (only applicable for weight_reps type)"""
+        if self.set_type != SetTypeChoices.WEIGHT_REPS:
+            return None
 
         total = 0
         for set_data in self.performed_sets_data:
-            reps = set_data.get("reps", 0) or 0
-            weight = set_data.get("weight", 0) or 0
+            reps = set_data.get("reps", 0)
+            weight = set_data.get("weight", 0)
             total += reps * weight
-
         return round(total, 2)

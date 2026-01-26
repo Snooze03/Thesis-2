@@ -80,7 +80,11 @@ function TemplatesList({ title, templates, isLoading, onCreateClick }) {
             ) : templates.length > 0 ? (
                 <Accordion type="single" collapsible className="space-y-3">
                     {templates.map((item) => (
-                        <TemplateItem key={item.id} templateData={item} />
+                        <>
+                            <TemplateItem key={item.id} templateData={item} />
+                            {console.log(item)}
+                        </>
+
                     ))}
                 </Accordion>
             ) : (

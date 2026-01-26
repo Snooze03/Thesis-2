@@ -18,7 +18,9 @@ export function useTemplateActions() {
                 completed_at: templateData.completed_at,
                 workout_notes: templateData.workout_notes || '',
                 completed_exercises: templateData.completed_exercises.map((exercise, index) => ({
+                    exercise_id: exercise.exercise_id,
                     exercise_name: exercise.exercise_name,
+                    set_type: exercise.set_type,
                     performed_sets_data: exercise.performed_sets_data.map(set => ({
                         reps: set.reps,
                         weight: set.weight
@@ -29,6 +31,7 @@ export function useTemplateActions() {
                 }))
             };
 
+            console.log("Save request:", formattedData);
             const response = await api.post("workouts/templates/save_completed_workout/", formattedData);
             return response.data;
         },

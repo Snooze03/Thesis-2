@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight } from "lucide-react";
+import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight, Triangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
 import { generateTimeOptions } from "../utils/generateTimeOptions";
+import { DurationInput } from "./duration-input";
+import { isSetComplete, getSetTypeDisplayName, getSetTypeOptions, getEmptySet, convertSetsOnTypeChange } from "../utils/set-helpers";
 import { KG_TO_LBS, LBS_TO_KG } from "../constants";
 import clsx from "clsx";
 
@@ -32,8 +34,10 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
     const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
 
     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+    const currentSetType = exercise.set_type || 'weight_reps';
     const currentRestTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time || null;
     const currentWeightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
+    console.log(`Set type: ${currentSetType}`);
 
     // Generate time options from 0:05 to 6:00 in 5-second intervals
     const timeOptions = generateTimeOptions();
@@ -156,16 +160,24 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
 
     const handleSetChange = useCallback((setIndex, field, value) => {
         const newSetsData = [...setsData];
+
+        // Handle different field types
+        let parsedValue;
+        if (field === 'duration') {
+            parsedValue = value; // Keep as string for duration
+        } else {
+            parsedValue = value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value));
+        }
+
         newSetsData[setIndex] = {
             ...newSetsData[setIndex],
-            [field]: value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value))
+            [field]: parsedValue
         };
         setSetsData(newSetsData);
 
         // Check if the set is now incomplete after the change
         const updatedSet = newSetsData[setIndex];
-        const isIncomplete = updatedSet.reps === null || updatedSet.reps === '' ||
-            updatedSet.weight === null || updatedSet.weight === '';
+        const isIncomplete = !isSetComplete(updatedSet, currentSetType);
 
         // If set becomes incomplete, remove it from completed sets
         if (isIncomplete) {
@@ -178,33 +190,27 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
 
         // Call onUpdate immediately when individual set changes
         onUpdate?.({ sets_data: newSetsData });
-    }, [setsData, onUpdate]);
+    }, [setsData, currentSetType, onUpdate]);
 
     const handleCompletedSet = useCallback((setIndex) => {
         const currentSet = setsData[setIndex];
 
-        // Check if both reps and weight are filled
-        const hasCompleteData = currentSet.reps !== null && currentSet.reps !== '' &&
-            currentSet.weight !== null && currentSet.weight !== '';
-
-        if (!hasCompleteData) {
+        // Check if set is complete based on set type
+        if (!isSetComplete(currentSet, currentSetType)) {
             return;
         }
 
         setCompletedSets(prev => {
             const newCompletedSets = new Set(prev);
             if (newCompletedSets.has(setIndex)) {
-                // If already completed, remove it (toggle off)
                 newCompletedSets.delete(setIndex);
             } else {
-                // If not completed, add it (toggle on)
                 newCompletedSets.add(setIndex);
             }
             return newCompletedSets;
         });
 
         if (isStartMode && currentRestTime && currentRestTime > 0) {
-            // Use setTimeout to defer the state update to after the current render
             setTimeout(() => {
                 setRestTimer({
                     isActive: true,
@@ -215,7 +221,67 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                 });
             }, 0);
         }
-    }, [setsData, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
+    }, [setsData, currentSetType, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
+
+    const renderSetInputs = (set, index) => {
+        const isCompleted = completedSets.has(index);
+
+        switch (currentSetType) {
+            case 'weight_reps':
+                return (
+                    <>
+                        <Input
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder="0"
+                            value={set.weight || ''}
+                            onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
+                        />
+                        <Input
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder="0"
+                            value={set.reps || ''}
+                            onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
+                        />
+                    </>
+                );
+
+            case 'reps_only':
+                return (
+                    <>
+                        <Input
+                            className="size-5 w-full col-span-2 px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder="0"
+                            value={set.reps || ''}
+                            onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
+                        />
+                    </>
+                );
+
+            case 'duration':
+                return (
+                    <div className="col-span-2">
+                        <DurationInput
+                            value={set.duration ?? ''}
+                            onChange={(value) => handleSetChange(index, 'duration', value)}
+                            disabled={canInputData || isCompleted}
+                            className="w-full"
+                        />
+                    </div>
+                );
+
+            default:
+                return null;
+        }
+    };
 
     // Filter menu items based on mode
     const getMenuItems = () => {
@@ -249,6 +315,27 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                         label: "Pounds (lbs)",
                         action: () => handleWeightUnitChange('lbs'),
                         icon: currentWeightUnit === 'lbs' ? Check : null,
+                    },
+                ]
+            },
+            {
+                icon: Triangle,
+                label: "Set Type",
+                submenu: [
+                    {
+                        label: "Reps",
+                        action: () => currentSetType !== 'reps_only' && onUpdate?.({ set_type: 'reps_only' }),
+                        icon: currentSetType === 'reps_only' ? Check : null,
+                    },
+                    {
+                        label: "Reps & Weights",
+                        action: () => currentSetType !== 'weight_reps' && onUpdate?.({ set_type: 'weight_reps' }),
+                        icon: currentSetType === 'weight_reps' ? Check : null,
+                    },
+                    {
+                        label: "Duration",
+                        action: () => currentSetType !== 'duration' && onUpdate?.({ set_type: 'duration' }),
+                        icon: currentSetType === 'duration' ? Check : null,
                     },
                 ]
             },
@@ -320,23 +407,7 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                             >
                                 <p className="text-primary font-semibold">{index + 1}</p>
                                 <p className="text-gray-600">----------</p>
-                                <Input
-                                    className="size-5 w-full px-2 text-center"
-                                    type="number"
-                                    step="0.5"
-                                    disabled={canInputData}
-                                    placeholder="0"
-                                    value={set.weight || ''}
-                                    onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
-                                />
-                                <Input
-                                    className="size-5 w-full px-2 text-center"
-                                    type="number"
-                                    disabled={canInputData}
-                                    placeholder="0"
-                                    value={set.reps || ''}
-                                    onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
-                                />
+                                {renderSetInputs(set, index)}
                                 {canInputData ? (
                                     <Lock className="text-gray-600 size-4" />
                                 ) : (
@@ -345,12 +416,12 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                                             "w-7 h-5 py-1",
                                             {
                                                 "bg-green-500 hover:bg-green-600": isCompleted,
-                                                "hover:bg-green-50": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
-                                                "opacity-50 cursor-not-allowed": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                                "hover:bg-green-50": !isCompleted && isSetComplete(set, currentSetType),
+                                                "opacity-50 cursor-not-allowed": !isSetComplete(set, currentSetType),
                                             }
                                         )}
                                         variant={isCompleted ? "default" : "ghost"}
-                                        disabled={!(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== '')}
+                                        disabled={!isSetComplete(set, currentSetType)}
                                         onClick={() => handleCompletedSet(index)}
                                     >
                                         <Check
@@ -359,7 +430,7 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                                                 {
                                                     "stroke-white": isCompleted,
                                                     "stroke-green-400": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
-                                                    "stroke-gray-400": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                                    "stroke-gray-400": !isSetComplete(set, currentSetType),
                                                 }
                                             )}
                                         />

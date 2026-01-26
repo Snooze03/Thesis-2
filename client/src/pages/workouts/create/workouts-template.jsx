@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
 import { useAtom, useAtomValue } from "jotai";
-import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
+import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom, exerciseSetTypesAtom } from "./template-atoms";
 import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RestTimerDialog } from "../dialogs/rest-timer";
 import { CancelWorkoutDialog } from "../dialogs/cancel-workout";
 import { EmptyItems } from "@/components/empty-items";
+import { isSetComplete } from "../utils/set-helpers";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 
@@ -40,6 +41,8 @@ export function WorkoutsTemplate() {
     const restTimer = useAtomValue(restTimerAtom);
     // Weight units atom
     const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
+    // Set types atom - ADD THIS
+    const [exerciseSetTypes, setExerciseSetTypes] = useAtom(exerciseSetTypesAtom);
     // Rest dialog state
     const [isRestDialogOpen, setIsRestDialogOpen] = useState(false);
     // ===== END ATOMS =====
@@ -83,6 +86,7 @@ export function WorkoutsTemplate() {
     // Populate atoms with template data when editing (only once)
     useEffect(() => {
         if ((isEditMode || isStartMode) && template_data && !hasPopulatedAtoms.current) {
+            console.log("Full template_data:", template_data);
             // Set id
             setTemplate_id(template_data.id || null);
             // Set the title
@@ -92,6 +96,7 @@ export function WorkoutsTemplate() {
             const exercisesMap = new Map();
             const restTimesMap = new Map();
             const weightUnitsMap = new Map();
+            const setTypesMap = new Map();
 
             if (template_data.template_exercises && template_data.template_exercises.length > 0) {
                 template_data.template_exercises.forEach((templateExercise) => {
@@ -112,9 +117,14 @@ export function WorkoutsTemplate() {
                     const weightUnit = templateExercise.weight_unit || 'kg';
                     weightUnitsMap.set(exerciseKey, weightUnit);
 
+                    // Extract set_type from template exercise (default to 'weight_reps' if not present)
+                    const setType = templateExercise.set_type || 'weight_reps';
+                    setTypesMap.set(exerciseKey, setType);
+
                     // Create the exercise object with all necessary data
                     const exerciseData = {
                         // Exercise basic info
+                        id: exercise.id,
                         name: exercise.name,
                         type: exercise.type || '',
                         muscle: exercise.muscle || '',
@@ -123,6 +133,7 @@ export function WorkoutsTemplate() {
                         instructions: exercise.instructions || '',
 
                         // Template exercise specific data
+                        set_type: setType,
                         sets_data: templateExercise.sets_data || [
                             { reps: null, weight: null }
                         ],
@@ -135,16 +146,17 @@ export function WorkoutsTemplate() {
                         order: templateExercise.order || 0,
                     };
 
+
                     exercisesMap.set(exerciseKey, exerciseData);
                 });
             }
-
             setSelectedExercises(exercisesMap);
             setExerciseRestTimes(restTimesMap);
             setExerciseWeightUnits(weightUnitsMap);
+            setExerciseSetTypes(setTypesMap);
             hasPopulatedAtoms.current = true;
         }
-    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes, setExerciseWeightUnits]);
+    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes, setExerciseWeightUnits, setExerciseSetTypes]);  // ← ADD setExerciseSetTypes to deps
     // ===== END EFFECTS =====
 
     // Utility function to clear all atoms
@@ -158,9 +170,10 @@ export function WorkoutsTemplate() {
         setCompleted_at(null);
         setExerciseRestTimes(new Map());
         setExerciseWeightUnits(new Map());
+        setExerciseSetTypes(new Map());
         setIsRestDialogOpen(false);
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setIsAlternative]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setExerciseSetTypes, setIsAlternative]);  // ← ADD setExerciseSetTypes to deps
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -178,10 +191,11 @@ export function WorkoutsTemplate() {
             title: title.trim(),
             isAlternative: isAlternative,
             exercises: exercisesArray.map(exercise => {
-                // Generate exercise key to get rest time and weight unit
+                // Generate exercise key to get rest time, weight unit, and set type
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                 const restTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time;
                 const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
+                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
 
                 return {
                     // Include template_exercise_id for existing exercises in edit mode
@@ -195,6 +209,7 @@ export function WorkoutsTemplate() {
                     equipment: exercise.equipment || '',
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
+                    set_type: setType,
                     sets_data: exercise.sets_data || [
                         { reps: null, weight: null },
                     ],
@@ -237,28 +252,37 @@ export function WorkoutsTemplate() {
         const completedTime = new Date().toISOString();
         setCompleted_at(completedTime);
 
-        // Filter exercises with completed sets
+        // Filter exercises with completed sets (using set type aware validation)
         const completedExercises = exercisesArray
             .map((exercise, index) => {
+                console.log("Exercise object:", exercise);
+                console.log("Exercise ID:", exercise.id);
+                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                // Use isSetComplete helper to validate sets based on set type
                 const completedSets = exercise.sets_data.filter(set =>
-                    set.reps !== null && set.reps !== '' &&
-                    set.weight !== null && set.weight !== ''
+                    isSetComplete(set, setType)
                 );
 
                 if (completedSets.length === 0) return null;
 
-                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                 const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
-                return {
-                    exercise_name: exercise.name,
+                console.log(`Template Exercise ID: ${exercise.template_exercise_id}`);
+
+                const result = {
+                    exercise_id: exercise.id,
+                    set_type: setType,
                     performed_sets_data: completedSets,
                     weight_unit: weightUnit,
                     exercise_notes: exercise.notes || '',
                     order: exercise.order ?? index
                 };
+
+                console.log("Mapped result:", result);
+                return result;
             })
-            .filter(Boolean); // Remove null entries
 
         // Validate that at least one exercise was completed
         if (completedExercises.length === 0) {
@@ -324,7 +348,16 @@ export function WorkoutsTemplate() {
                 return newMap;
             });
         }
-    }, [setSelectedExercises, setExerciseWeightUnits]);
+
+        // If set_type is being updated, also update the set types atom 
+        if (updates.set_type) {
+            setExerciseSetTypes(prev => {
+                const newMap = new Map(prev);
+                newMap.set(exerciseKey, updates.set_type);
+                return newMap;
+            });
+        }
+    }, [setSelectedExercises, setExerciseWeightUnits, setExerciseSetTypes]);
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
@@ -408,13 +441,15 @@ export function WorkoutsTemplate() {
                                     className="h-7 ml-3"
                                     disabled={isCreating || !canSave || isUpdating || isSaving}
                                     onClick={(e) => {
-                                        // Check if user has completed at least one set across all exercises
-                                        const hasAtLeastOneCompletedSet = exercisesArray.some(exercise =>
-                                            exercise.sets_data.some(set =>
-                                                set.reps !== null && set.reps !== '' &&
-                                                set.weight !== null && set.weight !== ''
-                                            )
-                                        );
+                                        // Check if user has completed at least one set across all exercises (set type aware)
+                                        const hasAtLeastOneCompletedSet = exercisesArray.some(exercise => {
+                                            const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                            const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                            return exercise.sets_data.some(set =>
+                                                isSetComplete(set, setType)
+                                            );
+                                        });
 
                                         if (!hasAtLeastOneCompletedSet) {
                                             e.preventDefault();
@@ -439,18 +474,23 @@ export function WorkoutsTemplate() {
                                     {/* Show summary of what will be saved */}
                                     <div className="mt-2 text-sm text-gray-600">
                                         {(() => {
-                                            const completedExercises = exercisesArray.filter(exercise =>
-                                                exercise.sets_data.some(set =>
-                                                    set.reps !== null && set.reps !== '' &&
-                                                    set.weight !== null && set.weight !== ''
-                                                )
-                                            );
-                                            const totalCompletedSets = completedExercises.reduce((total, exercise) =>
-                                                total + exercise.sets_data.filter(set =>
-                                                    set.reps !== null && set.reps !== '' &&
-                                                    set.weight !== null && set.weight !== ''
-                                                ).length, 0
-                                            );
+                                            const completedExercises = exercisesArray.filter(exercise => {
+                                                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                                return exercise.sets_data.some(set =>
+                                                    isSetComplete(set, setType)
+                                                );
+                                            });
+
+                                            const totalCompletedSets = completedExercises.reduce((total, exercise) => {
+                                                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                                return total + exercise.sets_data.filter(set =>
+                                                    isSetComplete(set, setType)
+                                                ).length;
+                                            }, 0);
 
                                             return `${completedExercises.length} exercises with ${totalCompletedSets} completed sets will be saved.`;
                                         })()}

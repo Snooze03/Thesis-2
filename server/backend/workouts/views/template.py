@@ -194,6 +194,24 @@ class TemplateViewSet(viewsets.ModelViewSet):
         """
         Add multiple exercises from external API to a template
         URL: /workouts/templates/{id}/add_exercises/
+
+        Body example:
+        {
+            "exercises": [
+                {
+                    "name": "Push Up",
+                    "type": "strength",
+                    "muscle": "chest",
+                    "equipment": "body_only",
+                    "difficulty": "beginner",
+                    "instructions": "...",
+                    "set_type": "reps_only",
+                    "sets_data": [{"reps": 12}, {"reps": 10}],
+                    "rest_time": "00:01:30",
+                    "notes": "Focus on form"
+                }
+            ]
+        }
         """
         template = self.get_object()
         serializer = AddExercisesToTemplateSerializer(data=request.data)
@@ -227,7 +245,13 @@ class TemplateViewSet(viewsets.ModelViewSet):
                                 template=template,
                                 exercise=exercise,
                                 defaults={
+                                    "set_type": exercise_data.get(
+                                        "set_type", "weight_reps"
+                                    ),
                                     "sets_data": exercise_data.get("sets_data", []),
+                                    "weight_unit": exercise_data.get(
+                                        "weight_unit", "kg"
+                                    ),
                                     "rest_time": exercise_data.get("rest_time"),
                                     "notes": exercise_data.get("notes", ""),
                                     "order": TemplateExercise.objects.filter(
@@ -242,6 +266,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
                                 {
                                     "exercise_id": exercise.id,
                                     "exercise_name": exercise.name,
+                                    "set_type": template_exercise.set_type,
                                     "already_existed": not created,
                                     "total_sets": template_exercise.total_sets,
                                 }
@@ -285,6 +310,7 @@ class TemplateViewSet(viewsets.ModelViewSet):
         """
         Remove an exercise from a template
         URL: /workouts/templates/{id}/remove_exercise/
+        Body: {"exercise_id": 123}
         """
         template = self.get_object()
         exercise_id = request.data.get("exercise_id")
@@ -323,24 +349,38 @@ class TemplateViewSet(viewsets.ModelViewSet):
             "workout_notes": "Great workout today!",
             "completed_exercises": [
                 {
-                    "exercise_name": "Push Up",
+                    "exercise_id": 1,
+                    "set_type": "reps_only",
                     "performed_sets_data": [
-                        {"reps": 12, "weight": null},
-                        {"reps": 10, "weight": null},
-                        {"reps": 8, "weight": null}
+                        {"reps": 12},
+                        {"reps": 10},
+                        {"reps": 8}
                     ],
                     "exercise_notes": "Felt strong today",
                     "order": 0
                 },
                 {
-                    "exercise_name": "Bench Press",
+                    "exercise_id": 2,
+                    "set_type": "weight_reps",
                     "performed_sets_data": [
                         {"reps": 8, "weight": 135},
                         {"reps": 6, "weight": 145},
                         {"reps": 4, "weight": 155}
                     ],
+                    "weight_unit": "lbs",
                     "exercise_notes": "New PR!",
                     "order": 1
+                },
+                {
+                    "exercise_id": 3,
+                    "set_type": "duration",
+                    "performed_sets_data": [
+                        {"duration": "01:00"},
+                        {"duration": "01:30"},
+                        {"duration": "02:00"}
+                    ],
+                    "exercise_notes": "Good endurance",
+                    "order": 2
                 }
             ]
         }
@@ -510,12 +550,30 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
         Manage sets for a TemplateExercise instance (add, update, remove)
         URL: /workouts/template-exercises/{id}/manage_sets/
 
-        Add set: {"action": "add", "reps": 12, "weight": 50.0}
-        Update set: {"action": "update", "set_index": 0, "reps": 15, "weight": 55.0}
-        Remove set: {"action": "remove", "set_index": 1}
+        Examples based on set_type:
+
+        Weight & Reps:
+          Add: {"action": "add", "reps": 12, "weight": 50.0}
+          Update: {"action": "update", "set_index": 0, "reps": 15, "weight": 55.0}
+          Remove: {"action": "remove", "set_index": 1}
+
+        Reps Only:
+          Add: {"action": "add", "reps": 12}
+          Update: {"action": "update", "set_index": 0, "reps": 15}
+          Remove: {"action": "remove", "set_index": 1}
+
+        Duration:
+          Add: {"action": "add", "duration": "02:30"}
+          Update: {"action": "update", "set_index": 0, "duration": "03:00"}
+          Remove: {"action": "remove", "set_index": 1}
         """
         template_exercise = self.get_object()
-        serializer = SetManagementSerializer(data=request.data)
+
+        # Add set_type to request data for validation
+        request_data = request.data.copy()
+        request_data["set_type"] = template_exercise.set_type
+
+        serializer = SetManagementSerializer(data=request_data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -525,9 +583,16 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
 
         try:
             if action == "add":
-                template_exercise.add_set(
-                    reps=data.get("reps"), weight=data.get("weight")
-                )
+                # Pass appropriate fields based on set_type
+                if template_exercise.set_type == "weight_reps":
+                    template_exercise.add_set(
+                        reps=data.get("reps"), weight=data.get("weight")
+                    )
+                elif template_exercise.set_type == "reps_only":
+                    template_exercise.add_set(reps=data.get("reps"))
+                elif template_exercise.set_type == "duration":
+                    template_exercise.add_set(duration=data.get("duration"))
+
                 message = "Set added successfully"
 
             elif action == "update":
@@ -538,11 +603,22 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                template_exercise.update_set(
-                    set_index=set_index,
-                    reps=data.get("reps"),
-                    weight=data.get("weight"),
-                )
+                # Pass appropriate fields based on set_type
+                if template_exercise.set_type == "weight_reps":
+                    template_exercise.update_set(
+                        set_index=set_index,
+                        reps=data.get("reps"),
+                        weight=data.get("weight"),
+                    )
+                elif template_exercise.set_type == "reps_only":
+                    template_exercise.update_set(
+                        set_index=set_index, reps=data.get("reps")
+                    )
+                elif template_exercise.set_type == "duration":
+                    template_exercise.update_set(
+                        set_index=set_index, duration=data.get("duration")
+                    )
+
                 message = f"Set {set_index + 1} updated successfully"
 
             elif action == "remove":
@@ -574,13 +650,20 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["patch"])
     def update_exercise_params(self, request, pk=None):
         """
-        Update exercise parameters (rest_time, notes, order) for a TemplateExercise
+        Update exercise parameters (rest_time, notes, order, weight_unit) for a TemplateExercise
         URL: /workouts/template-exercises/{id}/update_exercise_params/
+
+        Body: {
+            "rest_time": "00:01:30",
+            "notes": "Focus on form",
+            "order": 2,
+            "weight_unit": "lbs"  // Only applicable for weight_reps set_type
+        }
         """
         template_exercise = self.get_object()
 
         # Only allow updating specific fields
-        allowed_fields = ["rest_time", "notes", "order"]
+        allowed_fields = ["rest_time", "notes", "order", "weight_unit"]
         update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
 
         serializer = self.get_serializer(

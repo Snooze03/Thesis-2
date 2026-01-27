@@ -6,31 +6,34 @@ import { Input } from "@/components/ui/input";
 import { KebabMenu } from "@/components/ui/kebab-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight } from "lucide-react";
+import { Plus, Trash2, AlarmClock, Minus, Lock, Check, Weight, Triangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
+import { generateTimeOptions } from "../utils/generateTimeOptions";
+import { DurationInput } from "./duration-input";
+import { isSetComplete } from "../utils/set-helpers";
+import { KG_TO_LBS, LBS_TO_KG } from "../constants";
+import { toast } from "react-hot-toast";
 import clsx from "clsx";
-import toast from "react-hot-toast";
 
-// Conversion constants
-const KG_TO_LBS = 2.20462;
-const LBS_TO_KG = 0.453592;
 
-function ExerciseCard({
-    exercise,
-    templateMode,
-    onRemove,
-    onUpdate
-}) {
+function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
     const canInputData = (templateMode === "start") ? false : true;
     const isStartMode = templateMode === "start";
 
+    const [previousSetsData] = useState(exercise.previous_sets_data || []);
+    const [suggestedSets] = useState(exercise.suggested_sets || []);
+    const hasPreviousData = exercise.has_previous_data || false;
+
     // Local state for sets_data
-    const [setsData, setSetsData] = useState(
-        exercise.sets_data || [
-            { reps: null, weight: null },
-        ]
-    );
+    const [setsData, setSetsData] = useState(() => {
+        // In start mode, use suggested sets if available
+        if (isStartMode && suggestedSets.length > 0) {
+            return suggestedSets;
+        }
+        // Otherwise use template sets_data
+        return exercise.sets_data || [{ reps: null, weight: null }];
+    });
 
     const [completedSets, setCompletedSets] = useState(new Set());
     const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
@@ -39,22 +42,11 @@ function ExerciseCard({
     const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
 
     const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+    const currentSetType = exercise.set_type || 'weight_reps';
     const currentRestTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time || null;
     const currentWeightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
     // Generate time options from 0:05 to 6:00 in 5-second intervals
-    const generateTimeOptions = () => {
-        const options = [];
-        // Start from 5 seconds (0:05) up to 6 minutes (6:00)
-        for (let seconds = 5; seconds <= 360; seconds += 5) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            const display = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-            options.push({ value: seconds, display });
-        }
-        return options;
-    };
-
     const timeOptions = generateTimeOptions();
 
     // Handle rest time selection
@@ -102,7 +94,6 @@ function ExerciseCard({
                 weight: parseFloat(convertedWeight)
             };
         });
-
 
         // Update local state
         setSetsData(convertedSetsData);
@@ -166,6 +157,26 @@ function ExerciseCard({
         }
     }, [setsData, onUpdate]);
 
+    const formatPreviousSet = useCallback((previousSet, index) => {
+        if (!previousSet) return "---";
+
+        switch (currentSetType) {
+            case 'weight_reps':
+                const weight = previousSet.weight ?? '?';
+                const reps = previousSet.reps ?? '?';
+                return `${weight}${currentWeightUnit} × ${reps}`;
+
+            case 'reps_only':
+                return `${previousSet.reps ?? '?'} reps`;
+
+            case 'duration':
+                return previousSet.duration ?? '00:00';
+
+            default:
+                return "---";
+        }
+    }, [currentSetType, currentWeightUnit]);
+
     const handleRestTimer = () => {
         setIsRestTimerOpen(true);
     };
@@ -176,16 +187,52 @@ function ExerciseCard({
 
     const handleSetChange = useCallback((setIndex, field, value) => {
         const newSetsData = [...setsData];
+
+        // Handle different field types
+        let parsedValue;
+
+        if (field === 'duration') {
+            // Validate duration (max 30 minutes = 30:00)
+            if (value && value !== '') {
+                const [minutes, seconds] = value.split(':').map(num => parseInt(num) || 0);
+                const totalMinutes = minutes + (seconds / 60);
+
+                if (totalMinutes > 30) {
+                    toast.error("Duration cannot exceed 30 minutes. Please enter a realistic value.");
+                    return; // Don't update state
+                }
+            }
+            parsedValue = value; // Keep as string for duration
+        } else {
+            parsedValue = value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value));
+
+            // Validate reps (max 100)
+            if (field === 'reps' && parsedValue !== null && parsedValue > 100) {
+                toast.error("Reps cannot exceed 100. Please enter a realistic value.");
+                return; // Don't update state
+            }
+
+            // Validate weight (max 250kg or 550lbs)
+            if (field === 'weight' && parsedValue !== null) {
+                const maxWeight = currentWeightUnit === 'kg' ? 250 : 550;
+                const unitLabel = currentWeightUnit === 'kg' ? 'kg' : 'lbs';
+
+                if (parsedValue > maxWeight) {
+                    toast.error(`Weight cannot exceed ${maxWeight}${unitLabel}. Please enter a realistic value.`);
+                    return; // Don't update state
+                }
+            }
+        }
+
         newSetsData[setIndex] = {
             ...newSetsData[setIndex],
-            [field]: value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value))
+            [field]: parsedValue
         };
         setSetsData(newSetsData);
 
         // Check if the set is now incomplete after the change
         const updatedSet = newSetsData[setIndex];
-        const isIncomplete = updatedSet.reps === null || updatedSet.reps === '' ||
-            updatedSet.weight === null || updatedSet.weight === '';
+        const isIncomplete = !isSetComplete(updatedSet, currentSetType);
 
         // If set becomes incomplete, remove it from completed sets
         if (isIncomplete) {
@@ -198,33 +245,27 @@ function ExerciseCard({
 
         // Call onUpdate immediately when individual set changes
         onUpdate?.({ sets_data: newSetsData });
-    }, [setsData, onUpdate]);
+    }, [setsData, currentSetType, currentWeightUnit, onUpdate]);
 
     const handleCompletedSet = useCallback((setIndex) => {
         const currentSet = setsData[setIndex];
 
-        // Check if both reps and weight are filled
-        const hasCompleteData = currentSet.reps !== null && currentSet.reps !== '' &&
-            currentSet.weight !== null && currentSet.weight !== '';
-
-        if (!hasCompleteData) {
+        // Check if set is complete based on set type
+        if (!isSetComplete(currentSet, currentSetType)) {
             return;
         }
 
         setCompletedSets(prev => {
             const newCompletedSets = new Set(prev);
             if (newCompletedSets.has(setIndex)) {
-                // If already completed, remove it (toggle off)
                 newCompletedSets.delete(setIndex);
             } else {
-                // If not completed, add it (toggle on)
                 newCompletedSets.add(setIndex);
             }
             return newCompletedSets;
         });
 
         if (isStartMode && currentRestTime && currentRestTime > 0) {
-            // Use setTimeout to defer the state update to after the current render
             setTimeout(() => {
                 setRestTimer({
                     isActive: true,
@@ -235,7 +276,69 @@ function ExerciseCard({
                 });
             }, 0);
         }
-    }, [setsData, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
+    }, [setsData, currentSetType, isStartMode, currentRestTime, exercise.name, exercise.muscle, setRestTimer]);
+
+    const renderSetInputs = (set, index) => {
+        const isCompleted = completedSets.has(index);
+        const suggestedSet = suggestedSets[index];
+
+        switch (currentSetType) {
+            case 'weight_reps':
+                return (
+                    <>
+                        <Input
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder={suggestedSet?.weight ? `${suggestedSet.weight}` : "0"}
+                            value={set.weight || ''}
+                            onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
+                        />
+                        <Input
+                            className="size-5 w-full px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder={suggestedSet?.reps ? `${suggestedSet.reps}` : "0"}
+                            value={set.reps || ''}
+                            onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
+                        />
+                    </>
+                );
+
+            case 'reps_only':
+                return (
+                    <>
+                        <Input
+                            className="size-5 w-full col-span-2 px-2 text-center"
+                            type="number"
+                            step="0.5"
+                            disabled={canInputData}
+                            placeholder={suggestedSet?.reps ? `${suggestedSet.reps}` : "0"}
+                            value={set.reps || ''}
+                            onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
+                        />
+                    </>
+                );
+
+            case 'duration':
+                return (
+                    <div className="col-span-2">
+                        <DurationInput
+                            value={set.duration ?? ''}
+                            onChange={(value) => handleSetChange(index, 'duration', value)}
+                            disabled={canInputData || isCompleted}
+                            placeholder={suggestedSet?.duration || "00:00"}
+                            className="w-full"
+                        />
+                    </div>
+                );
+
+            default:
+                return null;
+        }
+    };
 
     // Filter menu items based on mode
     const getMenuItems = () => {
@@ -269,6 +372,27 @@ function ExerciseCard({
                         label: "Pounds (lbs)",
                         action: () => handleWeightUnitChange('lbs'),
                         icon: currentWeightUnit === 'lbs' ? Check : null,
+                    },
+                ]
+            },
+            {
+                icon: Triangle,
+                label: "Set Type",
+                submenu: [
+                    {
+                        label: "Reps",
+                        action: () => currentSetType !== 'reps_only' && onUpdate?.({ set_type: 'reps_only' }),
+                        icon: currentSetType === 'reps_only' ? Check : null,
+                    },
+                    {
+                        label: "Reps & Weights",
+                        action: () => currentSetType !== 'weight_reps' && onUpdate?.({ set_type: 'weight_reps' }),
+                        icon: currentSetType === 'weight_reps' ? Check : null,
+                    },
+                    {
+                        label: "Duration",
+                        action: () => currentSetType !== 'duration' && onUpdate?.({ set_type: 'duration' }),
+                        icon: currentSetType === 'duration' ? Check : null,
                     },
                 ]
             },
@@ -319,8 +443,18 @@ function ExerciseCard({
                     <div className="grid grid-cols-[.16fr_.4fr_.5fr_.5fr_auto] gap-3 place-items-center">
                         <p className="text-sm text-gray-600">Sets</p>
                         <p className="text-sm text-gray-600">Previous</p>
-                        <p className="text-sm text-gray-600">Weight ({currentWeightUnit})</p>
-                        <p className="text-sm text-gray-600">Reps</p>
+                        {currentSetType === 'weight_reps' && (
+                            <>
+                                <p className="text-sm text-gray-600">Weight ({currentWeightUnit})</p>
+                                <p className="text-sm text-gray-600">Reps</p>
+                            </>
+                        )}
+                        {currentSetType === 'reps_only' && (
+                            <p className="text-sm text-gray-600 col-span-2">Reps</p>
+                        )}
+                        {currentSetType === 'duration' && (
+                            <p className="text-sm text-gray-600 col-span-2">Duration (MM:SS)</p>
+                        )}
                         <div className={clsx("w-4", { "w-7": isStartMode })}></div>
                     </div>
 
@@ -339,24 +473,13 @@ function ExerciseCard({
                                 key={index}
                             >
                                 <p className="text-primary font-semibold">{index + 1}</p>
-                                <p className="text-gray-600">----------</p>
-                                <Input
-                                    className="size-5 w-full px-2 text-center"
-                                    type="number"
-                                    step="0.5"
-                                    disabled={canInputData}
-                                    placeholder="0"
-                                    value={set.weight || ''}
-                                    onChange={(e) => handleSetChange(index, 'weight', e.target.value)}
-                                />
-                                <Input
-                                    className="size-5 w-full px-2 text-center"
-                                    type="number"
-                                    disabled={canInputData}
-                                    placeholder="0"
-                                    value={set.reps || ''}
-                                    onChange={(e) => handleSetChange(index, 'reps', e.target.value)}
-                                />
+                                <p className="text-gray-600 text-xs">
+                                    {hasPreviousData && previousSetsData[index]
+                                        ? formatPreviousSet(previousSetsData[index], index)
+                                        : "---"
+                                    }
+                                </p>
+                                {renderSetInputs(set, index)}
                                 {canInputData ? (
                                     <Lock className="text-gray-600 size-4" />
                                 ) : (
@@ -365,12 +488,12 @@ function ExerciseCard({
                                             "w-7 h-5 py-1",
                                             {
                                                 "bg-green-500 hover:bg-green-600": isCompleted,
-                                                "hover:bg-green-50": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
-                                                "opacity-50 cursor-not-allowed": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                                "hover:bg-green-50": !isCompleted && isSetComplete(set, currentSetType),
+                                                "opacity-50 cursor-not-allowed": !isSetComplete(set, currentSetType),
                                             }
                                         )}
                                         variant={isCompleted ? "default" : "ghost"}
-                                        disabled={!(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== '')}
+                                        disabled={!isSetComplete(set, currentSetType)}
                                         onClick={() => handleCompletedSet(index)}
                                     >
                                         <Check
@@ -378,8 +501,8 @@ function ExerciseCard({
                                                 "size-4",
                                                 {
                                                     "stroke-white": isCompleted,
-                                                    "stroke-green-400": !isCompleted && (set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
-                                                    "stroke-gray-400": !(set.reps !== null && set.reps !== '' && set.weight !== null && set.weight !== ''),
+                                                    "stroke-green-400": !isCompleted && isSetComplete(set, currentSetType),
+                                                    "stroke-gray-400": !isSetComplete(set, currentSetType),
                                                 }
                                             )}
                                         />

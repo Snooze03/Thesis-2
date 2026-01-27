@@ -10,7 +10,35 @@ export function useTemplateActions() {
 
     const saveTemplate = useMutation({
         mutationFn: async ({ templateData }) => {
-            const response = await api.post("workouts/templates/save_completed_workout/", templateData);
+            // Format workout data before sending to API
+            const formattedData = {
+                template_id: templateData.template_id,
+                template_title: templateData.template_title.trim(),
+                started_at: templateData.started_at,
+                completed_at: templateData.completed_at,
+                workout_notes: templateData.workout_notes || '',
+                completed_exercises: templateData.completed_exercises.map((exercise, index) => ({
+                    exercise_id: exercise.exercise_id,
+                    set_type: exercise.set_type,
+                    performed_sets_data: exercise.performed_sets_data.map(set => {
+                        // Format based on set_type
+                        if (exercise.set_type === 'reps_only') {
+                            return { reps: set.reps };
+                        } else if (exercise.set_type === 'duration') {
+                            return { duration: set.duration };
+                        } else {
+                            // weight_reps (default)
+                            return { reps: set.reps, weight: set.weight };
+                        }
+                    }),
+                    weight_unit: exercise.weight_unit || 'kg',
+                    exercise_notes: exercise.exercise_notes || '',
+                    order: exercise.order ?? index
+                }))
+            };
+
+            console.log("Save request:", formattedData);
+            const response = await api.post("workouts/templates/save_completed_workout/", formattedData);
             return response.data;
         },
         onSuccess: () => {

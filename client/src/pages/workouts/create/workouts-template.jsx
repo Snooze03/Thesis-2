@@ -2,18 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTemplates } from "@/hooks/workouts/templates/useTemplates";
 import { useTemplateActions } from "@/hooks/workouts/templates/useTemplateActions";
-import { useAtom } from "jotai";
-import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom } from "./template-atoms";
-import { X, FlagTriangleRight, Plus, CircleX, AlarmClock } from "lucide-react";
+import { useAtom, useAtomValue } from "jotai";
+import { templateTitleAtom, templateIdAtom, isAlternativeAtom, selectedExercisesAtom, templateModeAtom, startedAtAtom, completedAtAtom, exerciseRestTimesAtom, restTimerAtom, exerciseWeightUnitsAtom, exerciseSetTypesAtom } from "./template-atoms";
+import { X, FlagTriangleRight, Plus } from "lucide-react";
 import { SubLayout } from "@/layouts/sub-layout";
 import { ExerciseCard } from "./exercise-card";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RadialProgress } from "@/components/ui/radial-progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { RestTimerDialog } from "../dialogs/rest-timer";
+import { CancelWorkoutDialog } from "../dialogs/cancel-workout";
 import { EmptyItems } from "@/components/empty-items";
+import { isSetComplete } from "../utils/set-helpers";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 
@@ -36,11 +37,13 @@ export function WorkoutsTemplate() {
     const [completed_at, setCompleted_at] = useAtom(completedAtAtom);
     // Rest time atom
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);
-    // Rest timer countdown atom
-    const [restTimer, setRestTimer] = useAtom(restTimerAtom);
+    // Rest timer countdown atom - READ ONLY 
+    const restTimer = useAtomValue(restTimerAtom);
     // Weight units atom
     const [exerciseWeightUnits, setExerciseWeightUnits] = useAtom(exerciseWeightUnitsAtom);
-    // Rest timer dialog state
+    // Set types atom - ADD THIS
+    const [exerciseSetTypes, setExerciseSetTypes] = useAtom(exerciseSetTypesAtom);
+    // Rest dialog state
     const [isRestDialogOpen, setIsRestDialogOpen] = useState(false);
     // ===== END ATOMS =====
 
@@ -71,68 +74,6 @@ export function WorkoutsTemplate() {
     } = useTemplateActions();
     // ===== END HOOKS =====
 
-    // ===== REST TIMER COUNTDOWN EFFECT =====
-    useEffect(() => {
-        let intervalId;
-
-        if (restTimer.isActive && restTimer.remainingSeconds > 0) {
-            intervalId = setInterval(() => {
-                setRestTimer(prev => {
-                    const newRemaining = prev.remainingSeconds - 1;
-
-                    if (newRemaining <= 0) {
-                        return {
-                            isActive: false,
-                            remainingSeconds: 0,
-                            exerciseName: null,
-                            exerciseMuscle: null,
-                            totalSeconds: 0
-                        };
-                    }
-
-                    return {
-                        ...prev,
-                        remainingSeconds: newRemaining
-                    };
-                });
-            }, 1000);
-        }
-
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        };
-    }, [restTimer.isActive, restTimer.remainingSeconds, setRestTimer]);
-
-
-    // Format time for display (MM:SS)
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    // Skip rest timer
-    const skipRestTimer = useCallback(() => {
-        setRestTimer({
-            isActive: false,
-            remainingSeconds: 0,
-            exerciseName: null,
-            exerciseMuscle: null,
-            totalSeconds: 0
-        });
-    }, [setRestTimer]);
-
-    // Add 15 seconds to timer
-    const addTimeToTimer = useCallback(() => {
-        setRestTimer(prev => ({
-            ...prev,
-            remainingSeconds: prev.remainingSeconds + 15
-        }));
-    }, [setRestTimer]);
-    // ===== END REST TIMER EFFECTS =====
-
     // ===== EFFECTS =====
     useEffect(() => {
         // Set workout start time when starting a workout
@@ -145,6 +86,7 @@ export function WorkoutsTemplate() {
     // Populate atoms with template data when editing (only once)
     useEffect(() => {
         if ((isEditMode || isStartMode) && template_data && !hasPopulatedAtoms.current) {
+            console.log("Full template_data:", template_data);
             // Set id
             setTemplate_id(template_data.id || null);
             // Set the title
@@ -154,6 +96,7 @@ export function WorkoutsTemplate() {
             const exercisesMap = new Map();
             const restTimesMap = new Map();
             const weightUnitsMap = new Map();
+            const setTypesMap = new Map();
 
             if (template_data.template_exercises && template_data.template_exercises.length > 0) {
                 template_data.template_exercises.forEach((templateExercise) => {
@@ -174,9 +117,14 @@ export function WorkoutsTemplate() {
                     const weightUnit = templateExercise.weight_unit || 'kg';
                     weightUnitsMap.set(exerciseKey, weightUnit);
 
+                    // Extract set_type from template exercise (default to 'weight_reps' if not present)
+                    const setType = templateExercise.set_type || 'weight_reps';
+                    setTypesMap.set(exerciseKey, setType);
+
                     // Create the exercise object with all necessary data
                     const exerciseData = {
                         // Exercise basic info
+                        id: exercise.id,
                         name: exercise.name,
                         type: exercise.type || '',
                         muscle: exercise.muscle || '',
@@ -185,6 +133,7 @@ export function WorkoutsTemplate() {
                         instructions: exercise.instructions || '',
 
                         // Template exercise specific data
+                        set_type: setType,
                         sets_data: templateExercise.sets_data || [
                             { reps: null, weight: null }
                         ],
@@ -192,21 +141,26 @@ export function WorkoutsTemplate() {
                         rest_time: restTimeInSeconds,
                         notes: templateExercise.notes || '',
 
+                        previous_sets_data: templateExercise.previous_sets_data || [],
+                        suggested_sets: templateExercise.suggested_sets || [],
+                        has_previous_data: templateExercise.has_previous_data || false,
+
                         // Additional metadata for editing/starting - CRUCIAL FOR UPDATES
                         template_exercise_id: templateExercise.id,
                         order: templateExercise.order || 0,
                     };
 
+
                     exercisesMap.set(exerciseKey, exerciseData);
                 });
             }
-
             setSelectedExercises(exercisesMap);
-            setExerciseRestTimes(restTimesMap); // Set rest times
-            setExerciseWeightUnits(weightUnitsMap); // Set weight units
-            hasPopulatedAtoms.current = true; // Mark as populated
+            setExerciseRestTimes(restTimesMap);
+            setExerciseWeightUnits(weightUnitsMap);
+            setExerciseSetTypes(setTypesMap);
+            hasPopulatedAtoms.current = true;
         }
-    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes, setExerciseWeightUnits]);
+    }, [isEditMode, isStartMode, template_data, setTitle, setSelectedExercises, setTemplate_id, setExerciseRestTimes, setExerciseWeightUnits, setExerciseSetTypes]);  // ← ADD setExerciseSetTypes to deps
     // ===== END EFFECTS =====
 
     // Utility function to clear all atoms
@@ -220,15 +174,10 @@ export function WorkoutsTemplate() {
         setCompleted_at(null);
         setExerciseRestTimes(new Map());
         setExerciseWeightUnits(new Map());
-        setRestTimer({
-            isActive: false,
-            remainingSeconds: 0,
-            exerciseName: null,
-            exerciseMuscle: null,
-            totalSeconds: 0
-        });
+        setExerciseSetTypes(new Map());
+        setIsRestDialogOpen(false);
         hasPopulatedAtoms.current = false;
-    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setRestTimer]);
+    }, [setTitle, setSelectedExercises, setTemplate_id, setTemplateMode, setStarted_at, setCompleted_at, setExerciseRestTimes, setExerciseWeightUnits, setExerciseSetTypes, setIsAlternative]);  // ← ADD setExerciseSetTypes to deps
 
     // ===== EVENT HANDLERS =====
     const handleAddExercise = () => {
@@ -246,10 +195,11 @@ export function WorkoutsTemplate() {
             title: title.trim(),
             isAlternative: isAlternative,
             exercises: exercisesArray.map(exercise => {
-                // Generate exercise key to get rest time and weight unit
+                // Generate exercise key to get rest time, weight unit, and set type
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                 const restTime = exerciseRestTimes.get(exerciseKey) || exercise.rest_time;
-                const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';  // Get weight unit
+                const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
+                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
 
                 return {
                     // Include template_exercise_id for existing exercises in edit mode
@@ -263,11 +213,12 @@ export function WorkoutsTemplate() {
                     equipment: exercise.equipment || '',
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
+                    set_type: setType,
                     sets_data: exercise.sets_data || [
                         { reps: null, weight: null },
                     ],
                     weight_unit: weightUnit,
-                    rest_time: restTime, // Include rest time from atom or exercise data
+                    rest_time: restTime,
                     notes: exercise.notes || '',
                     order: exercise.order || 0
                 };
@@ -305,52 +256,57 @@ export function WorkoutsTemplate() {
         const completedTime = new Date().toISOString();
         setCompleted_at(completedTime);
 
-        // Filter exercises and sets - only include exercises with at least one completed set
-        const completedExercisesData = [];
-
-        exercisesArray.forEach((exercise, index) => {
-            // Filter only completed sets (both reps and weight are filled)
-            const completedSets = exercise.sets_data.filter(set =>
-                set.reps !== null && set.reps !== '' &&
-                set.weight !== null && set.weight !== ''
-            );
-
-            // Only include exercise if it has at least one completed set
-            if (completedSets.length > 0) {
-                // Get weight unit for this exercise
+        // Filter exercises with completed sets (using set type aware validation)
+        const completedExercises = exercisesArray
+            .map((exercise, index) => {
+                console.log("Exercise object:", exercise);
+                console.log("Exercise ID:", exercise.id);
                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                // Use isSetComplete helper to validate sets based on set type
+                const completedSets = exercise.sets_data.filter(set =>
+                    isSetComplete(set, setType)
+                );
+
+                if (completedSets.length === 0) return null;
+
                 const weightUnit = exerciseWeightUnits.get(exerciseKey) || exercise.weight_unit || 'kg';
 
-                completedExercisesData.push({
-                    exercise_name: exercise.name,
-                    performed_sets_data: completedSets, // Only the completed sets
+                console.log(`Template Exercise ID: ${exercise.template_exercise_id}`);
+
+                const result = {
+                    exercise_id: exercise.id,
+                    set_type: setType,
+                    performed_sets_data: completedSets,
                     weight_unit: weightUnit,
                     exercise_notes: exercise.notes || '',
-                    order: exercise.order || index
-                });
-            }
-        });
+                    order: exercise.order ?? index
+                };
 
-        // Don't proceed if no exercises were completed
-        if (completedExercisesData.length === 0) {
+                console.log("Mapped result:", result);
+                return result;
+            })
+
+        // Validate that at least one exercise was completed
+        if (completedExercises.length === 0) {
             toast.error("No completed sets found. Please complete at least one set before finishing your workout.");
             return;
         }
 
-        // Prepare completed workout data for the backend
-        const completedWorkoutData = {
+        // Prepare raw workout data 
+        const workoutData = {
             template_id: template_id,
-            template_title: title.trim(),
+            template_title: title,
             started_at: started_at,
             completed_at: completedTime,
             workout_notes: "notes",
-            completed_exercises: completedExercisesData
+            completed_exercises: completedExercises
         };
 
-        // Save the completed workout using the mutation
+        // Save the completed workout
         saveTemplate({
-            templateId: template_id,
-            templateData: completedWorkoutData
+            templateData: workoutData
         }, {
             onSuccess: () => {
                 clearAtoms();
@@ -359,7 +315,6 @@ export function WorkoutsTemplate() {
             onError: (error) => {
                 clearAtoms();
                 console.error('Save workout failed:', error);
-                toast.error("Failed to save workout");
             }
         });
     };
@@ -374,10 +329,7 @@ export function WorkoutsTemplate() {
     const handleRemoveExercise = useCallback((exerciseKey) => {
         setSelectedExercises(prev => {
             const newMap = new Map(prev);
-            const removedExercise = newMap.get(exerciseKey);
-
             newMap.delete(exerciseKey);
-
             return newMap;
         });
     }, [setSelectedExercises]);
@@ -400,7 +352,16 @@ export function WorkoutsTemplate() {
                 return newMap;
             });
         }
-    }, [setSelectedExercises, setExerciseWeightUnits]);
+
+        // If set_type is being updated, also update the set types atom 
+        if (updates.set_type) {
+            setExerciseSetTypes(prev => {
+                const newMap = new Map(prev);
+                newMap.set(exerciseKey, updates.set_type);
+                return newMap;
+            });
+        }
+    }, [setSelectedExercises, setExerciseWeightUnits, setExerciseSetTypes]);
 
     const handleTitleChange = (e) => {
         setTitle(e.target.value);
@@ -484,21 +445,22 @@ export function WorkoutsTemplate() {
                                     className="h-7 ml-3"
                                     disabled={isCreating || !canSave || isUpdating || isSaving}
                                     onClick={(e) => {
-                                        // Check if user has completed at least one set across all exercises
-                                        const hasAtLeastOneCompletedSet = exercisesArray.some(exercise =>
-                                            exercise.sets_data.some(set =>
-                                                set.reps !== null && set.reps !== '' &&
-                                                set.weight !== null && set.weight !== ''
-                                            )
-                                        );
+                                        // Check if user has completed at least one set across all exercises (set type aware)
+                                        const hasAtLeastOneCompletedSet = exercisesArray.some(exercise => {
+                                            const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                            const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                            return exercise.sets_data.some(set =>
+                                                isSetComplete(set, setType)
+                                            );
+                                        });
 
                                         if (!hasAtLeastOneCompletedSet) {
-                                            e.preventDefault(); // Prevent dialog from opening
-                                            e.stopPropagation(); // Stop event propagation
+                                            e.preventDefault();
+                                            e.stopPropagation();
                                             toast.error("Please complete at least one set before finishing your workout.");
                                             return;
                                         }
-                                        // If validation passes, the dialog will open automatically
                                     }}
                                 >
                                     <FlagTriangleRight />
@@ -516,18 +478,23 @@ export function WorkoutsTemplate() {
                                     {/* Show summary of what will be saved */}
                                     <div className="mt-2 text-sm text-gray-600">
                                         {(() => {
-                                            const completedExercises = exercisesArray.filter(exercise =>
-                                                exercise.sets_data.some(set =>
-                                                    set.reps !== null && set.reps !== '' &&
-                                                    set.weight !== null && set.weight !== ''
-                                                )
-                                            );
-                                            const totalCompletedSets = completedExercises.reduce((total, exercise) =>
-                                                total + exercise.sets_data.filter(set =>
-                                                    set.reps !== null && set.reps !== '' &&
-                                                    set.weight !== null && set.weight !== ''
-                                                ).length, 0
-                                            );
+                                            const completedExercises = exercisesArray.filter(exercise => {
+                                                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                                return exercise.sets_data.some(set =>
+                                                    isSetComplete(set, setType)
+                                                );
+                                            });
+
+                                            const totalCompletedSets = completedExercises.reduce((total, exercise) => {
+                                                const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
+                                                const setType = exerciseSetTypes.get(exerciseKey) || exercise.set_type || 'weight_reps';
+
+                                                return total + exercise.sets_data.filter(set =>
+                                                    isSetComplete(set, setType)
+                                                ).length;
+                                            }, 0);
 
                                             return `${completedExercises.length} exercises with ${totalCompletedSets} completed sets will be saved.`;
                                         })()}
@@ -568,60 +535,17 @@ export function WorkoutsTemplate() {
                                 Exercises ({exercisesArray.length})
                             </h3>
 
-                            {/* Rest timer dialog */}
+                            {/* Rest timer dialog - only show when timer is active */}
                             {isStartMode && restTimer.isActive && (
-                                <Dialog open={isRestDialogOpen} onOpenChange={setIsRestDialogOpen}>
-                                    <DialogTrigger>
-                                        <div className="px-3 py-1 flex items-center gap-2 bg-green-100 rounded-full text-green-700">
-                                            <AlarmClock className="size-4" />
-                                            <p className="text-sm">{formatTime(restTimer.remainingSeconds)}</p>
-                                        </div>
-                                    </DialogTrigger>
-                                    <DialogContent className="w-auto min-w-60 gap-4">
-                                        <DialogHeader className="gap-4">
-                                            <DialogTitle className="text-center">Resting</DialogTitle>
-                                            <DialogDescription />
-
-                                            <div className="flex justify-center items-center">
-                                                <RadialProgress
-                                                    value={restTimer.remainingSeconds}
-                                                    max={restTimer.totalSeconds}
-                                                    size="xl"
-                                                    showValue={false}
-                                                    className="[&_circle:first-child]:text-green-100 [&_circle:last-child]:text-green-300"
-                                                >
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-3xl font-bold text-green-300 tabular-nums">
-                                                            {formatTime(restTimer.remainingSeconds)}
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground mt-1">remaining</span>
-                                                    </div>
-                                                </RadialProgress>
-                                            </div>
-                                        </DialogHeader>
-                                        <div className="flex gap-3 justify-center">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={addTimeToTimer}
-                                            >
-                                                +15s
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={skipRestTimer}
-                                            >
-                                                Skip Rest
-                                            </Button>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
+                                <RestTimerDialog
+                                    isOpen={isRestDialogOpen}
+                                    onOpenChange={setIsRestDialogOpen}
+                                />
                             )}
-
                         </div>
                         <div className="space-y-4">
                             {exercisesArray.map((exercise, index) => {
+                                // { console.log("Rendering Exercise:", exercise); }
                                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                                 return (
                                     <div key={exerciseKey} className="relative group">
@@ -657,38 +581,9 @@ export function WorkoutsTemplate() {
 
                 {/* Cancel Workout Button */}
                 {isStartMode && (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button
-                                className="w-full bg-white text-destructive font-semibold border-2 border-dashed border-destructive/30 hover:bg-destructive/10"
-                            >
-                                <CircleX className="size-4" />
-                                CANCEL WORKOUT
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    Cancel Workout Session?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Are you sure you want to cancel this workout? All your progress will be lost and cannot be recovered.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Keep Working Out</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={handleCancelWorkout}
-                                    className={buttonVariants({ variant: "destructive" })}
-                                >
-                                    Cancel Workout
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                    <CancelWorkoutDialog action={handleCancelWorkout} />
                 )}
-
             </div>
-        </SubLayout >
+        </SubLayout>
     );
 }

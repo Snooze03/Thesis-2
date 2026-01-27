@@ -29,6 +29,9 @@ export const restTimerAtom = atom({
     totalSeconds: 0
 });
 
+export const exerciseSetTypesAtom = atom(new Map());
+// Structure: Map<exerciseKey, "weight_reps" | "reps_only" | "duration">
+
 // Weight Unit Atom - tracks weight unit preference per exercise
 // Structure: Map<exerciseKey, "kg" | "lbs">
 // exerciseKey format: "${exercise.name}_${exercise.muscle}"

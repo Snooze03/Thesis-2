@@ -41,6 +41,7 @@ export function useExerciseSearch(searchTerm) {
                     sets_data: [
                         { reps: null, weight: null },
                     ],
+                    set_type: "weight_reps",
                     rest_time: null,
                     notes: ""
                 };

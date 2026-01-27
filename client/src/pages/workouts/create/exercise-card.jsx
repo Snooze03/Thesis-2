@@ -35,6 +35,12 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
         return exercise.sets_data || [{ reps: null, weight: null }];
     });
 
+    useEffect(() => {
+        if (isStartMode && suggestedSets.length > 0) {
+            onUpdate?.({ sets_data: suggestedSets });
+        }
+    }, []);
+
     const [completedSets, setCompletedSets] = useState(new Set());
     const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
     const [exerciseRestTimes, setExerciseRestTimes] = useAtom(exerciseRestTimesAtom);

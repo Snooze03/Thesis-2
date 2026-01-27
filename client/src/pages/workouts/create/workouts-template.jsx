@@ -287,6 +287,7 @@ export function WorkoutsTemplate() {
                 console.log("Mapped result:", result);
                 return result;
             })
+            .filter(Boolean);
 
         // Validate that at least one exercise was completed
         if (completedExercises.length === 0) {

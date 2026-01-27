@@ -19,12 +19,18 @@ export function useTemplateActions() {
                 workout_notes: templateData.workout_notes || '',
                 completed_exercises: templateData.completed_exercises.map((exercise, index) => ({
                     exercise_id: exercise.exercise_id,
-                    exercise_name: exercise.exercise_name,
                     set_type: exercise.set_type,
-                    performed_sets_data: exercise.performed_sets_data.map(set => ({
-                        reps: set.reps,
-                        weight: set.weight
-                    })),
+                    performed_sets_data: exercise.performed_sets_data.map(set => {
+                        // Format based on set_type
+                        if (exercise.set_type === 'reps_only') {
+                            return { reps: set.reps };
+                        } else if (exercise.set_type === 'duration') {
+                            return { duration: set.duration };
+                        } else {
+                            // weight_reps (default)
+                            return { reps: set.reps, weight: set.weight };
+                        }
+                    }),
                     weight_unit: exercise.weight_unit || 'kg',
                     exercise_notes: exercise.exercise_notes || '',
                     order: exercise.order ?? index

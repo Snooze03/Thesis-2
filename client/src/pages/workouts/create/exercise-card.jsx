@@ -386,8 +386,18 @@ function ExerciseCard({ exercise, templateMode, onRemove, onUpdate }) {
                     <div className="grid grid-cols-[.16fr_.4fr_.5fr_.5fr_auto] gap-3 place-items-center">
                         <p className="text-sm text-gray-600">Sets</p>
                         <p className="text-sm text-gray-600">Previous</p>
-                        <p className="text-sm text-gray-600">Weight ({currentWeightUnit})</p>
-                        <p className="text-sm text-gray-600">Reps</p>
+                        {currentSetType === 'weight_reps' && (
+                            <>
+                                <p className="text-sm text-gray-600">Weight ({currentWeightUnit})</p>
+                                <p className="text-sm text-gray-600">Reps</p>
+                            </>
+                        )}
+                        {currentSetType === 'reps_only' && (
+                            <p className="text-sm text-gray-600 col-span-2">Reps</p>
+                        )}
+                        {currentSetType === 'duration' && (
+                            <p className="text-sm text-gray-600 col-span-2">Duration (MM:SS)</p>
+                        )}
                         <div className={clsx("w-4", { "w-7": isStartMode })}></div>
                     </div>
 

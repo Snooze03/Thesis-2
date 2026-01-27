@@ -70,6 +70,7 @@ export function HistoryItem({ workout }) {
                         {workout.performed_exercises?.map((exercise, index) => {
                             const unit = exercise.weight_unit || 'kg';
                             const volume = exercise.total_volume || 0;
+                            { console.log(exercise); }
 
                             return (
                                 <div key={exercise.id} className="flex justify-between items-center text-sm">
@@ -77,7 +78,10 @@ export function HistoryItem({ workout }) {
                                         {index + 1}. {exercise.exercise_name}
                                     </span>
                                     <span className="text-gray-500 font-mono text-xs">
-                                        {exercise.total_sets_performed} sets • {volume.toFixed(1)}{unit}
+                                        {exercise.total_sets_performed} sets
+                                        {exercise.set_type === 'weight_reps' && ` • ${volume.toFixed(1)}${unit}`}
+                                        {exercise.set_type === 'reps_only' && exercise.formatted_sets_display && ` • ${exercise.formatted_sets_display}`}
+                                        {exercise.set_type === 'duration' && exercise.formatted_sets_display && ` • ${exercise.formatted_sets_display}`}
                                     </span>
                                 </div>
                             );

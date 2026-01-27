@@ -27,7 +27,15 @@ export function useTemplates() {
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
                     set_type: exercise.set_type || 'weight_reps', // ← ADD THIS
-                    sets_data: exercise.sets_data || [],
+                    sets_data: exercise.sets_data.map(set => {
+                        if (exercise.set_type === 'reps_only') {
+                            return { reps: set.reps };
+                        } else if (exercise.set_type === 'duration') {
+                            return { duration: set.duration };
+                        } else {
+                            return { reps: set.reps, weight: set.weight };
+                        }
+                    }) || [],
                     weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),
                     notes: exercise.notes || ''
@@ -53,6 +61,7 @@ export function useTemplates() {
     // Update template
     const updateTemplate = useMutation({
         mutationFn: async ({ templateId, templateData }) => {
+            templateData.exercises.map(exercise => { console.log(exercise.sets_data) })
             const formattedData = {
                 ...templateData,
                 exercises: templateData.exercises.map(exercise => ({
@@ -67,7 +76,15 @@ export function useTemplates() {
                     difficulty: exercise.difficulty || '',
                     instructions: exercise.instructions || '',
                     set_type: exercise.set_type || 'weight_reps', // ← ADD THIS
-                    sets_data: exercise.sets_data || [],
+                    sets_data: exercise.sets_data.map(set => {
+                        if (exercise.set_type === 'reps_only') {
+                            return { reps: 1 };
+                        } else if (exercise.set_type === 'duration') {
+                            return { duration: "01:00" };
+                        } else {
+                            return { reps: set.reps, weight: set.weight };
+                        }
+                    }) || [],
                     weight_unit: exercise.weight_unit || 'kg',
                     rest_time: formatRestTime(exercise.rest_time),
                     notes: exercise.notes || '',

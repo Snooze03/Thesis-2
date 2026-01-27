@@ -49,6 +49,8 @@ class TemplateExerciseSerializer(serializers.ModelSerializer):
     exercise = ExerciseSerializer(read_only=True)
     exercise_name = serializers.CharField(source="exercise.name", read_only=True)
     formatted_sets_display = serializers.CharField(read_only=True)
+    suggested_sets = serializers.SerializerMethodField()
+    has_previous_data = serializers.SerializerMethodField()
 
     class Meta:
         model = TemplateExercise
@@ -57,15 +59,27 @@ class TemplateExerciseSerializer(serializers.ModelSerializer):
             "template",
             "exercise",
             "exercise_name",
-            "set_type",  # Added
+            "set_type",
             "sets_data",
+            "previous_sets_data",
             "weight_unit",
             "total_sets",
             "rest_time",
             "notes",
             "order",
             "formatted_sets_display",
+            "suggested_sets",
+            "has_previous_data",
         ]
+
+    # ← ADD THESE TWO METHODS:
+    def get_suggested_sets(self, obj):
+        """Get progressive overload suggestions"""
+        return obj.get_progressive_overload_suggestion()
+
+    def get_has_previous_data(self, obj):
+        """Check if there's previous workout data"""
+        return bool(obj.previous_sets_data)
 
     def validate_set_type(self, value):
         """Validate set_type using centralized validator"""

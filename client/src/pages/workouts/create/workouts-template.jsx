@@ -141,6 +141,10 @@ export function WorkoutsTemplate() {
                         rest_time: restTimeInSeconds,
                         notes: templateExercise.notes || '',
 
+                        previous_sets_data: templateExercise.previous_sets_data || [],
+                        suggested_sets: templateExercise.suggested_sets || [],
+                        has_previous_data: templateExercise.has_previous_data || false,
+
                         // Additional metadata for editing/starting - CRUCIAL FOR UPDATES
                         template_exercise_id: templateExercise.id,
                         order: templateExercise.order || 0,
@@ -541,6 +545,7 @@ export function WorkoutsTemplate() {
                         </div>
                         <div className="space-y-4">
                             {exercisesArray.map((exercise, index) => {
+                                // { console.log("Rendering Exercise:", exercise); }
                                 const exerciseKey = `${exercise.name}_${exercise.muscle || 'no_muscle'}`;
                                 return (
                                     <div key={exerciseKey} className="relative group">

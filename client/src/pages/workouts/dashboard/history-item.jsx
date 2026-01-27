@@ -70,7 +70,6 @@ export function HistoryItem({ workout }) {
                         {workout.performed_exercises?.map((exercise, index) => {
                             const unit = exercise.weight_unit || 'kg';
                             const volume = exercise.total_volume || 0;
-                            { console.log(exercise); }
 
                             return (
                                 <div key={exercise.id} className="flex justify-between items-center text-sm">

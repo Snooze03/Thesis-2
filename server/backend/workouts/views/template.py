@@ -393,6 +393,22 @@ class TemplateViewSet(viewsets.ModelViewSet):
             try:
                 workout_history = serializer.save()
 
+                #  Update previous_sets_data for each template exercise
+                template_id = request.data.get("template_id")
+                if template_id:
+                    for exercise_data in request.data.get("completed_exercises", []):
+                        try:
+                            template_exercise = TemplateExercise.objects.get(
+                                template_id=template_id,
+                                exercise_id=exercise_data["exercise_id"],
+                            )
+                            template_exercise.previous_sets_data = exercise_data[
+                                "performed_sets_data"
+                            ]
+                            template_exercise.save(update_fields=["previous_sets_data"])
+                        except TemplateExercise.DoesNotExist:
+                            continue
+
                 # Return the created workout history with all related data
                 response_serializer = TemplateHistorySerializer(workout_history)
 

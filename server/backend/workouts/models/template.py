@@ -65,6 +65,12 @@ class TemplateExercise(models.Model):
         help_text="Array of objects containing set data based on set_type",
     )
 
+    previous_sets_data = JSONField(
+        default=list,
+        blank=True,
+        help_text="Last performed sets data from previous workout session",
+    )
+
     # Weight unit preference for this exercise (only applies to weight_reps)
     weight_unit = models.CharField(
         max_length=3,
@@ -89,6 +95,79 @@ class TemplateExercise(models.Model):
     class Meta:
         unique_together = ("template", "exercise")
         ordering = ["order", "created_at"]
+
+    def get_progressive_overload_suggestion(self):
+        """
+        Generate suggested sets based on previous_sets_data
+        Returns: list of suggested set objects (max 3 sets)
+        """
+        if not self.previous_sets_data:
+            # No history - return empty list
+            return []
+
+        suggested_sets = []
+
+        # Limit to max 3 sets
+        for set_data in self.previous_sets_data[:3]:
+            if self.set_type == SetTypeChoices.WEIGHT_REPS:
+                suggested_sets.append(self._suggest_weight_reps(set_data))
+            elif self.set_type == SetTypeChoices.REPS_ONLY:
+                suggested_sets.append(self._suggest_reps_only(set_data))
+            elif self.set_type == SetTypeChoices.DURATION:
+                suggested_sets.append(self._suggest_duration(set_data))
+
+        return suggested_sets
+
+    def _suggest_weight_reps(self, previous_set):
+        """
+        Suggest next weight/reps based on previous
+        Strategy:
+        - If reps >= 15: Add weight (2.5kg or 5lbs), reset to 6 reps
+        - Else: Add 1 rep
+        """
+        prev_reps = previous_set.get("reps", 6)
+        prev_weight = previous_set.get("weight", 0)
+
+        if prev_reps >= 15:
+            # Hit rep ceiling - increase weight, reset reps
+            increment = 2.5 if self.weight_unit == WeightUnitChoices.KG else 5
+            return {"reps": 6, "weight": prev_weight + increment}
+        else:
+            # Increase reps by 2
+            return {"reps": prev_reps + 2, "weight": prev_weight}
+
+    def _suggest_reps_only(self, previous_set):
+        """
+        Suggest next reps
+        Strategy: Add 1-2 reps, cap at 30
+        """
+        prev_reps = previous_set.get("reps", 10)
+        # Increase by 1 or 2 reps, cap at 30
+        increment = 2 if prev_reps < 15 else 1
+        return {"reps": min(prev_reps + increment, 30)}
+
+    def _suggest_duration(self, previous_set):
+        """
+        Suggest next duration
+        Strategy: Add 10 seconds, cap at 5 minutes
+        """
+        prev_duration = previous_set.get("duration", "00:30")
+
+        # Parse MM:SS
+        try:
+            minutes, seconds = map(int, prev_duration.split(":"))
+        except (ValueError, AttributeError):
+            minutes, seconds = 0, 30
+
+        total_seconds = (minutes * 60) + seconds + 10  # Add 10 seconds
+
+        # Cap at 5 minutes (300 seconds)
+        total_seconds = min(total_seconds, 300)
+
+        new_minutes = total_seconds // 60
+        new_seconds = total_seconds % 60
+
+        return {"duration": f"{new_minutes:02d}:{new_seconds:02d}"}
 
     def save(self, *args, **kwargs):
         """Override save to ensure total_sets matches sets_data length"""

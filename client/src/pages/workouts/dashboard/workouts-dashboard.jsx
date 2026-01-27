@@ -82,7 +82,6 @@ function TemplatesList({ title, templates, isLoading, onCreateClick }) {
                     {templates.map((item) => (
                         <>
                             <TemplateItem key={item.id} templateData={item} />
-                            {console.log(item)}
                         </>
 
                     ))}
